@@ -31,6 +31,10 @@ import {
   EvaluationPanel,
   type EvaluationValues,
 } from "@/components/escalas/evaluation-panel";
+import {
+  ServiceOrderCard,
+  type ServiceItem,
+} from "@/components/escalas/service-order-card";
 
 export default async function EventoDetailPage({
   params,
@@ -48,6 +52,7 @@ export default async function EventoDetailPage({
   const [
     { data: event, error: eventError },
     { data: assignments, error: assignmentsError },
+    { data: serviceItems, error: serviceItemsError },
   ] = await Promise.all([
     supabase
       .from("events")
@@ -65,6 +70,12 @@ export default async function EventoDetailPage({
       .eq("event_id", id)
       .eq("ministry_id", activeMinistryId)
       .order("created_at"),
+    supabase
+      .from("service_items")
+      .select("id, type, title, notes, duration_minutes, position")
+      .eq("church_id", tenant.church.id)
+      .eq("event_id", id)
+      .order("position"),
   ]);
 
   if (eventError) console.error("evento:", eventError);
@@ -430,6 +441,27 @@ export default async function EventoDetailPage({
               </Card>
             )}
           </>
+        )}
+      </section>
+
+      <section className="space-y-3" aria-labelledby="ordem-culto-title">
+        <h2
+          id="ordem-culto-title"
+          className="px-1 text-lg font-semibold tracking-tight"
+        >
+          Ordem do Culto
+        </h2>
+        {serviceItemsError ? (
+          <LoadError oQue="a ordem do culto" />
+        ) : (
+          <ServiceOrderCard
+            churchSlug={churchSlug}
+            churchId={tenant.church.id}
+            eventId={id}
+            startsAt={event.starts_at}
+            items={(serviceItems ?? []) as ServiceItem[]}
+            canManage={canManage}
+          />
         )}
       </section>
 
