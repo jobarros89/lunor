@@ -53,10 +53,10 @@ export function rotuloUltimaVez(ultimaVez: string | null): string {
  */
 export function listaParaHolyrics(itens: SetlistItem[]): string {
   return itens
-    .map((i) => {
+    .map((i, index) => {
       const tom = tomDoCulto(i);
       const artista = i.songs.artist ? ` — ${i.songs.artist}` : "";
-      return `${i.position}. ${i.songs.title}${artista}${tom ? ` (${tom})` : ""}`;
+      return `${index + 1}. ${i.songs.title}${artista}${tom ? ` (${tom})` : ""}`;
     })
     .join("\n");
 }

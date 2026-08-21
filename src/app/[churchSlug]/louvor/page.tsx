@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Music } from "lucide-react";
+import { ChevronRight, Music } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { rotuloUltimaVez, type Song } from "@/lib/louvor";
 import { getLouvorMinistry } from "@/lib/louvor-server";
@@ -90,18 +91,25 @@ export default async function LouvorPage({
         </CardHeader>
         <CardContent className="space-y-2">
           {acervo.map((s) => (
-            <div key={s.id} className="rounded-2xl border px-4 py-3">
-              <p className="font-medium">{s.title}</p>
-              <p className="text-sm text-muted-foreground">
-                {s.artist}
-                {s.artist ? " · " : ""}
-                {s.default_key && `tom ${s.default_key}`}
-                {s.bpm ? ` · ${s.bpm} bpm` : ""}
-              </p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {rotuloUltimaVez(ultima.get(s.id) ?? null)}
-              </p>
-            </div>
+            <Link
+              key={s.id}
+              href={`/${churchSlug}/louvor/${s.id}`}
+              className="flex items-center gap-3 rounded-2xl border px-4 py-3 transition-colors hover:bg-accent/40"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{s.title}</p>
+                <p className="truncate text-sm text-muted-foreground">
+                  {s.artist}
+                  {s.artist ? " · " : ""}
+                  {s.default_key && `tom ${s.default_key}`}
+                  {s.bpm ? ` · ${s.bpm} bpm` : ""}
+                </p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {rotuloUltimaVez(ultima.get(s.id) ?? null)}
+                </p>
+              </div>
+              <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+            </Link>
           ))}
           {acervo.length === 0 && (
             <p className="text-sm text-muted-foreground">

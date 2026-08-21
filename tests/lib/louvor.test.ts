@@ -100,4 +100,12 @@ describe("listaParaHolyrics", () => {
   it("repertório vazio vira string vazia, não quebra", () => {
     expect(listaParaHolyrics([])).toBe("");
   });
+
+  it("numera pela sequência exibida mesmo quando há lacunas nas posições", () => {
+    const texto = listaParaHolyrics([
+      item({ position: 1 }),
+      item({ id: "i2", position: 3, songs: song({ id: "s2" }) }),
+    ]);
+    expect(texto).toContain("\n2. Bondade de Deus");
+  });
 });

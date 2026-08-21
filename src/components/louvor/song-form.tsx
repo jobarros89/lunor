@@ -1,37 +1,58 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
+import { createSong, updateSong } from "@/lib/actions/louvor";
+import type { Song } from "@/lib/louvor";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { createSong } from "@/lib/actions/louvor";
 
-export function SongForm({
-  churchSlug,
-  churchId,
-}: {
+type SongFormProps = {
   churchSlug: string;
   churchId: string;
-}) {
-  const [aberto, setAberto] = useState(false);
+} & ({ mode?: "create"; song?: never } | { mode: "edit"; song: Song });
+
+export function SongForm(props: SongFormProps) {
+  const { churchSlug, churchId } = props;
+  const isEdit = props.mode === "edit";
+  const song = isEdit ? props.song : null;
+  const router = useRouter();
+  const [aberto, setAberto] = useState(isEdit);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function salvar(form: FormData) {
+    const payload = {
+      churchSlug,
+      churchId,
+      title: String(form.get("title") ?? ""),
+      artist: String(form.get("artist") ?? ""),
+      defaultKey: String(form.get("defaultKey") ?? ""),
+      bpm: form.get("bpm") ? Number(form.get("bpm")) : undefined,
+      lyrics: String(form.get("lyrics") ?? ""),
+      link: String(form.get("link") ?? ""),
+    };
+
     setErro(null);
     startTransition(async () => {
-      const r = await createSong({
-        churchSlug,
-        churchId,
-        title: String(form.get("title") ?? ""),
-        artist: String(form.get("artist") ?? ""),
-        defaultKey: String(form.get("defaultKey") ?? ""),
-        bpm: form.get("bpm") ? Number(form.get("bpm")) : undefined,
-        lyrics: String(form.get("lyrics") ?? ""),
-        link: String(form.get("link") ?? ""),
-      });
-      if (!r.ok) setErro(r.error ?? "Não deu certo");
-      else setAberto(false);
+      if (song) {
+        const result = await updateSong({ ...payload, songId: song.id });
+        if (!result.ok) {
+          setErro(result.error ?? "Não foi possível salvar a música");
+          return;
+        }
+        router.push(`/${churchSlug}/louvor/${song.id}`);
+        return;
+      }
+
+      const result = await createSong(payload);
+      if (!result.ok) {
+        setErro(result.error ?? "Não foi possível cadastrar a música");
+        return;
+      }
+      router.push(`/${churchSlug}/louvor/${result.data.songId}`);
     });
   }
 
@@ -45,30 +66,88 @@ export function SongForm({
   }
 
   return (
-    <form action={salvar} className="space-y-3">
-      <Input name="title" placeholder="Nome da música" required className="h-11 rounded-2xl" />
-      <Input name="artist" placeholder="Artista (opcional)" className="h-11 rounded-2xl" />
-      <div className="flex gap-2">
-        <Input name="defaultKey" placeholder="Tom (G)" className="h-11 rounded-2xl" />
-        <Input name="bpm" type="number" placeholder="BPM" className="h-11 rounded-2xl" />
+    <form action={salvar} className="space-y-4">
+      <Field label="Título" required>
+        <Input
+          name="title"
+          defaultValue={song?.title ?? ""}
+          placeholder="Nome da música"
+          required
+          maxLength={160}
+          className="h-11 rounded-xl"
+        />
+      </Field>
+
+      <Field label="Artista">
+        <Input
+          name="artist"
+          defaultValue={song?.artist ?? ""}
+          placeholder="Artista (opcional)"
+          maxLength={120}
+          className="h-11 rounded-xl"
+        />
+      </Field>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Tom padrão">
+          <Input
+            name="defaultKey"
+            defaultValue={song?.default_key ?? ""}
+            maxLength={8}
+            placeholder="Ex.: G"
+            className="h-11 rounded-xl"
+          />
+        </Field>
+        <Field label="BPM">
+          <Input
+            name="bpm"
+            type="number"
+            defaultValue={song?.bpm ?? ""}
+            min={20}
+            max={300}
+            placeholder="20–300"
+            className="h-11 rounded-xl"
+          />
+        </Field>
       </div>
-      <Input name="link" placeholder="Link do YouTube ou cifra (opcional)" className="h-11 rounded-2xl" />
-      <textarea
-        name="lyrics"
-        placeholder="Letra — é o que a equipe lê para ensaiar"
-        rows={8}
-        className="w-full rounded-xl border bg-background p-3 text-base md:text-sm"
-      />
+
+      <Field label="Link de referência">
+        <Input
+          name="link"
+          defaultValue={song?.link ?? ""}
+          maxLength={500}
+          placeholder="YouTube, cifra ou outra referência"
+          className="h-11 rounded-xl"
+        />
+      </Field>
+
+      <Field label="Letra">
+        <textarea
+          name="lyrics"
+          defaultValue={song?.lyrics ?? ""}
+          maxLength={20000}
+          rows={isEdit ? 14 : 8}
+          placeholder="Letra — é o que a equipe lê para ensaiar"
+          className="w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+        />
+      </Field>
+
       {erro && <p className="text-sm text-destructive">{erro}</p>}
-      <div className="flex gap-2">
+
+      <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={pending} className="h-11 rounded-full">
-          {pending ? "Salvando…" : "Salvar no acervo"}
+          {pending
+            ? "Salvando…"
+            : isEdit
+              ? "Salvar alterações"
+              : "Salvar no acervo"}
         </Button>
         <Button
           type="button"
           variant="ghost"
           className="h-11 rounded-full"
-          onClick={() => setAberto(false)}
+          disabled={pending}
+          onClick={() => (isEdit ? router.back() : setAberto(false))}
         >
           Cancelar
         </Button>

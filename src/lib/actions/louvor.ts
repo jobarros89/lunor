@@ -9,7 +9,7 @@ import type { ActionResult } from "./types";
 const songSchema = z.object({
   churchSlug: z.string().min(2),
   churchId: z.string().uuid(),
-  title: z.string().min(1, "Informe o nome da música").max(160),
+  title: z.string().trim().min(1, "Informe o nome da música").max(160),
   artist: z.string().max(120).default(""),
   defaultKey: z.string().max(8).default(""),
   bpm: z.coerce.number().int().min(20).max(300).optional(),
@@ -18,27 +18,33 @@ const songSchema = z.object({
 });
 
 /** Cadastra a música no acervo da igreja — uma vez, para usar em todos os cultos. */
-export async function createSong(raw: unknown): Promise<ActionResult> {
+export async function createSong(
+  raw: unknown
+): Promise<ActionResult<{ songId: string }>> {
   const parsed = songSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const d = parsed.data;
   const supabase = await createClient();
 
-  const { error } = await supabase.from("songs").insert({
-    church_id: d.churchId,
-    title: d.title,
-    artist: d.artist || null,
-    default_key: d.defaultKey || null,
-    bpm: d.bpm ?? null,
-    lyrics: d.lyrics || null,
-    link: d.link || null,
-  });
-  if (error) {
-    if (error.code === "23505") return { ok: false, error: "Essa música já está no acervo" };
+  const { data: created, error } = await supabase
+    .from("songs")
+    .insert({
+      church_id: d.churchId,
+      title: d.title,
+      artist: d.artist || null,
+      default_key: d.defaultKey || null,
+      bpm: d.bpm ?? null,
+      lyrics: d.lyrics || null,
+      link: d.link || null,
+    })
+    .select("id")
+    .single();
+  if (error || !created) {
+    if (error?.code === "23505") return { ok: false, error: "Essa música já está no acervo" };
     return { ok: false, error: "Sem permissão para mexer no acervo" };
   }
   revalidatePath(`/${d.churchSlug}/louvor`);
-  return { ok: true, data: undefined };
+  return { ok: true, data: { songId: created.id } };
 }
 
 const updateSongSchema = songSchema.extend({ songId: z.string().uuid() });
@@ -49,7 +55,7 @@ export async function updateSong(raw: unknown): Promise<ActionResult> {
   const d = parsed.data;
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("songs")
     .update({
       title: d.title,
@@ -60,9 +66,14 @@ export async function updateSong(raw: unknown): Promise<ActionResult> {
       link: d.link || null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", d.songId);
-  if (error) return { ok: false, error: "Sem permissão para editar a música" };
+    .eq("id", d.songId)
+    .eq("church_id", d.churchId)
+    .select("id")
+    .maybeSingle();
+  if (error || !updated)
+    return { ok: false, error: "Sem permissão para editar a música" };
   revalidatePath(`/${d.churchSlug}/louvor`);
+  revalidatePath(`/${d.churchSlug}/louvor/${d.songId}`);
   return { ok: true, data: undefined };
 }
 
@@ -73,9 +84,15 @@ export async function archiveSong(
   active: boolean
 ): Promise<ActionResult> {
   const supabase = await createClient();
-  const { error } = await supabase.from("songs").update({ active }).eq("id", songId);
-  if (error) return { ok: false, error: "Sem permissão" };
+  const { data: updated, error } = await supabase
+    .from("songs")
+    .update({ active })
+    .eq("id", songId)
+    .select("id")
+    .maybeSingle();
+  if (error || !updated) return { ok: false, error: "Sem permissão" };
   revalidatePath(`/${churchSlug}/louvor`);
+  revalidatePath(`/${churchSlug}/louvor/${songId}`);
   return { ok: true, data: undefined };
 }
 
@@ -95,13 +112,24 @@ export async function addToSetlist(raw: unknown): Promise<ActionResult> {
   const d = parsed.data;
   const supabase = await createClient();
 
-  const { data: ultimo } = await supabase
-    .from("setlist_items")
-    .select("position")
-    .eq("event_id", d.eventId)
-    .order("position", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [{ data: song }, { data: ultimo }] = await Promise.all([
+    supabase
+      .from("songs")
+      .select("id")
+      .eq("id", d.songId)
+      .eq("church_id", d.churchId)
+      .eq("active", true)
+      .maybeSingle(),
+    supabase
+      .from("setlist_items")
+      .select("position")
+      .eq("church_id", d.churchId)
+      .eq("event_id", d.eventId)
+      .order("position", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (!song) return { ok: false, error: "Música ativa não encontrada neste acervo" };
 
   const { error } = await supabase.from("setlist_items").insert({
     church_id: d.churchId,
@@ -125,8 +153,14 @@ export async function removeFromSetlist(
   itemId: string
 ): Promise<ActionResult> {
   const supabase = await createClient();
-  const { error } = await supabase.from("setlist_items").delete().eq("id", itemId);
-  if (error) return { ok: false, error: "Sem permissão" };
+  const { data: removed, error } = await supabase
+    .from("setlist_items")
+    .delete()
+    .eq("id", itemId)
+    .eq("event_id", eventId)
+    .select("id")
+    .maybeSingle();
+  if (error || !removed) return { ok: false, error: "Sem permissão para remover" };
   revalidatePath(`/${churchSlug}/escalas/${eventId}`);
   return { ok: true, data: undefined };
 }
@@ -155,18 +189,58 @@ export async function moveSetlistItem(
 
   const i = itens.findIndex((x) => x.id === itemId);
   const j = direcao === "cima" ? i - 1 : i + 1;
-  if (i < 0 || j < 0 || j >= itens.length) return { ok: true, data: undefined };
+  if (i < 0) return { ok: false, error: "Item não encontrado neste repertório" };
+  if (j < 0 || j >= itens.length) return { ok: true, data: undefined };
 
   const atual = itens[i];
   const vizinha = itens[j];
   const estacionamento = Math.max(...itens.map((x) => x.position)) + 1;
-  const { error } = await supabase
+  const { data: vizinhaEstacionada, error } = await supabase
     .from("setlist_items")
     .update({ position: estacionamento })
-    .eq("id", vizinha.id);
-  if (error) return { ok: false, error: "Sem permissão para reordenar" };
-  await supabase.from("setlist_items").update({ position: vizinha.position }).eq("id", atual.id);
-  await supabase.from("setlist_items").update({ position: atual.position }).eq("id", vizinha.id);
+    .eq("id", vizinha.id)
+    .eq("event_id", eventId)
+    .select("id")
+    .maybeSingle();
+  if (error || !vizinhaEstacionada)
+    return { ok: false, error: "Sem permissão para reordenar" };
+
+  const { data: atualMovido, error: atualError } = await supabase
+    .from("setlist_items")
+    .update({ position: vizinha.position })
+    .eq("id", atual.id)
+    .eq("event_id", eventId)
+    .select("id")
+    .maybeSingle();
+  if (atualError || !atualMovido) {
+    await supabase
+      .from("setlist_items")
+      .update({ position: vizinha.position })
+      .eq("id", vizinha.id)
+      .eq("event_id", eventId);
+    return { ok: false, error: "Não foi possível alterar a ordem" };
+  }
+
+  const { data: vizinhaMovida, error: vizinhaError } = await supabase
+    .from("setlist_items")
+    .update({ position: atual.position })
+    .eq("id", vizinha.id)
+    .eq("event_id", eventId)
+    .select("id")
+    .maybeSingle();
+  if (vizinhaError || !vizinhaMovida) {
+    await supabase
+      .from("setlist_items")
+      .update({ position: atual.position })
+      .eq("id", atual.id)
+      .eq("event_id", eventId);
+    await supabase
+      .from("setlist_items")
+      .update({ position: vizinha.position })
+      .eq("id", vizinha.id)
+      .eq("event_id", eventId);
+    return { ok: false, error: "Não foi possível concluir a nova ordem" };
+  }
 
   revalidatePath(`/${churchSlug}/escalas/${eventId}`);
   return { ok: true, data: undefined };

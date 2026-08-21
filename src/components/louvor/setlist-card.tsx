@@ -65,8 +65,6 @@ export function SetlistCard({
     });
   }
 
-  if (itens.length === 0 && !podeEditar) return null;
-
   return (
     <Card className="rounded-3xl">
       <CardHeader>
@@ -99,15 +97,21 @@ export function SetlistCard({
             <div key={item.id} className="rounded-2xl border">
               <div className="flex items-start gap-3 px-4 py-3">
                 <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                  {item.position}
+                  {i + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium">{item.songs.title}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium">{item.songs.title}</p>
+                    {tom && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">
+                        Tom {tom}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     {item.songs.artist}
-                    {item.songs.artist && tom ? " · " : ""}
-                    {tom && `tom ${tom}`}
-                    {item.songs.bpm ? ` · ${item.songs.bpm} bpm` : ""}
+                    {item.songs.artist && item.songs.bpm ? " · " : ""}
+                    {item.songs.bpm ? `${item.songs.bpm} bpm` : ""}
                   </p>
                   {item.notes && (
                     <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
