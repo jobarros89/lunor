@@ -1,12 +1,34 @@
+import { LogOut } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
+import { signOut } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { Sidebar } from "@/components/shell/sidebar";
 import { SectorSwitcher } from "@/components/shell/sector-switcher";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { SessionKeeper } from "@/components/shell/session-keeper";
+
+function ministryNavigation(ministry: { name: string; slug: string } | null) {
+  if (!ministry) return null;
+
+  const slug = ministry.slug.toLocaleLowerCase("pt-BR");
+  const name = ministry.name.toLocaleLowerCase("pt-BR");
+  if (slug === "louvor" || name.includes("louvor")) {
+    return { href: "/louvor", label: "Louvor", module: "louvor" as const };
+  }
+  if (slug === "infantil" || name.includes("infantil")) {
+    return {
+      href: "/infantil",
+      label: ministry.name,
+      module: "infantil" as const,
+    };
+  }
+
+  return null;
+}
 
 export default async function TenantLayout({
   children,
@@ -18,6 +40,7 @@ export default async function TenantLayout({
   const { churchSlug } = await params;
   const tenant = await getTenant(churchSlug);
   const { active, options } = await getActiveMinistry(churchSlug);
+  const activeMinistryNavigation = ministryNavigation(active);
 
   // escalas aguardando confirmação (status 'convidado', evento futuro) —
   // alimenta o aviso in-app (badge no ícone Escalas)
@@ -50,6 +73,7 @@ export default async function TenantLayout({
         churchName={tenant.church.name}
         canAdmin={tenant.isCoord}
         isLeader={tenant.isLeader}
+        activeMinistryNavigation={activeMinistryNavigation}
         escalasPending={escalasPending ?? 0}
       />
       <div className="md:pl-64">
@@ -78,6 +102,18 @@ export default async function TenantLayout({
                 />
               )}
               <ThemeToggle />
+              <form action={signOut}>
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  className="h-10 rounded-full px-3"
+                  aria-label="Sair"
+                  title="Sair"
+                >
+                  <LogOut className="size-4" />
+                  <span className="hidden lg:inline">Sair</span>
+                </Button>
+              </form>
             </div>
           </div>
         </header>
@@ -88,6 +124,7 @@ export default async function TenantLayout({
       <BottomNav
         churchSlug={churchSlug}
         isLeader={tenant.isLeader}
+        activeMinistryNavigation={activeMinistryNavigation}
         escalasPending={escalasPending ?? 0}
       />
     </div>

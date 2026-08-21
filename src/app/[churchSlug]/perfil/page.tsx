@@ -84,7 +84,7 @@ export default async function PerfilPage({
             <div>
               <p className="font-medium">Meu perfil completo</p>
               <p className="text-sm text-muted-foreground">
-                Aptidões, disponibilidade e minhas avaliações
+                Aptidões, interesses e disponibilidade
               </p>
             </div>
             <ChevronRight className="size-5 shrink-0 text-muted-foreground" />

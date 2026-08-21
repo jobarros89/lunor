@@ -28,10 +28,6 @@ import {
 } from "@/components/escalas/assignment-manager";
 import { MyAssignmentCard } from "@/components/escalas/my-assignment-card";
 import {
-  EvaluationPanel,
-  type EvaluationValues,
-} from "@/components/escalas/evaluation-panel";
-import {
   ServiceOrderCard,
   type ServiceItem,
 } from "@/components/escalas/service-order-card";
@@ -185,30 +181,6 @@ export default async function EventoDetailPage({
     interesses: string[];
   }[] = [];
   let equipments: { id: string; name: string }[] = [];
-  let evaluations = new Map<string, EvaluationValues>();
-  if (canManage) {
-    const { data: evals } = await supabase
-      .from("evaluations")
-      .select(
-        "assignment_id, pontualidade, organizacao, conhecimento, comunicacao, trabalho_equipe, comprometimento, notes"
-      )
-      .eq("church_id", tenant.church.id)
-      .eq("event_id", id);
-    evaluations = new Map(
-      (evals ?? []).map((e) => [
-        e.assignment_id,
-        {
-          pontualidade: e.pontualidade,
-          organizacao: e.organizacao,
-          conhecimento: e.conhecimento,
-          comunicacao: e.comunicacao,
-          trabalho_equipe: e.trabalho_equipe,
-          comprometimento: e.comprometimento,
-          notes: e.notes ?? "",
-        },
-      ])
-    );
-  }
   if (canManage) {
     // janela do mês do evento (para a "carga do mês") e o dia do evento
     const dt = new Date(event.starts_at);
@@ -410,6 +382,7 @@ export default async function EventoDetailPage({
           <>
             <SetlistCard
               churchSlug={churchSlug}
+              churchId={tenant.church.id}
               eventId={id}
               itens={itensRepertorio}
               publicado={event.setlist_status === "publicado"}
@@ -611,27 +584,6 @@ export default async function EventoDetailPage({
         </Card>
       )}
 
-      {canManage && rows.length > 0 && (
-        <Card className="rounded-3xl">
-          <CardHeader>
-            <CardTitle className="text-base">Avaliações</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {rows.map((a) => (
-              <EvaluationPanel
-                key={a.id}
-                churchSlug={churchSlug}
-                churchId={tenant.church.id}
-                eventId={id}
-                assignmentId={a.id}
-                userId={a.user_id}
-                fullName={a.full_name}
-                existing={evaluations.get(a.id) ?? null}
-              />
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

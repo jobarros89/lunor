@@ -2,22 +2,36 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, Camera, Home, User, Users, Wrench } from "lucide-react";
+import { Baby, Calendar, Camera, Home, Music2, User, Users, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav({
   churchSlug,
   isLeader,
+  activeMinistryNavigation,
   escalasPending = 0,
 }: {
   churchSlug: string;
   isLeader: boolean;
+  activeMinistryNavigation: {
+    href: string;
+    label: string;
+    module: "louvor" | "infantil";
+  } | null;
   escalasPending?: number;
 }) {
   const pathname = usePathname();
+  const ministryItem = activeMinistryNavigation
+    ? {
+        ...activeMinistryNavigation,
+        icon: activeMinistryNavigation.module === "louvor" ? Music2 : Baby,
+        badge: 0,
+      }
+    : null;
 
   const items = [
     { href: "", label: "Início", icon: Home, badge: 0 },
+    ...(ministryItem ? [ministryItem] : []),
     { href: "/escalas", label: "Escalas", icon: Calendar, badge: escalasPending },
     { href: "/equipamentos", label: "Equipamentos", icon: Camera, badge: 0 },
     ...(isLeader

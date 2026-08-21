@@ -7,6 +7,8 @@ import {
   Calendar,
   Camera,
   Home,
+  Music2,
+  Baby,
   Settings,
   User,
   Users,
@@ -14,29 +16,38 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const items = [
-  { href: "", label: "Início", icon: Home },
-  { href: "/escalas", label: "Escalas", icon: Calendar },
-  { href: "/equipamentos", label: "Equipamentos", icon: Camera },
-  { href: "/perfil", label: "Perfil", icon: User },
-];
-
 export function Sidebar({
   churchSlug,
   churchName,
   canAdmin,
   isLeader,
+  activeMinistryNavigation,
   escalasPending = 0,
 }: {
   churchSlug: string;
   churchName: string;
   canAdmin: boolean;
   isLeader: boolean;
+  activeMinistryNavigation: {
+    href: string;
+    label: string;
+    module: "louvor" | "infantil";
+  } | null;
   escalasPending?: number;
 }) {
   const pathname = usePathname();
+  const ministryItem = activeMinistryNavigation
+    ? {
+        ...activeMinistryNavigation,
+        icon: activeMinistryNavigation.module === "louvor" ? Music2 : Baby,
+      }
+    : null;
   const nav = [
-    ...items,
+    { href: "", label: "Início", icon: Home },
+    ...(ministryItem ? [ministryItem] : []),
+    { href: "/escalas", label: "Escalas", icon: Calendar },
+    { href: "/equipamentos", label: "Equipamentos", icon: Camera },
+    { href: "/perfil", label: "Perfil", icon: User },
     ...(isLeader
       ? [
           { href: "/pessoas", label: "Equipe", icon: Users },

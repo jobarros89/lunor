@@ -7,11 +7,14 @@ import {
   Copy,
   Check,
   Music,
+  Pencil,
   Send,
   Trash2,
   Undo2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -25,10 +28,12 @@ import {
   publishSetlist,
   removeFromSetlist,
   unpublishSetlist,
+  updateSetlistItemKey,
 } from "@/lib/actions/louvor";
 
 type Props = {
   churchSlug: string;
+  churchId: string;
   eventId: string;
   itens: SetlistItem[];
   publicado: boolean;
@@ -39,6 +44,7 @@ type Props = {
 
 export function SetlistCard({
   churchSlug,
+  churchId,
   eventId,
   itens,
   publicado,
@@ -49,6 +55,7 @@ export function SetlistCard({
   const [erro, setErro] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [aberta, setAberta] = useState<string | null>(null);
+  const [editandoTom, setEditandoTom] = useState<string | null>(null);
 
   // A mídia projeta pelo Holyrics: o que ela precisa daqui é a lista em texto.
   async function copiarLista() {
@@ -57,11 +64,15 @@ export function SetlistCard({
     setTimeout(() => setCopiado(false), 2000);
   }
 
-  function agir(fn: () => Promise<{ ok: boolean; error?: string }>) {
+  function agir(
+    fn: () => Promise<{ ok: boolean; error?: string }>,
+    onSuccess?: () => void
+  ) {
     setErro(null);
     startTransition(async () => {
       const r = await fn();
       if (!r.ok) setErro(r.error ?? "Não deu certo");
+      else onSuccess?.();
     });
   }
 
@@ -92,6 +103,8 @@ export function SetlistCard({
 
         {itens.map((item, i) => {
           const tom = item.key_override ?? item.songs.default_key;
+          const mostrarOriginal =
+            !!item.songs.default_key && item.songs.default_key !== tom;
           const temLetra = !!item.songs.lyrics;
           return (
             <div key={item.id} className="rounded-2xl border">
@@ -104,15 +117,68 @@ export function SetlistCard({
                     <p className="font-medium">{item.songs.title}</p>
                     {tom && (
                       <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">
-                        Tom {tom}
+                        Tom do culto: {tom}
                       </span>
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {item.songs.artist}
-                    {item.songs.artist && item.songs.bpm ? " · " : ""}
+                    {item.songs.artist && (mostrarOriginal || item.songs.bpm) ? " · " : ""}
+                    {mostrarOriginal ? `Original: ${item.songs.default_key}` : ""}
+                    {mostrarOriginal && item.songs.bpm ? " · " : ""}
                     {item.songs.bpm ? `${item.songs.bpm} bpm` : ""}
                   </p>
+                  {podeEditar && editandoTom === item.id && (
+                    <form
+                      action={(form) =>
+                        agir(
+                          () =>
+                            updateSetlistItemKey({
+                              churchSlug,
+                              churchId,
+                              eventId,
+                              itemId: item.id,
+                              keyOverride: String(form.get("keyOverride") ?? ""),
+                            }),
+                          () => setEditandoTom(null)
+                        )
+                      }
+                      className="mt-3 flex flex-wrap items-center gap-2"
+                    >
+                      <Input
+                        name="keyOverride"
+                        defaultValue={tom ?? ""}
+                        maxLength={8}
+                        placeholder="Ex.: D"
+                        aria-label={`Tom do culto para ${item.songs.title}`}
+                        className="h-10 w-28 rounded-xl"
+                        autoFocus
+                      />
+                      <Button
+                        type="submit"
+                        size="icon"
+                        className="size-10 rounded-full"
+                        disabled={pending}
+                        aria-label="Salvar tom"
+                      >
+                        <Check className="size-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-10 rounded-full"
+                        disabled={pending}
+                        onClick={() => setEditandoTom(null)}
+                        aria-label="Cancelar edição do tom"
+                      >
+                        <X className="size-4" />
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        Vazio usa o tom original
+                      </span>
+                    </form>
+                  )}
                   {item.notes && (
                     <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
                       {item.notes}
@@ -121,6 +187,15 @@ export function SetlistCard({
                 </div>
                 {podeEditar && (
                   <div className="flex shrink-0 gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={pending}
+                      onClick={() => setEditandoTom(item.id)}
+                      aria-label={`Editar tom de ${item.songs.title}`}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"

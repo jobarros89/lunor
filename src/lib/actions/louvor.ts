@@ -165,6 +165,44 @@ export async function removeFromSetlist(
   return { ok: true, data: undefined };
 }
 
+const updateSetlistKeySchema = z.object({
+  churchSlug: z.string().min(2),
+  churchId: z.string().uuid(),
+  eventId: z.string().uuid(),
+  itemId: z.string().uuid(),
+  keyOverride: z
+    .string()
+    .trim()
+    .max(8)
+    .regex(/^(?:[A-Ga-g](?:#|b)?m?)?$/, "Informe um tom como C, Bb ou F#m")
+    .transform((value) =>
+      value ? `${value[0].toUpperCase()}${value.slice(1)}` : ""
+    ),
+});
+
+/** Altera somente o tom usado por esta música neste culto. */
+export async function updateSetlistItemKey(raw: unknown): Promise<ActionResult> {
+  const parsed = updateSetlistKeySchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const d = parsed.data;
+  const supabase = await createClient();
+
+  const { data: updated, error } = await supabase
+    .from("setlist_items")
+    .update({ key_override: d.keyOverride || null })
+    .eq("id", d.itemId)
+    .eq("event_id", d.eventId)
+    .eq("church_id", d.churchId)
+    .select("id")
+    .maybeSingle();
+  if (error || !updated) {
+    return { ok: false, error: "Sem permissão para alterar o tom" };
+  }
+
+  revalidatePath(`/${d.churchSlug}/escalas/${d.eventId}`);
+  return { ok: true, data: undefined };
+}
+
 /**
  * Troca uma música de lugar na sequência.
  *

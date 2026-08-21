@@ -42,7 +42,6 @@ export default async function PessoaDetailPage({
     { data: allSkills },
     { data: ministries },
     { data: memberships },
-    { data: evaluations },
     { data: unavailability },
     { data: interests },
   ] = await Promise.all([
@@ -85,13 +84,6 @@ export default async function PessoaDetailPage({
       .eq("user_id", userId)
       .eq("active", true),
     supabase
-      .from("evaluations")
-      .select(
-        "pontualidade, organizacao, conhecimento, comunicacao, trabalho_equipe, comprometimento"
-      )
-      .eq("church_id", tenant.church.id)
-      .eq("user_id", userId),
-    supabase
       .from("unavailability")
       .select("id, start_date, end_date, reason")
       .eq("church_id", tenant.church.id)
@@ -131,24 +123,6 @@ export default async function PessoaDetailPage({
   const periodos = (profile.availability?.periodos ?? [])
     .map((p) => PERIODOS.find((x) => x.key === p)?.label ?? p)
     .join(", ");
-
-  const criterios = [
-    { key: "pontualidade", label: "Pontualidade" },
-    { key: "organizacao", label: "Organização" },
-    { key: "conhecimento", label: "Conhecimento" },
-    { key: "comunicacao", label: "Comunicação" },
-    { key: "trabalho_equipe", label: "Trabalho em equipe" },
-    { key: "comprometimento", label: "Comprometimento" },
-  ] as const;
-  const evals = evaluations ?? [];
-  const media = (key: (typeof criterios)[number]["key"]) =>
-    evals.length === 0
-      ? 0
-      : evals.reduce((s, e) => s + (e[key] as number), 0) / evals.length;
-  const mediaGeral =
-    evals.length === 0
-      ? 0
-      : criterios.reduce((s, c) => s + media(c.key), 0) / criterios.length;
 
   const skills = (memberSkills ?? []).map((ms) => ({
     skill_id: ms.skill_id,
@@ -210,44 +184,6 @@ export default async function PessoaDetailPage({
             {profile.availability?.tempoDisponivel && (
               <p>Tempo: {profile.availability.tempoDisponivel}</p>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {evals.length > 0 && (
-        <Card className="rounded-3xl">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Avaliações</CardTitle>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-semibold tracking-tight">
-                  {mediaGeral.toFixed(1)}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  / 5 · {evals.length}{" "}
-                  {evals.length === 1 ? "avaliação" : "avaliações"}
-                </span>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {criterios.map((c) => {
-              const m = media(c.key);
-              return (
-                <div key={c.key} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{c.label}</span>
-                    <span className="font-medium">{m.toFixed(1)}</span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-foreground/70"
-                      style={{ width: `${(m / 5) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
           </CardContent>
         </Card>
       )}
