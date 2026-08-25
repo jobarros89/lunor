@@ -20,10 +20,8 @@ jobs:
         with:
           node-version: 22
 
-      # npm install (não `ci`): o lockfile é gerado no Windows e não traz as
-      # dependências opcionais de plataforma Linux.
       - name: Instalar dependências
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Typecheck
         run: npx tsc --noEmit

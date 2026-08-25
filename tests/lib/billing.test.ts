@@ -43,7 +43,8 @@ describe("proximoVencimento", () => {
 
 describe("diasRestantes", () => {
   it("conta os dias que faltam", () => {
-    expect(diasRestantes("2026-07-25")).toBeGreaterThan(0);
+    const futuro = new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10);
+    expect(diasRestantes(futuro)).toBeGreaterThan(0);
   });
   it("fica negativo quando vencido", () => {
     expect(diasRestantes("2020-01-01")).toBeLessThan(0);
