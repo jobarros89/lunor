@@ -2,31 +2,24 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   // entry próprio: reexporta o fetch do OpenNext e acrescenta o `scheduled`
   "main": "worker.js",
-  "name": "acts",
+  "name": "lunor-dev",
   "compatibility_date": "2025-04-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "routes": [
-    {
-      "pattern": "acts.seu-dominio.exemplo",
-      "custom_domain": true
-    }
-  ],
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "acts"
+      "service": "lunor-dev"
     }
   ],
-  // 12:00 UTC = 09:00 em Brasília. Os lembretes são de véspera, então o
-  // horário só precisa cair de manhã, com o dia inteiro para reagir.
-  // O subdomínio workers.dev existe só porque a Cloudflare o exige para
-  // aceitar Cron Triggers. O app NÃO deve ficar acessível por ele — só pelo
-  // domínio próprio.
-  "workers_dev": false,
+  // Ambiente compartilhado de desenvolvimento. O domínio próprio será
+  // configurado somente quando houver um ambiente de produção separado.
+  "workers_dev": true,
+  // 12:00 UTC = 09:00 em Brasília. Sem CRON_SECRET configurado, o handler
+  // encerra com 404 e não consulta o Supabase.
   "triggers": {
     "crons": ["0 12 * * *"]
   },
