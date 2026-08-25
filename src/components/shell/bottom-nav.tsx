@@ -30,8 +30,8 @@ export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, esca
   ];
 
   return (
-    <nav aria-label="Navegação principal" className="fixed inset-x-0 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-50 px-2 md:hidden">
-      <div className="mx-auto flex h-14 w-full max-w-md items-center gap-0.5 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 p-1 shadow-xl shadow-black/30 backdrop-blur-xl">
+    <nav aria-label="Navegação principal" className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-2 top-[max(4.75rem,env(safe-area-inset-top))] z-50 flex items-center md:hidden">
+      <div className="flex w-14 flex-col items-center gap-1 rounded-2xl border border-white/10 bg-zinc-950/95 p-1.5 shadow-xl shadow-black/30 backdrop-blur-xl">
         {items.map(({ href, label, icon: Icon, badge }) => {
           const full = `/${churchSlug}${href}`;
           const active = href === "" ? pathname === full : pathname.startsWith(full);
@@ -43,14 +43,14 @@ export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, esca
               aria-current={active ? "page" : undefined}
               title={label}
               className={cn(
-                "relative flex h-11 min-w-0 items-center justify-center gap-2 overflow-hidden rounded-xl px-2 transition-[flex,color,background-color] duration-300",
-                active ? "flex-[1.75] bg-[#6e5ce6] text-white" : "flex-1 text-zinc-400 hover:bg-white/8 hover:text-white"
+                "relative flex size-11 shrink-0 flex-col items-center justify-center overflow-hidden rounded-xl transition-colors duration-200",
+                active ? "bg-[#6e5ce6] text-white" : "text-zinc-400 hover:bg-white/8 hover:text-white"
               )}
             >
               <Icon className="size-[19px] shrink-0" strokeWidth={active ? 2.25 : 1.75} />
-              <span className={cn("truncate text-xs font-semibold transition-opacity duration-200", active ? "opacity-100" : "sr-only opacity-0")}>{label}</span>
+              <span className="sr-only">{label}</span>
               {badge > 0 && (
-                <span className="absolute right-[18%] top-1 flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-4 text-white">
+                <span className="absolute right-0.5 top-0.5 flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-4 text-white">
                   {badge > 9 ? "9+" : badge}
                 </span>
               )}
