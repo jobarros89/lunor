@@ -10,7 +10,7 @@ const schema = z.object({
   arrangementId: z.string().uuid().nullable(), arrangementName: z.string().max(120),
   sourceKind: z.enum(["PASTE", "FILE"]), sourceFormat: z.enum(["PLAIN", "CHORDPRO"]),
   originalFilename: z.string().max(255).nullable(), mimeType: z.string().max(120).nullable(),
-  rawContent: z.string().max(20000).refine((value) => value.trim().length > 0, \"A cifra está vazia\"), chordProContent: z.string().trim().min(1).max(20000),
+  rawContent: z.string().max(20000).refine((value) => value.trim().length > 0, "A cifra está vazia"), chordProContent: z.string().trim().min(1).max(20000),
   metadata: z.object({ title: z.string().nullable(), artist: z.string().nullable(), key: z.string().nullable(), bpm: z.number().nullable(), timeSignature: z.string().nullable() }),
   warnings: z.array(z.object({ code: z.string(), message: z.string(), line: z.number().optional() })),
 });
