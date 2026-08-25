@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -24,8 +25,15 @@ export default function LoginPage() {
   return (
     <Card className="rounded-2xl shadow-none">
       <CardHeader className="space-y-3 text-center">
-        <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-muted-foreground">Presença · preparo · propósito</p>
-        <CardTitle className="text-3xl font-medium tracking-[0.16em]">LUNOR</CardTitle>
+        <Image
+          src="/brand/lunor-logo.png"
+          alt="LUNOR — Gestão Ministerial, Louvor e Serviço"
+          width={160}
+          height={160}
+          priority
+          className="mx-auto size-36 rounded-full object-contain"
+        />
+        <CardTitle className="sr-only">LUNOR</CardTitle>
         <CardDescription>Entre para acessar seu ministério</CardDescription>
       </CardHeader>
       <CardContent>
