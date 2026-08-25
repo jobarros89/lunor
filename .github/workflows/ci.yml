@@ -1,11 +1,17 @@
 name: CI
 
-# Roda em todo push na main e em toda PR. Como o projeto é open source, isto
-# também é o que valida contribuição de gente de fora antes de virar merge.
 on:
   push:
-    branches: [main, feature/backfill-song-arrangements]
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verificar:
@@ -19,6 +25,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Instalar dependências
         run: npm ci --no-audit --no-fund
@@ -26,22 +33,18 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
       # Os testes de RLS precisam de um Postgres real com as policies
       # aplicadas — é o único jeito de provar isolamento de verdade.
       - name: Subir Supabase local
-        run: supabase start
+        run: npx supabase start
 
       - name: Rodar a suíte
         run: |
-          eval "$(supabase status -o env)"
+          eval "$(npx supabase status -o env)"
           export API_URL ANON_KEY SERVICE_ROLE_KEY DB_URL
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f tests/sql/backfill-song-arrangements.sql
           npx vitest run
 
       - name: Encerrar Supabase
         if: always()
-        run: supabase stop || true
+        run: npx supabase stop || true
