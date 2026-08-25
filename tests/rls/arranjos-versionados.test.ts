@@ -297,11 +297,21 @@ describe("Arranjos, versões e imports — migration 31", () => {
   });
 
   it("membro comum não atualiza arranjo", async () => {
-    const { error } = await memberA
+    const { data, error } = await memberA
       .from("song_arrangements")
       .update({ name: "Alteração indevida" })
-      .eq("id", arrangementA);
-    expect(error).not.toBeNull();
+      .eq("id", arrangementA)
+      .select("id");
+    expect(error).toBeNull();
+    expect(data).toHaveLength(0);
+
+    const persisted = await memberA
+      .from("song_arrangements")
+      .select("name")
+      .eq("id", arrangementA)
+      .single();
+    expect(persisted.error).toBeNull();
+    expect(persisted.data?.name).toBe("Arranjo principal");
   });
 
   it("membro da igreja A lê arranjos da própria igreja", async () => {
