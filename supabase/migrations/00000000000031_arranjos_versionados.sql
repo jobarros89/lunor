@@ -133,7 +133,11 @@ create table public.song_imports (
     ),
   constraint song_imports_failure_message
     check (
-      (status = 'FAILED' and char_length(btrim(error_message)) between 1 and 2000)
+      (
+        status = 'FAILED'
+        and error_message is not null
+        and char_length(btrim(error_message)) between 1 and 2000
+      )
       or (status <> 'FAILED' and error_message is null)
     ),
   constraint song_imports_song_fkey
