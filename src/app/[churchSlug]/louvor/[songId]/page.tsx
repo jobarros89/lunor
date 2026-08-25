@@ -41,7 +41,7 @@ export default async function MusicaDetalhePage({
   const [{ data: song }, { data: historico }, { data: papel }] = await Promise.all([
     supabase
       .from("songs")
-      .select("id, title, artist, default_key, bpm, lyrics, link, active")
+      .select("id, title, artist, default_key, bpm, lyrics, chord_chart, link, active")
       .eq("id", songId)
       .eq("church_id", tenant.church.id)
       .maybeSingle(),
@@ -189,6 +189,23 @@ export default async function MusicaDetalhePage({
           ) : (
             <p className="text-sm text-muted-foreground">
               Nenhuma letra cadastrada.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl">
+        <CardHeader>
+          <CardTitle className="text-base">Cifra</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {musica.chord_chart ? (
+            <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+              {musica.chord_chart}
+            </pre>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Nenhuma cifra cadastrada.
             </p>
           )}
         </CardContent>

@@ -23,7 +23,7 @@ export default async function EditarMusicaPage({
   const [{ data: song }, { data: papel }] = await Promise.all([
     supabase
       .from("songs")
-      .select("id, title, artist, default_key, bpm, lyrics, link, active")
+      .select("id, title, artist, default_key, bpm, lyrics, chord_chart, link, active")
       .eq("id", songId)
       .eq("church_id", tenant.church.id)
       .maybeSingle(),

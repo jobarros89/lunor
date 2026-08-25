@@ -14,6 +14,11 @@ const songSchema = z.object({
   defaultKey: z.string().max(8).default(""),
   bpm: z.coerce.number().int().min(20).max(300).optional(),
   lyrics: z.string().max(20000).default(""),
+  chordChart: z
+    .string()
+    .max(20000)
+    .default("")
+    .transform((value) => (value.trim().length > 0 ? value : null)),
   link: z.string().max(500).default(""),
 });
 
@@ -35,6 +40,7 @@ export async function createSong(
       default_key: d.defaultKey || null,
       bpm: d.bpm ?? null,
       lyrics: d.lyrics || null,
+      chord_chart: d.chordChart,
       link: d.link || null,
     })
     .select("id")
@@ -63,6 +69,7 @@ export async function updateSong(raw: unknown): Promise<ActionResult> {
       default_key: d.defaultKey || null,
       bpm: d.bpm ?? null,
       lyrics: d.lyrics || null,
+      chord_chart: d.chordChart,
       link: d.link || null,
       updated_at: new Date().toISOString(),
     })

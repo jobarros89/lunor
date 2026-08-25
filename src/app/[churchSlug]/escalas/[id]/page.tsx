@@ -96,7 +96,7 @@ export default async function EventoDetailPage({
   const { data: setlist, error: setlistError } = await supabase
     .from("setlist_items")
     .select(
-      "id, position, key_override, notes, songs(id, title, artist, default_key, bpm, lyrics, link, active)"
+      "id, position, key_override, notes, songs(id, title, artist, default_key, bpm, lyrics, chord_chart, link, active)"
     )
     .eq("church_id", tenant.church.id)
     .eq("event_id", id)

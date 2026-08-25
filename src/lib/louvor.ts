@@ -9,6 +9,7 @@ export type Song = {
   default_key: string | null;
   bpm: number | null;
   lyrics: string | null;
+  chord_chart?: string | null;
   link: string | null;
   active: boolean;
 };

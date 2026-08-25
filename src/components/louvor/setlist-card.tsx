@@ -23,6 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { listaParaHolyrics, type SetlistItem } from "@/lib/louvor";
+import { transposeChordChart } from "@/lib/music/transpose";
 import {
   moveSetlistItem,
   publishSetlist,
@@ -55,6 +56,7 @@ export function SetlistCard({
   const [erro, setErro] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [aberta, setAberta] = useState<string | null>(null);
+  const [cifraAberta, setCifraAberta] = useState<string | null>(null);
   const [editandoTom, setEditandoTom] = useState<string | null>(null);
 
   // A mídia projeta pelo Holyrics: o que ela precisa daqui é a lista em texto.
@@ -106,6 +108,15 @@ export function SetlistCard({
           const mostrarOriginal =
             !!item.songs.default_key && item.songs.default_key !== tom;
           const temLetra = !!item.songs.lyrics;
+          const cifraOriginal = item.songs.chord_chart;
+          const temCifra = !!cifraOriginal;
+          const cifraDoCulto = cifraOriginal && item.songs.default_key && tom
+            ? transposeChordChart(
+                cifraOriginal,
+                item.songs.default_key,
+                tom
+              )
+            : cifraOriginal;
           return (
             <div key={item.id} className="rounded-2xl border">
               <div className="flex items-start gap-3 px-4 py-3">
@@ -248,6 +259,36 @@ export function SetlistCard({
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
                       {item.songs.lyrics}
                     </p>
+                  )}
+                </div>
+              )}
+              {temCifra && (
+                <div className="border-t px-4 py-2">
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground underline underline-offset-4"
+                    onClick={() =>
+                      setCifraAberta(cifraAberta === item.id ? null : item.id)
+                    }
+                  >
+                    {cifraAberta === item.id ? "Esconder cifra" : "Ver cifra"}
+                  </button>
+                  {cifraAberta === item.id && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-sm font-medium">
+                        {tom ? `Tom do culto: ${tom}` : "Tom do culto não informado"}
+                        {mostrarOriginal && ` · Original: ${item.songs.default_key}`}
+                      </p>
+                      {!item.songs.default_key && (
+                        <p className="text-xs text-muted-foreground">
+                          Cifra original exibida sem transposição porque o tom
+                          original não foi informado.
+                        </p>
+                      )}
+                      <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                        {cifraDoCulto}
+                      </pre>
+                    </div>
                   )}
                 </div>
               )}

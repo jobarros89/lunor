@@ -32,6 +32,7 @@ export function SongForm(props: SongFormProps) {
       defaultKey: String(form.get("defaultKey") ?? ""),
       bpm: form.get("bpm") ? Number(form.get("bpm")) : undefined,
       lyrics: String(form.get("lyrics") ?? ""),
+      chordChart: String(form.get("chordChart") ?? ""),
       link: String(form.get("link") ?? ""),
     };
 
@@ -129,6 +130,17 @@ export function SongForm(props: SongFormProps) {
           rows={isEdit ? 14 : 8}
           placeholder="Letra — é o que a equipe lê para ensaiar"
           className="w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+        />
+      </Field>
+
+      <Field label="Cifra">
+        <textarea
+          name="chordChart"
+          defaultValue={song?.chord_chart ?? ""}
+          maxLength={20000}
+          rows={isEdit ? 16 : 10}
+          placeholder="[Verso]\nC\nGrande é o Senhor"
+          className="w-full rounded-xl border bg-background p-3 font-mono text-base md:text-sm"
         />
       </Field>
 
