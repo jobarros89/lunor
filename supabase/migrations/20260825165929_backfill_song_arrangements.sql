@@ -6,6 +6,7 @@
 
 -- Evita corrida com edições do acervo enquanto as validações e os vínculos são
 -- produzidos. O runner de migrations mantém estas locks até o fim da transação.
+begin;
 lock table public.songs in share row exclusive mode;
 lock table public.song_arrangements in share row exclusive mode;
 lock table public.song_arrangement_versions in share row exclusive mode;
@@ -152,3 +153,5 @@ where si.church_id = s.church_id
   and si.arrangement_version_id is null
   and s.chord_chart is not null
   and btrim(s.chord_chart) <> '';
+
+commit;
