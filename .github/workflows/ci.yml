@@ -4,7 +4,7 @@ name: CI
 # também é o que valida contribuição de gente de fora antes de virar merge.
 on:
   push:
-    branches: [main]
+    branches: [main, feature/backfill-song-arrangements]
   pull_request:
 
 jobs:
@@ -38,7 +38,8 @@ jobs:
       - name: Rodar a suíte
         run: |
           eval "$(supabase status -o env)"
-          export API_URL ANON_KEY SERVICE_ROLE_KEY
+          export API_URL ANON_KEY SERVICE_ROLE_KEY DB_URL
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f tests/sql/backfill-song-arrangements.sql
           npx vitest run
 
       - name: Encerrar Supabase
