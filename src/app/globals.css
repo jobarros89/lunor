@@ -133,21 +133,6 @@
 }
 .dark .lunor-prism .text-muted-foreground { color: rgb(212 212 216); }
 
-body:has(.lunor-home) {
-  --background: oklch(0.12 0.004 285);
-  --foreground: oklch(0.975 0 0);
-  --muted: oklch(0.22 0.004 285);
-  --muted-foreground: oklch(0.72 0 0);
-  --border: oklch(1 0 0 / 20%);
-  --input: oklch(1 0 0 / 20%);
-  background: #0b0b0c;
-  color: #f4f3ef;
-}
-body:has(.lunor-home) .lunor-prism {
-  background-color: #090a0c;
-  background-image: url("/brand/lunor-prism-dark.webp");
-  color: #f4f3ef;
-}
 
 [data-slot="card"] { border-color: color-mix(in oklab, currentColor 15%, transparent); box-shadow: none; }
 
