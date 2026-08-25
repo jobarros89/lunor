@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SongArchiveButton } from "@/components/louvor/song-archive-button";
+import { ChordImporter } from "@/components/louvor/chord-importer";
 import {
   Card,
   CardContent,
@@ -38,7 +39,12 @@ export default async function MusicaDetalhePage({
   if (!louvor) redirect(`/${churchSlug}`);
 
   const supabase = await createClient();
-  const [{ data: song }, { data: historico }, { data: papel }] = await Promise.all([
+  const [
+    { data: song },
+    { data: historico },
+    { data: papel },
+    { data: arrangements },
+  ] = await Promise.all([
     supabase
       .from("songs")
       .select("id, title, artist, default_key, bpm, lyrics, chord_chart, link, active")
@@ -58,6 +64,12 @@ export default async function MusicaDetalhePage({
       .eq("user_id", tenant.userId)
       .eq("active", true)
       .maybeSingle(),
+    supabase
+      .from("song_arrangements")
+      .select("id, name")
+      .eq("song_id", songId)
+      .eq("active", true)
+      .order("name"),
   ]);
 
   if (!song) notFound();
@@ -114,6 +126,11 @@ export default async function MusicaDetalhePage({
             churchSlug={churchSlug}
             songId={songId}
             active={musica.active}
+          />
+          <ChordImporter
+            churchSlug={churchSlug}
+            songId={songId}
+            arrangements={arrangements ?? []}
           />
         </div>
       )}
