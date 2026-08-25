@@ -1,17 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { signIn } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -23,70 +18,32 @@ export default function LoginPage() {
     setError(null);
     startTransition(async () => {
       const result = await signIn(formData);
-      if (result && !result.ok) {
-        setError(result.error);
-        toast.error(result.error);
-      }
+      if (result && !result.ok) { setError(result.error); toast.error(result.error); }
     });
   }
 
   return (
-    <Card className="rounded-3xl shadow-sm">
-      <CardHeader className="space-y-2 text-center">
-        <CardTitle className="text-2xl font-semibold tracking-tight">
-          Acts
-        </CardTitle>
+    <Card className="rounded-2xl shadow-none">
+      <CardHeader className="space-y-3 text-center">
+        <Image
+          src="/brand/lunor-logo.png"
+          alt="LUNOR — Gestão Ministerial, Louvor e Serviço"
+          width={160}
+          height={160}
+          priority
+          className="mx-auto size-36 rounded-full object-contain"
+        />
+        <CardTitle className="sr-only">LUNOR</CardTitle>
         <CardDescription>Entre para acessar seu ministério</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="h-12 rounded-full"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="h-12 rounded-full"
-            />
-          </div>
+          <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" name="email" type="email" autoComplete="email" required className="h-12 rounded-xl" /></div>
+          <div className="space-y-2"><Label htmlFor="password">Senha</Label><Input id="password" name="password" type="password" autoComplete="current-password" required className="h-12 rounded-xl" /></div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button
-            type="submit"
-            disabled={pending}
-            className="h-12 w-full rounded-full text-base"
-          >
-            {pending ? "Entrando…" : "Entrar"}
-          </Button>
-          <p className="text-center text-sm">
-            <Link
-              href="/esqueci-senha"
-              className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-            >
-              Esqueci minha senha
-            </Link>
-          </p>
-          <p className="text-center text-sm text-muted-foreground">
-            Não tem conta?{" "}
-            <Link
-              href="/signup"
-              className="font-medium text-foreground underline-offset-4 hover:underline"
-            >
-              Criar conta
-            </Link>
-          </p>
+          <Button type="submit" disabled={pending} className="h-12 w-full rounded-xl bg-[#d8ff00] text-base text-black hover:bg-[#c7ee00]">{pending ? "Entrando…" : "Entrar"}</Button>
+          <p className="text-center text-sm"><Link href="/esqueci-senha" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Esqueci minha senha</Link></p>
+          <p className="text-center text-sm text-muted-foreground">Não tem conta?{" "}<Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">Criar conta</Link></p>
         </form>
       </CardContent>
     </Card>
