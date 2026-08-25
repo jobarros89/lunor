@@ -13,37 +13,18 @@ import { SessionKeeper } from "@/components/shell/session-keeper";
 
 function ministryNavigation(ministry: { name: string; slug: string } | null) {
   if (!ministry) return null;
-
   const slug = ministry.slug.toLocaleLowerCase("pt-BR");
   const name = ministry.name.toLocaleLowerCase("pt-BR");
-  if (slug === "louvor" || name.includes("louvor")) {
-    return { href: "/louvor", label: "Louvor", module: "louvor" as const };
-  }
-  if (slug === "infantil" || name.includes("infantil")) {
-    return {
-      href: "/infantil",
-      label: ministry.name,
-      module: "infantil" as const,
-    };
-  }
-
+  if (slug === "louvor" || name.includes("louvor")) return { href: "/louvor", label: "Repertório", module: "louvor" as const };
+  if (slug === "infantil" || name.includes("infantil")) return { href: "/infantil", label: ministry.name, module: "infantil" as const };
   return null;
 }
 
-export default async function TenantLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode;
-  params: Promise<{ churchSlug: string }>;
-}) {
+export default async function TenantLayout({ children, params }: { children: React.ReactNode; params: Promise<{ churchSlug: string }> }) {
   const { churchSlug } = await params;
   const tenant = await getTenant(churchSlug);
   const { active, options } = await getActiveMinistry(churchSlug);
   const activeMinistryNavigation = ministryNavigation(active);
-
-  // escalas aguardando confirmação (status 'convidado', evento futuro) —
-  // alimenta o aviso in-app (badge no ícone Escalas)
   const supabase = await createClient();
   const { count: escalasPending } = await supabase
     .from("assignments")
@@ -52,81 +33,36 @@ export default async function TenantLayout({
     .eq("church_id", tenant.church.id)
     .eq("status", "convidado")
     .gte("events.starts_at", new Date().toISOString());
-
-  const today = new Date().toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-  const initials = tenant.profile.full_name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+  const initials = tenant.profile.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
 
   return (
     <div className="min-h-dvh">
       <SessionKeeper />
-      <Sidebar
-        churchSlug={churchSlug}
-        churchName={tenant.church.name}
-        canAdmin={tenant.isCoord}
-        isLeader={tenant.isLeader}
-        activeMinistryNavigation={activeMinistryNavigation}
-        escalasPending={escalasPending ?? 0}
-      />
-      <div className="md:pl-64">
-        <header className="sticky top-0 z-30 border-b border-transparent bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
-          <div className="mx-auto flex h-16 w-full max-w-4xl items-center gap-3 px-[max(1rem,env(safe-area-inset-left))] md:px-8">
-            <Avatar className="size-10">
+      <Sidebar churchSlug={churchSlug} churchName={tenant.church.name} canAdmin={tenant.isCoord} isLeader={tenant.isLeader} activeMinistryNavigation={activeMinistryNavigation} escalasPending={escalasPending ?? 0} />
+      <div className="md:pl-60">
+        <header className="sticky top-0 z-30 border-b border-foreground/10 bg-background/88 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+          <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-[max(1rem,env(safe-area-inset-left))] md:px-8">
+            <Avatar className="size-9">
               <AvatarImage src={tenant.profile.avatar_url ?? undefined} />
-              <AvatarFallback className="bg-foreground text-xs font-semibold text-background">
-                {initials}
-              </AvatarFallback>
+              <AvatarFallback className="bg-foreground text-xs font-semibold text-background">{initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <p className="text-[11px] font-medium capitalize leading-tight text-muted-foreground">
-                {today}
-              </p>
-              <p className="truncate text-sm font-semibold leading-tight">
-                {tenant.profile.full_name}
-              </p>
+              <p className="truncate text-sm font-medium">{tenant.profile.full_name}</p>
+              <p className="text-[10px] capitalize tracking-wide text-muted-foreground">{today}</p>
             </div>
-            <div className="ml-auto flex items-center gap-2">
-              {active && (
-                <SectorSwitcher
-                  churchSlug={churchSlug}
-                  activeId={active.id}
-                  options={options}
-                />
-              )}
+            <div className="ml-auto flex items-center gap-1">
+              {active && <SectorSwitcher churchSlug={churchSlug} activeId={active.id} options={options} />}
               <ThemeToggle />
               <form action={signOut}>
-                <Button
-                  type="submit"
-                  variant="ghost"
-                  className="h-10 rounded-full px-3"
-                  aria-label="Sair"
-                  title="Sair"
-                >
-                  <LogOut className="size-4" />
-                  <span className="hidden lg:inline">Sair</span>
-                </Button>
+                <Button type="submit" variant="ghost" className="h-10 rounded-none px-3" aria-label="Sair" title="Sair"><LogOut className="size-4" /><span className="hidden lg:inline">Sair</span></Button>
               </form>
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-4xl px-4 pb-32 pt-4 md:px-8 md:pb-12">
-          {children}
-        </main>
+        <main className="mx-auto w-full max-w-7xl px-4 pb-32 pt-4 md:px-8 md:pb-12">{children}</main>
       </div>
-      <BottomNav
-        churchSlug={churchSlug}
-        isLeader={tenant.isLeader}
-        activeMinistryNavigation={activeMinistryNavigation}
-        escalasPending={escalasPending ?? 0}
-      />
+      <BottomNav churchSlug={churchSlug} isLeader={tenant.isLeader} activeMinistryNavigation={activeMinistryNavigation} escalasPending={escalasPending ?? 0} />
     </div>
   );
 }
