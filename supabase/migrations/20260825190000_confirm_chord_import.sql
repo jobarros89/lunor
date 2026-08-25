@@ -26,7 +26,7 @@ declare
   v_number integer;
 begin
   if v_user is null then raise exception 'AUTH_REQUIRED' using errcode = '42501'; end if;
-  if p_raw_content is null or char_length(p_raw_content) > 20000 then
+  if p_raw_content is null\n     or char_length(btrim(p_raw_content)) not between 1 and 20000 then
     raise exception 'INVALID_RAW_CONTENT' using errcode = '22001';
   end if;
   if p_chordpro_content is null or char_length(btrim(p_chordpro_content)) not between 1 and 20000 then
