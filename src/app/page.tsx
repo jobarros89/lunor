@@ -83,7 +83,7 @@ function Landing() {
   return (
     <div className="min-h-dvh">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-5">
-        <p className="text-xl font-semibold tracking-tight">Acts</p>
+        <p className="text-xl font-semibold tracking-tight">LUNOR</p>
         <Button
           variant="outline"
           nativeButton={false}
@@ -161,7 +161,7 @@ function Landing() {
             Quanto custa, e por quê
           </h2>
           <p className="mt-4 max-w-2xl text-muted-foreground">
-            O Acts custa{" "}
+            O LUNOR custa{" "}
             <strong className="text-foreground">R$ {PRECO_MENSAL}/mês</strong>{" "}
             (ou R$ {PRECO_ANUAL}/ano) — o suficiente para pagar servidor e
             domínio, nada além. Não existe plano premium nem recurso escondido
@@ -220,7 +220,7 @@ function Landing() {
               Privacidade
             </Link>
             <a
-              href="https://github.com/faladigo/acts"
+              href="https://github.com/jobarros89/lunor"
               target="_blank"
               rel="noreferrer"
               className="underline underline-offset-4 hover:text-foreground"
@@ -233,3 +233,4 @@ function Landing() {
     </div>
   );
 }
+
