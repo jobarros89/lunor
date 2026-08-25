@@ -5,14 +5,14 @@ import { DIAS_TRIAL } from "@/lib/billing";
 export const metadata: Metadata = {
   title: "Política de Privacidade",
   description:
-    "Como o Acts trata os dados da sua igreja, da sua equipe e das crianças.",
+    "Como o LUNOR trata os dados da sua igreja, da sua equipe e das crianças.",
 };
 
 export default function PrivacidadePage() {
   return (
     <Doc titulo="Política de Privacidade" atualizado="22 de julho de 2026">
       <P>
-        Esta política explica, em linguagem direta, quais dados o Acts guarda,
+        Esta política explica, em linguagem direta, quais dados o LUNOR guarda,
         por quê, quem consegue vê-los e o que você pode exigir. Ela vale para
         toda igreja que usa o sistema.
       </P>
@@ -20,7 +20,7 @@ export default function PrivacidadePage() {
       <H>Quem é responsável</H>
       <P>
         Cada <strong>igreja</strong> é a controladora dos dados que cadastra
-        (equipe, escalas, patrimônio, crianças). O Acts é a operadora: guarda e
+        (equipe, escalas, patrimônio, crianças). O LUNOR é a operadora: guarda e
         processa esses dados para entregar o serviço, seguindo as instruções da
         igreja.
       </P>
@@ -123,7 +123,7 @@ export function Doc({
     <div className="min-h-dvh">
       <header className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-5">
         <Link href="/" className="text-xl font-semibold tracking-tight">
-          Acts
+          LUNOR
         </Link>
         <Link
           href="/"
@@ -167,3 +167,4 @@ export function Nota({ children }: { children: React.ReactNode }) {
     </p>
   );
 }
+

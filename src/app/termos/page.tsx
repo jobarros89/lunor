@@ -4,19 +4,19 @@ import { DIAS_TRIAL, PRECO_ANUAL, PRECO_MENSAL } from "@/lib/billing";
 
 export const metadata: Metadata = {
   title: "Termos de Uso",
-  description: "As regras de uso do Acts, em linguagem direta.",
+  description: "As regras de uso do LUNOR, em linguagem direta.",
 };
 
 export default function TermosPage() {
   return (
     <Doc titulo="Termos de Uso" atualizado="22 de julho de 2026">
       <P>
-        Estas são as regras de uso do Acts. Escrevemos em linguagem direta de
+        Estas são as regras de uso do LUNOR. Escrevemos em linguagem direta de
         propósito: você deve conseguir entender o que está aceitando sem
         precisar de tradutor.
       </P>
 
-      <H>O que o Acts é</H>
+      <H>O que o LUNOR é</H>
       <P>
         Um sistema de gestão para igrejas: escalas de culto, equipe,
         ministérios, patrimônio e ministério infantil. É oferecido como serviço
@@ -76,7 +76,7 @@ export default function TermosPage() {
         Trabalhamos para manter o serviço disponível, seguro e com backup, mas
         ele é fornecido &quot;como está&quot;. Não garantimos funcionamento
         ininterrupto — falhas de internet, de provedores de infraestrutura e
-        erros de software acontecem. O Acts é uma ferramenta de apoio: a
+        erros de software acontecem. O LUNOR é uma ferramenta de apoio: a
         responsabilidade pela guarda das crianças e pela condução dos cultos
         permanece integralmente da igreja.
       </P>
@@ -91,7 +91,7 @@ export default function TermosPage() {
 
       <H>Código aberto</H>
       <P>
-        O código do Acts é público sob licença MIT. Qualquer igreja pode
+        O código do LUNOR é público sob licença MIT. Qualquer igreja pode
         hospedar a própria instância — a cobrança aqui é pelo serviço
         gerenciado, não pelo software.
       </P>
@@ -110,3 +110,4 @@ export default function TermosPage() {
     </Doc>
   );
 }
+

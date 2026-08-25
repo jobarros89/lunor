@@ -22,7 +22,7 @@ export default async function PainelLayout({
             </div>
             <div className="leading-tight">
               <p className="text-sm font-semibold">Painel da Plataforma</p>
-              <p className="text-[11px] text-muted-foreground">Acts</p>
+              <p className="text-[11px] text-muted-foreground">LUNOR</p>
             </div>
           </Link>
           <div className="ml-auto">
@@ -36,3 +36,4 @@ export default async function PainelLayout({
     </div>
   );
 }
+

@@ -126,7 +126,12 @@
   background-repeat: no-repeat;
   background-size: cover;
 }
-.dark .lunor-prism { background-color: #ecece8; color: #111; }
+.dark .lunor-prism {
+  background-color: #090a0c;
+  background-image: url("/brand/lunor-prism-dark.webp");
+  color: #f7f7f2;
+}
+.dark .lunor-prism .text-muted-foreground { color: rgb(212 212 216); }
 
 [data-slot="card"] { border-color: color-mix(in oklab, currentColor 15%, transparent); box-shadow: none; }
 
