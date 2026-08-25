@@ -33,18 +33,18 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      # Os testes de RLS precisam de um Postgres real com as policies
-      # aplicadas — é o único jeito de provar isolamento de verdade.
-      - name: Subir Supabase local
+      # Ambiente isolado e descartável no runner do GitHub. Não acessa nem
+      # altera o projeto Supabase DEV hospedado.
+      - name: Subir Supabase efêmero no runner
         run: npx supabase start
 
-      - name: Rodar a suíte
+      - name: Rodar migrations e testes no ambiente efêmero
         run: |
           eval "$(npx supabase status -o env)"
           export API_URL ANON_KEY SERVICE_ROLE_KEY DB_URL
           psql "$DB_URL" -v ON_ERROR_STOP=1 -f tests/sql/backfill-song-arrangements.sql
           npx vitest run
 
-      - name: Encerrar Supabase
+      - name: Descartar ambiente Supabase efêmero
         if: always()
         run: npx supabase stop || true
