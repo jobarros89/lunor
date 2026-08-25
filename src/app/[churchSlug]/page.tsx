@@ -40,9 +40,9 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const showManage = canAdmin || tenant.isLeader || temInfantil;
 
   return (
-    <div className="space-y-16 pb-8">
+    <div className="lunor-home space-y-16 pb-8">
       {(anuncios ?? []).length > 0 && (
-        <section className="border-l-4 border-[#d8ff00] bg-black px-5 py-4 text-white dark:bg-white dark:text-black">
+        <section className="border-l-4 border-[#6e5ce6] bg-black px-5 py-4 text-white">
           {(anuncios as { code: string | null; kind: string }[]).map((a, i) => (
             <div key={`${a.code ?? "fim"}-${i}`} className="flex items-center gap-3">
               <Megaphone className="size-4 shrink-0" />
@@ -54,7 +54,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         </section>
       )}
 
-      <section className="lunor-prism relative -mx-4 overflow-hidden border-y border-black/10 px-5 py-10 md:-mx-8 md:min-h-[520px] md:px-10 md:py-14 dark:border-white/10">
+      <section className="lunor-prism relative -mx-4 overflow-hidden border-y border-white/10 px-5 py-10 md:-mx-8 md:min-h-[520px] md:px-10 md:py-14">
         <div className="relative z-10 grid gap-12 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em]">Próximo culto</p>
@@ -73,7 +73,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
             </div>
             <div>
               <p className="text-sm font-medium">{nextEvent ? formatEventTime(nextEvent.starts_at) : "Tudo começa aqui"}</p>
-              <Link href={nextEvent ? `/${churchSlug}/escalas/${nextEvent.id}` : `/${churchSlug}/escalas`} className="mt-5 flex min-h-14 w-full items-center justify-between bg-[#d8ff00] px-5 text-sm font-semibold text-black transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black">
+              <Link href={nextEvent ? `/${churchSlug}/escalas/${nextEvent.id}` : `/${churchSlug}/escalas`} className="mt-5 flex min-h-14 w-full items-center justify-between bg-[#6e5ce6] px-5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
                 {nextEvent ? "Abrir preparação" : "Criar o próximo culto"}
                 <ArrowRight className="size-5" />
               </Link>
@@ -138,7 +138,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
       )}
 
       {isAdmin && (
-        <section className="flex flex-col justify-between gap-5 border-l-4 border-[#d8ff00] bg-foreground px-6 py-6 text-background sm:flex-row sm:items-center">
+        <section className="flex flex-col justify-between gap-5 border-l-4 border-[#6e5ce6] bg-[#151518] px-6 py-6 text-white sm:flex-row sm:items-center">
           <div><p className="font-medium">Convide sua equipe</p><p className="mt-1 text-sm opacity-70">Compartilhe o código da igreja.</p></div>
           <p className="font-mono text-xl tracking-[0.3em]">{tenant.church.invite_code}</p>
         </section>

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -23,25 +22,17 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="rounded-2xl shadow-none">
-      <CardHeader className="space-y-3 text-center">
-        <Image
-          src="/brand/lunor-logo.png"
-          alt="LUNOR — Gestão Ministerial, Louvor e Serviço"
-          width={160}
-          height={160}
-          priority
-          className="mx-auto size-36 rounded-full object-contain"
-        />
-        <CardTitle className="sr-only">LUNOR</CardTitle>
+    <Card className="border-white/10 bg-[#111113] text-[#f4f3ef] shadow-none sm:rounded-2xl">
+      <CardHeader className="space-y-4 pb-7 text-center">
+        <CardTitle className="text-[2rem] font-bold tracking-[0.22em] text-[#f4f3ef]">LUNOR</CardTitle>
         <CardDescription>Entre para acessar seu ministério</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={onSubmit} className="space-y-4">
-          <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" name="email" type="email" autoComplete="email" required className="h-12 rounded-xl" /></div>
-          <div className="space-y-2"><Label htmlFor="password">Senha</Label><Input id="password" name="password" type="password" autoComplete="current-password" required className="h-12 rounded-xl" /></div>
+          <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" name="email" type="email" autoComplete="email" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-[#6e5ce6] focus-visible:ring-[#6e5ce6]/25" /></div>
+          <div className="space-y-2"><Label htmlFor="password">Senha</Label><Input id="password" name="password" type="password" autoComplete="current-password" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-[#6e5ce6] focus-visible:ring-[#6e5ce6]/25" /></div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" disabled={pending} className="h-12 w-full rounded-xl bg-[#d8ff00] text-base text-black hover:bg-[#c7ee00]">{pending ? "Entrando…" : "Entrar"}</Button>
+          <Button type="submit" disabled={pending} className="h-12 w-full rounded-lg bg-[#6e5ce6] text-base font-semibold text-white hover:bg-[#5f4fd1]">{pending ? "Entrando…" : "Entrar"}</Button>
           <p className="text-center text-sm"><Link href="/esqueci-senha" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Esqueci minha senha</Link></p>
           <p className="text-center text-sm text-muted-foreground">Não tem conta?{" "}<Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">Criar conta</Link></p>
         </form>
