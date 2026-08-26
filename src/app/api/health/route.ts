@@ -47,6 +47,7 @@ export async function GET() {
       status: "ok",
       db: "ok",
       integrations: { youtubeOAuth: youtubeOAuthStatus() },
+      features: { songTimeSignature: "enabled" },
       ms: Date.now() - started,
     });
   } catch {
