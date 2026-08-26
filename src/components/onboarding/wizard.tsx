@@ -3,7 +3,6 @@
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { completeChurchOnboarding, completeMemberOnboarding } from "@/lib/actions/onboarding";
-import { DIAS_SEMANA, PERIODOS } from "@/lib/briefing";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,6 +22,21 @@ const MODULES = [
   { id: "worship", name: "Louvor e repertório" },
   { id: "children", name: "Infantil" },
   { id: "equipment", name: "Equipamentos" },
+] as const;
+
+const DEPARTMENTS = [
+  "Louvor",
+  "Kids",
+  "Conexão",
+  "Mídia",
+  "Recepção",
+  "Lojinha",
+  "The Table",
+  "Logística",
+  "Intercessão",
+  "MC",
+  "Pastor",
+  "Membro",
 ] as const;
 
 function Chip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -82,17 +96,15 @@ function OwnerWizard({ churchName }: Props) {
   </div>;
 }
 
-function MemberWizard({ churchName, ministries, skills }: Props) {
+function MemberWizard({ churchName, ministries }: Props) {
   const [step, setStep] = useState(0);
   const [ministryIds, setMinistryIds] = useState<string[]>(ministries[0] ? [ministries[0].id] : []);
   const [phone, setPhone] = useState("");
-  const [days, setDays] = useState<string[]>([]);
-  const [periods, setPeriods] = useState<string[]>([]);
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
   const toggle = (list: string[], value: string, setter: (value: string[]) => void) => setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
   const finish = () => startTransition(async () => {
-    const result = await completeMemberOnboarding({ ministryIds, phone, days, periods, skills: selectedSkills });
+    const result = await completeMemberOnboarding({ ministryIds, phone, departments });
     if (result && !result.ok) toast.error(result.error);
   });
 
@@ -100,16 +112,17 @@ function MemberWizard({ churchName, ministries, skills }: Props) {
     <Progress step={step} total={2} />
     <Card className="rounded-3xl shadow-sm">
       <CardHeader className="text-center">
-        <CardTitle>{step === 0 ? `Bem-vindo à ${churchName}` : "Complete seu perfil de serviço"}</CardTitle>
-        <CardDescription>{step === 0 ? "Selecione todos os ministérios em que você serve." : "Só informações úteis para montar escalas melhores."}</CardDescription>
+        <CardTitle>{step === 0 ? `Bem-vindo à ${churchName}` : "Complete seu perfil"}</CardTitle>
+        <CardDescription>{step === 0 ? "Selecione todos os ministérios em que você serve." : "Informe apenas o essencial por enquanto."}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         {step === 0 && (ministries.length ? <div className="flex flex-wrap gap-2">{ministries.map((ministry) => <Chip key={ministry.id} selected={ministryIds.includes(ministry.id)} onClick={() => toggle(ministryIds, ministry.id, setMinistryIds)}>{ministry.name}</Chip>)}</div> : <p className="rounded-2xl border p-4 text-sm text-muted-foreground">A igreja ainda não criou um ministério. Peça ao administrador para concluir a configuração inicial.</p>)}
         {step === 1 && <>
           <div className="space-y-2"><Label htmlFor="phone">Telefone <span className="text-muted-foreground">(opcional)</span></Label><Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-12 rounded-full" /></div>
-          <div className="space-y-2"><Label>Funções ou instrumentos</Label><div className="flex flex-wrap gap-2">{skills.map((skill) => <Chip key={skill.slug} selected={selectedSkills.includes(skill.slug)} onClick={() => toggle(selectedSkills, skill.slug, setSelectedSkills)}>{skill.name}</Chip>)}</div></div>
-          <div className="space-y-2"><Label>Dias disponíveis</Label><div className="flex flex-wrap gap-2">{DIAS_SEMANA.map((day) => <Chip key={day.key} selected={days.includes(day.key)} onClick={() => toggle(days, day.key, setDays)}>{day.label}</Chip>)}</div></div>
-          <div className="space-y-2"><Label>Períodos</Label><div className="flex flex-wrap gap-2">{PERIODOS.map((period) => <Chip key={period.key} selected={periods.includes(period.key)} onClick={() => toggle(periods, period.key, setPeriods)}>{period.label}</Chip>)}</div></div>
+          <div className="space-y-2">
+            <Label>Departamentos</Label>
+            <div className="flex flex-wrap gap-2">{DEPARTMENTS.map((department) => <Chip key={department} selected={departments.includes(department)} onClick={() => toggle(departments, department, setDepartments)}>{department}</Chip>)}</div>
+          </div>
         </>}
         <div className="flex gap-3 pt-2">
           {step > 0 && <Button variant="outline" onClick={() => setStep(0)} className="h-12 flex-1 rounded-full">Voltar</Button>}
