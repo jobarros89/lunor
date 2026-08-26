@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -14,6 +14,22 @@ const credentialsSchema = z.object({
 const signUpSchema = credentialsSchema.extend({
   fullName: z.string().min(2, "Informe seu nome").max(80),
 });
+
+const INVITE_COOKIE = "lunor_invite";
+
+async function acceptPendingInvite(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<boolean> {
+  const cookieStore = await cookies();
+  const inviteCode = cookieStore.get(INVITE_COOKIE)?.value;
+  if (!inviteCode) return false;
+
+  const { data, error } = await supabase.rpc("join_church", {
+    p_invite_code: inviteCode.toLowerCase(),
+  });
+  cookieStore.delete(INVITE_COOKIE);
+  return !error && Boolean(data);
+}
 
 export async function signIn(formData: FormData): Promise<ActionResult> {
   const parsed = credentialsSchema.safeParse({
@@ -29,6 +45,7 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
   if (error) {
     return { ok: false, error: "E-mail ou senha incorretos" };
   }
+  if (await acceptPendingInvite(supabase)) redirect("/onboarding");
   redirect("/");
 }
 
@@ -51,6 +68,7 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
   if (error) {
     return { ok: false, error: "Não foi possível criar a conta" };
   }
+  if (await acceptPendingInvite(supabase)) redirect("/onboarding");
   redirect("/");
 }
 
