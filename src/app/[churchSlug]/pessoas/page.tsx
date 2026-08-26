@@ -14,6 +14,11 @@ const ROLE_LABELS: Record<string, string> = {
   voluntario: "Voluntário",
 };
 
+const CHURCH_ROLE_LABELS: Record<string, string> = {
+  admin: "Administrador",
+  coordenador: "Gestor",
+};
+
 export default async function PessoasPage({
   params,
 }: {
@@ -47,8 +52,6 @@ export default async function PessoasPage({
   ]);
   if (membersError) console.error("pessoas:", membersError);
 
-  // Um papel pode se repetir entre setores (ex.: líder na Mídia E no Louvor).
-  // Sem dedupe, o mesmo rótulo aparece duas vezes e colide como key no React.
   const rolesByUser = new Map<string, string[]>();
   for (const r of roles ?? []) {
     const atuais = rolesByUser.get(r.user_id) ?? [];
@@ -65,6 +68,7 @@ export default async function PessoasPage({
         <h1 className="text-2xl font-semibold tracking-tight">Equipe</h1>
         <p className="text-muted-foreground">
           {members?.length ?? 0} pessoas na igreja
+          {tenant.role === "admin" && " · toque em uma pessoa para gerenciar permissões"}
         </p>
       </div>
 
@@ -101,8 +105,8 @@ export default async function PessoasPage({
                     </p>
                   </div>
                   <div className="flex flex-wrap justify-end gap-1">
-                    {m.role === "admin" && (
-                      <Badge className="rounded-full">Admin</Badge>
+                    {CHURCH_ROLE_LABELS[m.role] && (
+                      <Badge className="rounded-full">{CHURCH_ROLE_LABELS[m.role]}</Badge>
                     )}
                     {userRoles.map((r) => (
                       <Badge key={r} variant="secondary" className="rounded-full">
