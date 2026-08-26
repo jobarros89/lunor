@@ -84,7 +84,7 @@ export async function completeChurchOnboarding(raw: unknown): Promise<ActionResu
 }
 
 const memberSetupSchema = z.object({
-  ministryId: z.string().uuid("Selecione um ministério"),
+  ministryIds: z.array(z.string().uuid()).min(1, "Selecione pelo menos um ministério"),
   phone: z.string().trim().max(30).default(""),
   days: z.array(z.string()).default([]),
   periods: z.array(z.string()).default([]),
@@ -109,17 +109,19 @@ export async function completeMemberOnboarding(raw: unknown): Promise<ActionResu
   if (!membership) redirect("/comecar");
 
   const { data: church } = await supabase.from("churches").select("slug").eq("id", membership.church_id).single();
-  const { data: ministry } = await supabase
+  const uniqueMinistryIds = [...new Set(parsed.data.ministryIds)];
+  const { data: ministries } = await supabase
     .from("ministries")
     .select("id")
-    .eq("id", parsed.data.ministryId)
     .eq("church_id", membership.church_id)
-    .maybeSingle();
-  if (!church || !ministry) return { ok: false, error: "Ministério inválido" };
+    .in("id", uniqueMinistryIds);
+  if (!church || ministries?.length !== uniqueMinistryIds.length) {
+    return { ok: false, error: "Um ou mais ministérios são inválidos" };
+  }
 
   const { error: joinError } = await supabase.rpc("complete_member_onboarding", {
     p_church_id: membership.church_id,
-    p_ministry_id: ministry.id,
+    p_ministry_ids: uniqueMinistryIds,
     p_phone: parsed.data.phone || null,
     p_availability: { dias: parsed.data.days, periodos: parsed.data.periods },
   });
