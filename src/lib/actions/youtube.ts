@@ -292,7 +292,8 @@ export async function findSongMusicalMetadata(
           ? bpmValue
           : null;
         const defaultKey = normalizedKey(track.strKey);
-        if (defaultKey || bpm) {
+        const timeSignature = track.strTimeSignature?.trim() || null;
+        if (defaultKey || bpm || timeSignature) {
           const matchedTitle = track.strTrack?.trim() ?? lookupTitle;
           const matchedArtist = track.strArtist?.trim() ?? lookupArtist;
           const sameVideo = track.strMusicVid?.includes(parsed.data.youtubeVideoId) ?? false;
@@ -309,7 +310,7 @@ export async function findSongMusicalMetadata(
             data: {
               defaultKey,
               bpm,
-              timeSignature: track.strTimeSignature?.trim() || null,
+              timeSignature,
               source: "TheAudioDB",
               confidence,
               matchedTitle,
@@ -327,7 +328,7 @@ export async function findSongMusicalMetadata(
     return { ok: true, data: await findOnReccoBeats(lookupTitle, lookupArtist) };
   } catch (error) {
     console.error("ReccoBeats request failed", error);
-    return { ok: false, error: "Não foi possível consultar tom e BPM agora" };
+    return { ok: false, error: "Não foi possível consultar tom, BPM e compasso agora" };
   }
 }
 
