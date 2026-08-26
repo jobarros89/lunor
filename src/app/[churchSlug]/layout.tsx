@@ -10,6 +10,7 @@ import { Sidebar } from "@/components/shell/sidebar";
 import { SectorSwitcher } from "@/components/shell/sector-switcher";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { SessionKeeper } from "@/components/shell/session-keeper";
+import { BrandLockup } from "@/components/brand-lockup";
 
 function ministryNavigation(ministry: { name: string; slug: string } | null) {
   if (!ministry) return null;
@@ -43,11 +44,12 @@ export default async function TenantLayout({ children, params }: { children: Rea
       <div className="md:pl-60">
         <header className="sticky top-0 z-30 border-b border-foreground/10 bg-background/88 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
           <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-[max(1rem,env(safe-area-inset-left))] md:px-8">
-            <Avatar className="size-9">
+            <BrandLockup compact className="md:hidden" />
+            <Avatar className="hidden size-9 md:flex">
               <AvatarImage src={tenant.profile.avatar_url ?? undefined} />
               <AvatarFallback className="bg-foreground text-xs font-semibold text-background">{initials}</AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="hidden min-w-0 md:block">
               <p className="truncate text-sm font-medium">{tenant.profile.full_name}</p>
               <p className="text-[10px] capitalize tracking-wide text-muted-foreground">{today}</p>
             </div>
