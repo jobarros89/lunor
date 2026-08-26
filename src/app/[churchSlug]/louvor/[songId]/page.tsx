@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SongArchiveButton } from "@/components/louvor/song-archive-button";
+import { SongDeleteButton } from "@/components/louvor/song-delete-button";
 import { ChordImporter } from "@/components/louvor/chord-importer";
 import {
   Card,
@@ -126,6 +127,12 @@ export default async function MusicaDetalhePage({
             churchSlug={churchSlug}
             songId={songId}
             active={musica.active}
+          />
+          <SongDeleteButton
+            churchSlug={churchSlug}
+            churchId={tenant.church.id}
+            songId={songId}
+            songTitle={musica.title}
           />
           <ChordImporter
             churchSlug={churchSlug}
