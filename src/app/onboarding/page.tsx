@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingWizard } from "@/components/onboarding/wizard";
+import { BrandLockup } from "@/components/brand-lockup";
 
 export default async function OnboardingPage({
   searchParams,
@@ -36,17 +37,20 @@ export default async function OnboardingPage({
   if (!church) redirect("/comecar");
 
   return (
-    <main className="flex min-h-dvh items-start justify-center bg-muted/30 p-6 pt-10">
-      <div className="w-full max-w-lg space-y-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {membership.role === "admin" ? "Vamos preparar sua igreja" : `Você está entrando em ${church.name}`}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {membership.role === "admin"
-              ? "Só o essencial para começar a organizar a equipe."
-              : "Confirme onde você serve e veja suas próximas escalas."}
-          </p>
+    <main className="flex min-h-dvh items-start justify-center bg-[#08080a] px-5 py-10 text-[#f4f3ef] sm:items-center">
+      <div className="w-full max-w-lg space-y-6">
+        <div className="space-y-4 text-center">
+          <BrandLockup className="items-center [&_span]:text-[#f4f3ef] [&_span:last-child]:text-zinc-400" />
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {membership.role === "admin" ? "Vamos preparar sua igreja" : `Você está entrando em ${church.name}`}
+            </h1>
+            <p className="mt-2 text-sm text-zinc-400">
+              {membership.role === "admin"
+                ? "Só o essencial para começar a organizar a equipe."
+                : "Confirme onde você serve e veja suas próximas escalas."}
+            </p>
+          </div>
         </div>
         <OnboardingWizard
           mode={membership.role === "admin" ? "owner" : "member"}
