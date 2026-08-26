@@ -27,8 +27,9 @@ async function acceptPendingInvite(
   const { data, error } = await supabase.rpc("join_church", {
     p_invite_code: inviteCode.toLowerCase(),
   });
+  if (error || !data) return false;
   cookieStore.delete(INVITE_COOKIE);
-  return !error && Boolean(data);
+  return true;
 }
 
 export async function signIn(formData: FormData): Promise<ActionResult> {
