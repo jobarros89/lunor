@@ -40,7 +40,7 @@ export default async function TenantLayout({ children, params }: { children: Rea
     <div className="min-h-dvh">
       <SessionKeeper />
       <Sidebar churchSlug={churchSlug} churchName={tenant.church.name} canAdmin={tenant.isCoord} isLeader={tenant.isLeader} activeMinistryNavigation={activeMinistryNavigation} escalasPending={escalasPending ?? 0} />
-      <div className="pl-[4.75rem] md:pl-60">
+      <div className="md:pl-60">
         <header className="sticky top-0 z-30 border-b border-foreground/10 bg-background/88 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
           <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-[max(1rem,env(safe-area-inset-left))] md:px-8">
             <Avatar className="size-9">
