@@ -2,16 +2,25 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { OnboardingWizard } from "@/components/onboarding/wizard";
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ igreja?: string }>;
+}) {
+  const { igreja } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
+  const membershipBase = supabase
     .from("church_members")
     .select("church_id, role")
     .eq("user_id", user.id)
-    .eq("status", "active")
+    .eq("status", "active");
+  const membershipQuery = igreja
+    ? membershipBase.eq("church_id", igreja)
+    : membershipBase;
+  const { data: membership } = await membershipQuery
     .limit(1)
     .maybeSingle();
   if (!membership) redirect("/comecar");
