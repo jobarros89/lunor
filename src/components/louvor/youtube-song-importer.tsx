@@ -2,7 +2,7 @@
 
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Search, Youtube } from "lucide-react";
+import { Check, Search, Video } from "lucide-react";
 import { createSong } from "@/lib/actions/louvor";
 import {
   searchYouTubeSongs,
@@ -89,7 +89,7 @@ export function YouTubeSongImporter({
         className="h-11 rounded-full"
         onClick={() => setOpen(true)}
       >
-        <Youtube className="size-4" />
+        <Video className="size-4" />
         Pesquisar no YouTube
       </Button>
     );
@@ -140,7 +140,7 @@ export function YouTubeSongImporter({
                 />
               ) : (
                 <div className="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg bg-muted">
-                  <Youtube className="size-6" />
+                  <Video className="size-6" />
                 </div>
               )}
               <span className="min-w-0">
