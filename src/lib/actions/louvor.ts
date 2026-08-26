@@ -62,8 +62,17 @@ export async function createSong(
     .select("id")
     .single();
   if (error || !created) {
-    if (error?.code === "23505") return { ok: false, error: "Essa música já está no acervo" };
-    return { ok: false, error: "Sem permissão para mexer no acervo" };
+    if (error?.code === "23505") {
+      return { ok: false, error: "Essa música já está no acervo" };
+    }
+    if (error?.code === "42501") {
+      return { ok: false, error: "Sem permissão para mexer no acervo" };
+    }
+    console.error("Song creation failed", error?.code, error?.message);
+    return {
+      ok: false,
+      error: "Não foi possível criar a música no acervo agora",
+    };
   }
   revalidatePath(`/${d.churchSlug}/louvor`);
   return { ok: true, data: { songId: created.id } };
