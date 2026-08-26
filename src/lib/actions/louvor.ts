@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUsers } from "@/lib/push/notify";
+import { syncYouTubePlaylist } from "@/lib/integrations/youtube";
 import type { ActionResult } from "./types";
 
 const songSchema = z.object({
@@ -316,22 +318,93 @@ export async function moveSetlistItem(
 export async function publishSetlist(
   churchSlug: string,
   eventId: string
-): Promise<ActionResult> {
+): Promise<
+  ActionResult<{ playlistUrl: string | null; playlistWarning: string | null }>
+> {
   const supabase = await createClient();
 
   const { data: itens } = await supabase
     .from("setlist_items")
-    .select("id")
-    .eq("event_id", eventId);
-  if (!itens?.length) return { ok: false, error: "Escolha as músicas antes de publicar" };
+    .select("id, position, songs!inner(youtube_video_id)")
+    .eq("event_id", eventId)
+    .order("position");
+  if (!itens?.length) {
+    return { ok: false, error: "Escolha as músicas antes de publicar" };
+  }
 
   const { data: evento, error } = await supabase
     .from("events")
-    .update({ setlist_status: "publicado", setlist_published_at: new Date().toISOString() })
+    .update({
+      setlist_status: "publicado",
+      setlist_published_at: new Date().toISOString(),
+    })
     .eq("id", eventId)
-    .select("title, starts_at")
+    .select("title, starts_at, church_id, youtube_playlist_id")
     .single();
-  if (error) return { ok: false, error: "Sem permissão para publicar o repertório" };
+  if (error) {
+    return { ok: false, error: "Sem permissão para publicar o repertório" };
+  }
+
+  let playlistUrl: string | null = null;
+  let playlistWarning: string | null = null;
+  try {
+    const requestHeaders = await headers();
+    const host =
+      requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+    const protocol = requestHeaders.get("x-forwarded-proto") ?? "https";
+    if (!host) throw new Error("APP_ORIGIN_UNAVAILABLE");
+
+    const videos = itens.flatMap((item) => {
+      const song = item.songs as unknown as {
+        youtube_video_id: string | null;
+      };
+      return song.youtube_video_id
+        ? [{ videoId: song.youtube_video_id }]
+        : [];
+    });
+
+    const playlist = await syncYouTubePlaylist({
+      churchId: evento.church_id,
+      eventId,
+      title: evento.title,
+      startsAt: evento.starts_at,
+      existingPlaylistId: evento.youtube_playlist_id,
+      items: videos,
+      origin: `${protocol}://${host}`,
+    });
+
+    if (playlist) {
+      playlistUrl = playlist.playlistUrl;
+      const { error: playlistSaveError } = await supabase
+        .from("events")
+        .update({
+          youtube_playlist_id: playlist.playlistId,
+          youtube_playlist_url: playlist.playlistUrl,
+          youtube_playlist_synced_at: new Date().toISOString(),
+          youtube_playlist_error: null,
+        })
+        .eq("id", eventId);
+      if (playlistSaveError) throw new Error("YOUTUBE_PLAYLIST_SAVE_FAILED");
+
+      const missing = itens.length - videos.length;
+      if (missing > 0) {
+        playlistWarning = `${missing} ${missing === 1 ? "música ficou" : "músicas ficaram"} fora da playlist por não ter vídeo confirmado.`;
+      }
+    } else {
+      playlistWarning =
+        "Repertório publicado. Conecte a conta oficial do YouTube para gerar a playlist.";
+    }
+  } catch (playlistError) {
+    console.error("YouTube playlist sync failed", playlistError);
+    playlistWarning =
+      "Repertório publicado, mas a playlist do YouTube não pôde ser sincronizada.";
+    await supabase
+      .from("events")
+      .update({
+        youtube_playlist_error: playlistWarning,
+      })
+      .eq("id", eventId);
+  }
 
   // Avisa quem trabalha no culto — a mídia precisa disso para montar o Holyrics.
   const { data: escalados } = await supabase
@@ -339,7 +412,7 @@ export async function publishSetlist(
     .select("user_id")
     .eq("event_id", eventId);
   await notifyUsers(
-    (escalados ?? []).map((a) => a.user_id),
+    (escalados ?? []).map((assignment) => assignment.user_id),
     {
       title: "Repertório definido",
       body: `${evento.title}: ${itens.length} ${itens.length === 1 ? "música" : "músicas"} na sequência.`,
@@ -348,7 +421,10 @@ export async function publishSetlist(
   );
 
   revalidatePath(`/${churchSlug}/escalas/${eventId}`);
-  return { ok: true, data: undefined };
+  return {
+    ok: true,
+    data: { playlistUrl, playlistWarning },
+  };
 }
 
 /** Reabre para ajuste — quem já foi avisado continua vendo a versão anterior. */

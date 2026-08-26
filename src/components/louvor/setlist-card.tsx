@@ -6,6 +6,7 @@ import {
   ChevronUp,
   Copy,
   Check,
+  ExternalLink,
   Music,
   Pencil,
   Send,
@@ -39,6 +40,8 @@ type Props = {
   itens: SetlistItem[];
   publicado: boolean;
   publicadoEm: string | null;
+  youtubePlaylistUrl: string | null;
+  youtubePlaylistError: string | null;
   /** Só o líder do louvor monta e publica. */
   podeEditar: boolean;
 };
@@ -50,10 +53,15 @@ export function SetlistCard({
   itens,
   publicado,
   publicadoEm,
+  youtubePlaylistUrl,
+  youtubePlaylistError,
   podeEditar,
 }: Props) {
   const [pending, startTransition] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
+  const [avisoPlaylist, setAvisoPlaylist] = useState<string | null>(
+    youtubePlaylistError
+  );
   const [copiado, setCopiado] = useState(false);
   const [aberta, setAberta] = useState<string | null>(null);
   const [cifraAberta, setCifraAberta] = useState<string | null>(null);
@@ -75,6 +83,19 @@ export function SetlistCard({
       const r = await fn();
       if (!r.ok) setErro(r.error ?? "Não deu certo");
       else onSuccess?.();
+    });
+  }
+
+  function publicar() {
+    setErro(null);
+    setAvisoPlaylist(null);
+    startTransition(async () => {
+      const result = await publishSetlist(churchSlug, eventId);
+      if (!result.ok) {
+        setErro(result.error ?? "Não foi possível publicar");
+        return;
+      }
+      setAvisoPlaylist(result.data.playlistWarning);
     });
   }
 
@@ -297,6 +318,22 @@ export function SetlistCard({
         })}
 
         {erro && <p className="text-sm text-destructive">{erro}</p>}
+        {avisoPlaylist && (
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            {avisoPlaylist}
+          </p>
+        )}
+        {youtubePlaylistUrl && (
+          <a
+            href={youtubePlaylistUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium underline underline-offset-4"
+          >
+            Abrir playlist de ensaio no YouTube
+            <ExternalLink className="size-4" />
+          </a>
+        )}
 
         <div className="flex flex-wrap gap-2 pt-1">
           {itens.length > 0 && (
@@ -313,7 +350,7 @@ export function SetlistCard({
             <Button
               className="h-11 rounded-full"
               disabled={pending || itens.length === 0}
-              onClick={() => agir(() => publishSetlist(churchSlug, eventId))}
+              onClick={publicar}
             >
               <Send className="size-4" />
               Publicar e avisar a equipe

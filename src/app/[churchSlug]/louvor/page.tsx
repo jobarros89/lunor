@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, Music } from "lucide-react";
+import { ChevronRight, Music, Video } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { rotuloUltimaVez, type Song } from "@/lib/louvor";
 import { getLouvorMinistry } from "@/lib/louvor-server";
@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SongForm } from "@/components/louvor/song-form";
+import { Button } from "@/components/ui/button";
 import { YouTubeSongImporter } from "@/components/louvor/youtube-song-importer";
 
 export default async function LouvorPage({
@@ -26,7 +27,12 @@ export default async function LouvorPage({
   if (!louvor) redirect(`/${churchSlug}`);
 
   const supabase = await createClient();
-  const [{ data: songs }, { data: historico }, { data: papel }] = await Promise.all([
+  const [
+    { data: songs },
+    { data: historico },
+    { data: papel },
+    { data: youtubeIntegration },
+  ] = await Promise.all([
     supabase
       .from("songs")
       .select("id, title, artist, default_key, bpm, lyrics, link, active")
@@ -44,6 +50,12 @@ export default async function LouvorPage({
       .eq("ministry_id", louvor.id)
       .eq("user_id", tenant.userId)
       .eq("active", true)
+      .maybeSingle(),
+    supabase
+      .from("church_music_integrations")
+      .select("account_label, updated_at")
+      .eq("church_id", tenant.church.id)
+      .eq("provider", "YOUTUBE")
       .maybeSingle(),
   ]);
 
@@ -77,6 +89,31 @@ export default async function LouvorPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
+            <div className="flex flex-col gap-3 rounded-2xl bg-muted/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  <Video className="size-4" />
+                  Conta oficial no YouTube
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {youtubeIntegration?.account_label
+                    ? `Conectada: ${youtubeIntegration.account_label}`
+                    : "Conecte a conta que será dona das playlists não listadas."}
+                </p>
+              </div>
+              <Button
+                nativeButton={false}
+                variant="outline"
+                className="h-10 shrink-0 rounded-full"
+                render={
+                  <a
+                    href={`/api/integrations/youtube/connect?churchId=${tenant.church.id}&returnTo=${encodeURIComponent(`/${churchSlug}/louvor`)}`}
+                  />
+                }
+              >
+                {youtubeIntegration ? "Reconectar" : "Conectar YouTube"}
+              </Button>
+            </div>
             <YouTubeSongImporter
               churchSlug={churchSlug}
               churchId={tenant.church.id}
