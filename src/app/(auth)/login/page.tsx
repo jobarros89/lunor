@@ -5,7 +5,8 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { signIn } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { BrandLockup } from "@/components/brand-lockup";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -24,7 +25,7 @@ export default function LoginPage() {
   return (
     <Card className="border-white/10 bg-[#111113] text-[#f4f3ef] shadow-none sm:rounded-2xl">
       <CardHeader className="space-y-4 pb-7 text-center">
-        <CardTitle className="text-[2rem] font-bold tracking-[0.22em] text-[#f4f3ef]">LUNOR</CardTitle>
+        <BrandLockup className="items-center [&_span]:text-[#f4f3ef] [&_span:last-child]:text-zinc-400" />
         <CardDescription>Entre para acessar seu ministério</CardDescription>
       </CardHeader>
       <CardContent>
