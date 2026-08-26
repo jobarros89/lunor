@@ -22,7 +22,7 @@ export async function GET(
       p_invite_code: code,
     });
     if (!error && data) {
-      return NextResponse.redirect(new URL("/onboarding", request.url));
+      return NextResponse.redirect(new URL(`/onboarding?igreja=${data}`, request.url));
     }
     return NextResponse.redirect(new URL("/comecar?convite=invalido", request.url));
   }
