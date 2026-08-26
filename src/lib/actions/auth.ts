@@ -19,17 +19,17 @@ const INVITE_COOKIE = "lunor_invite";
 
 async function acceptPendingInvite(
   supabase: Awaited<ReturnType<typeof createClient>>
-): Promise<boolean> {
+): Promise<string | null> {
   const cookieStore = await cookies();
   const inviteCode = cookieStore.get(INVITE_COOKIE)?.value;
-  if (!inviteCode) return false;
+  if (!inviteCode) return null;
 
   const { data, error } = await supabase.rpc("join_church", {
     p_invite_code: inviteCode.toLowerCase(),
   });
-  if (error || !data) return false;
+  if (error || !data) return null;
   cookieStore.delete(INVITE_COOKIE);
-  return true;
+  return data;
 }
 
 export async function signIn(formData: FormData): Promise<ActionResult> {
@@ -46,7 +46,8 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
   if (error) {
     return { ok: false, error: "E-mail ou senha incorretos" };
   }
-  if (await acceptPendingInvite(supabase)) redirect("/onboarding");
+  const invitedChurchId = await acceptPendingInvite(supabase);
+  if (invitedChurchId) redirect(`/onboarding?igreja=${invitedChurchId}`);
   redirect("/");
 }
 
@@ -69,7 +70,8 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
   if (error) {
     return { ok: false, error: "Não foi possível criar a conta" };
   }
-  if (await acceptPendingInvite(supabase)) redirect("/onboarding");
+  const invitedChurchId = await acceptPendingInvite(supabase);
+  if (invitedChurchId) redirect(`/onboarding?igreja=${invitedChurchId}`);
   redirect("/");
 }
 
