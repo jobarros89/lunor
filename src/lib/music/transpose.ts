@@ -42,9 +42,14 @@ const CHORD_PATTERN =
   /^([A-Ga-g])([#b]?)((?:(?:maj|min|m|dim|aug|sus|add)?\d*(?:sus\d+|add\d+)?(?:\([^)]*\))?))(?:\/([A-Ga-g])([#b]?))?$/;
 
 const MUSICAL_MARKER = /^(?:\|+|:+|%|-+|\d+x|N\.C\.)$/i;
+const BRACKET_SECTION_PREFIX = /^(\s*\[[^\]\r\n]+\]\s*)(.*)$/;
+const NAMED_SECTION_PREFIX =
+  /^(\s*(?:Intro|Introdução|Verso|Estrofe|Pré-Refrão|Pre-Refrão|Refrão|Coro|Ponte|Interlúdio|Interludio|Solo|Final|Outro)(?:\s+\d+)?\s*:\s*)(.*)$/i;
+const KEY_LINE_PATTERN = /^(\s*(?:Tom|Key)\s*:\s*)([A-Ga-g][#b]?(?:m)?)(\s*)$/i;
+const CHORDPRO_KEY_PATTERN = /(\{\s*key\s*:\s*)([A-Ga-g][#b]?(?:m)?)(\s*\})/gi;
 
 function pitchClass(note: string): number | null {
-  const match = /^([A-Ga-g])([#b]?)$/.exec(note.trim());
+  const match = /^([A-Ga-g])([#b]?)(?:m)?$/.exec(note.trim());
   if (!match) return null;
 
   const natural = NATURAL_PITCH[match[1].toUpperCase()];
@@ -75,15 +80,21 @@ function transposeChord(chord: string, semitones: number, preferFlats: boolean) 
   return `${transposedRoot}${suffix}${bass}`;
 }
 
-function transposeLine(line: string, semitones: number, preferFlats: boolean) {
-  const tokens = line.split(/(\s+)/);
-  const content = tokens.filter((token) => token.trim().length > 0);
-  if (content.length === 0) return line;
-
-  const isChordLine = content.every(
-    (token) => CHORD_PATTERN.test(token) || MUSICAL_MARKER.test(token)
-  );
-  if (!isChordLine) return line;
+function transposeMusicalContent(
+  content: string,
+  semitones: number,
+  preferFlats: boolean
+): string | null {
+  const tokens = content.split(/(\s+)/);
+  const musicalTokens = tokens.filter((token) => token.trim().length > 0);
+  if (
+    musicalTokens.length === 0 ||
+    !musicalTokens.every(
+      (token) => CHORD_PATTERN.test(token) || MUSICAL_MARKER.test(token)
+    )
+  ) {
+    return null;
+  }
 
   return tokens
     .map((token) =>
@@ -94,9 +105,68 @@ function transposeLine(line: string, semitones: number, preferFlats: boolean) {
     .join("");
 }
 
+function transposeChordProInline(
+  line: string,
+  semitones: number,
+  preferFlats: boolean
+): { line: string; changed: boolean } {
+  let changed = false;
+  const transposed = line.replace(/\[([^\]\r\n]+)\]/g, (match, candidate) => {
+    if (!CHORD_PATTERN.test(candidate)) return match;
+    changed = true;
+    return `[${transposeChord(candidate, semitones, preferFlats)}]`;
+  });
+
+  return { line: transposed, changed };
+}
+
+function transposeLine(line: string, semitones: number, preferFlats: boolean) {
+  const keyLine = KEY_LINE_PATTERN.exec(line);
+  if (keyLine) {
+    return `${keyLine[1]}${transposeChord(
+      keyLine[2],
+      semitones,
+      preferFlats
+    )}${keyLine[3]}`;
+  }
+
+  let chordProKeyChanged = false;
+  const withChordProKey = line.replace(
+    CHORDPRO_KEY_PATTERN,
+    (_match, prefix, key, suffix) => {
+      chordProKeyChanged = true;
+      return `${prefix}${transposeChord(key, semitones, preferFlats)}${suffix}`;
+    }
+  );
+
+  const chordPro = transposeChordProInline(
+    withChordProKey,
+    semitones,
+    preferFlats
+  );
+  if (chordProKeyChanged || chordPro.changed) return chordPro.line;
+
+  for (const prefixPattern of [
+    BRACKET_SECTION_PREFIX,
+    NAMED_SECTION_PREFIX,
+  ]) {
+    const sectionLine = prefixPattern.exec(line);
+    if (!sectionLine) continue;
+
+    const transposed = transposeMusicalContent(
+      sectionLine[2],
+      semitones,
+      preferFlats
+    );
+    if (transposed !== null) return `${sectionLine[1]}${transposed}`;
+  }
+
+  return transposeMusicalContent(line, semitones, preferFlats) ?? line;
+}
+
 /**
- * Transpõe as linhas de acordes de uma cifra sem modificar a letra.
- * Acordes são reconhecidos apenas quando a linha inteira tem conteúdo musical.
+ * Transpõe cifras PLAIN e CHORDPRO sem modificar a letra.
+ * Linhas comuns só são transpostas quando todo o conteúdo é musical.
  */
 export function transposeChordChart(
   chordChart: string,
