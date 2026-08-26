@@ -65,7 +65,7 @@ export default async function LouvorPage({
   ] = await Promise.all([
     supabase
       .from("songs")
-      .select("id, title, artist, default_key, bpm, lyrics, link, active")
+      .select("id, title, artist, default_key, bpm, time_signature, lyrics, link, active")
       .eq("church_id", tenant.church.id)
       .eq("active", true)
       .order("title"),
@@ -192,6 +192,7 @@ export default async function LouvorPage({
                   {s.artist ? " · " : ""}
                   {s.default_key && `tom ${s.default_key}`}
                   {s.bpm ? ` · ${s.bpm} bpm` : ""}
+                  {s.time_signature ? ` · ${s.time_signature}` : ""}
                 </p>
                 <p className="mt-0.5 text-sm text-muted-foreground">
                   {rotuloUltimaVez(ultima.get(s.id) ?? null)}
