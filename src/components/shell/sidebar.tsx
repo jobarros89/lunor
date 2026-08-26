@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Baby, BookOpen, Calendar, Camera, Home, Music2, Settings, User, Users, Wrench } from "lucide-react";
@@ -36,8 +35,8 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-black/10 bg-[#f8f8f5]/95 px-5 py-7 backdrop-blur-xl md:flex dark:border-white/10 dark:bg-[#111]/95">
       <div className="mb-10 px-2">
-        <Link href={`/${churchSlug}`} aria-label="Ir para o início" className="block w-full">
-          <Image src="/brand/lunor-logo.png" alt="LUNOR" width={176} height={56} priority className="h-auto w-[176px] max-w-full object-contain object-left" />
+        <Link href={`/${churchSlug}`} aria-label="Ir para o início" className="inline-block text-[2rem] font-bold tracking-[0.22em] text-foreground transition-opacity hover:opacity-70">
+          LUNOR
         </Link>
         <p className="mt-2 truncate text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{churchName}</p>
       </div>
