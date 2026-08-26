@@ -130,6 +130,45 @@ export async function archiveSong(
   return { ok: true, data: undefined };
 }
 
+const deleteSongSchema = z.object({
+  churchSlug: z.string().min(2),
+  churchId: z.string().uuid(),
+  songId: z.string().uuid(),
+});
+
+/** Apaga definitivamente apenas músicas que nunca entraram em um repertório. */
+export async function deleteSong(raw: unknown): Promise<ActionResult> {
+  const parsed = deleteSongSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const d = parsed.data;
+  const supabase = await createClient();
+
+  const { data: result, error } = await supabase.rpc("delete_song", {
+    p_church_id: d.churchId,
+    p_song_id: d.songId,
+  });
+  if (error) {
+    if (error.code === "42501") {
+      return { ok: false, error: "Sem permissão para excluir esta música" };
+    }
+    console.error("Song deletion failed", error.code, error.message);
+    return { ok: false, error: "Não foi possível excluir a música agora" };
+  }
+  if (result === "in_use") {
+    return {
+      ok: false,
+      error:
+        "Esta música está vinculada a um repertório. Remova-a das escalas antes de excluir.",
+    };
+  }
+  if (result !== "deleted") {
+    return { ok: false, error: "Música não encontrada neste acervo" };
+  }
+
+  revalidatePath(`/${d.churchSlug}/louvor`);
+  return { ok: true, data: undefined };
+}
+
 const addItemSchema = z.object({
   churchSlug: z.string().min(2),
   churchId: z.string().uuid(),
