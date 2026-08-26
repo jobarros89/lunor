@@ -11,6 +11,8 @@ export type Song = {
   lyrics: string | null;
   chord_chart?: string | null;
   link: string | null;
+  youtube_video_id?: string | null;
+  spotify_track_id?: string | null;
   active: boolean;
 };
 

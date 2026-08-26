@@ -20,6 +20,18 @@ const songSchema = z.object({
     .default("")
     .transform((value) => (value.trim().length > 0 ? value : null)),
   link: z.string().max(500).default(""),
+  youtubeVideoId: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z0-9_-]{11}$/, "Vídeo do YouTube inválido")
+    .optional()
+    .or(z.literal("")),
+  spotifyTrackId: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z0-9]{22}$/, "Faixa do Spotify inválida")
+    .optional()
+    .or(z.literal("")),
 });
 
 /** Cadastra a música no acervo da igreja — uma vez, para usar em todos os cultos. */
@@ -42,6 +54,8 @@ export async function createSong(
       lyrics: d.lyrics || null,
       chord_chart: d.chordChart,
       link: d.link || null,
+      youtube_video_id: d.youtubeVideoId || null,
+      spotify_track_id: d.spotifyTrackId || null,
     })
     .select("id")
     .single();
@@ -71,6 +85,8 @@ export async function updateSong(raw: unknown): Promise<ActionResult> {
       lyrics: d.lyrics || null,
       chord_chart: d.chordChart,
       link: d.link || null,
+      youtube_video_id: d.youtubeVideoId || null,
+      spotify_track_id: d.spotifyTrackId || null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", d.songId)
