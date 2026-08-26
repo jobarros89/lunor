@@ -30,8 +30,8 @@ export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, esca
   ];
 
   return (
-    <nav aria-label="Navegação principal" className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-2 top-[max(4.75rem,env(safe-area-inset-top))] z-50 flex items-center md:hidden">
-      <div className="flex w-14 flex-col items-center gap-1 rounded-2xl border border-white/10 bg-zinc-950/95 p-1.5 shadow-xl shadow-black/30 backdrop-blur-xl">
+    <nav aria-label="Navegação principal" className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-50 w-[calc(100%-1rem)] max-w-md -translate-x-1/2 md:hidden">
+      <div className="grid h-16 w-full grid-flow-col auto-cols-fr items-center gap-1 rounded-2xl border border-foreground/15 bg-background/92 p-1.5 shadow-xl shadow-black/15 backdrop-blur-xl dark:shadow-black/40">
         {items.map(({ href, label, icon: Icon, badge }) => {
           const full = `/${churchSlug}${href}`;
           const active = href === "" ? pathname === full : pathname.startsWith(full);
@@ -43,8 +43,8 @@ export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, esca
               aria-current={active ? "page" : undefined}
               title={label}
               className={cn(
-                "relative flex size-11 shrink-0 flex-col items-center justify-center overflow-hidden rounded-xl transition-colors duration-200",
-                active ? "bg-[#6e5ce6] text-white" : "text-zinc-400 hover:bg-white/8 hover:text-white"
+                "relative flex h-13 min-w-0 flex-col items-center justify-center overflow-hidden rounded-xl transition-colors duration-200",
+                active ? "bg-[#6e5ce6] text-white shadow-sm" : "text-muted-foreground hover:bg-foreground/8 hover:text-foreground"
               )}
             >
               <Icon className="size-[19px] shrink-0" strokeWidth={active ? 2.25 : 1.75} />
