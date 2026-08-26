@@ -21,7 +21,7 @@ export function SectorSwitcher({
 
   return (
     <label
-      className="flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-sm data-[pending=true]:opacity-60"
+      className="flex min-w-0 max-w-[7rem] items-center gap-1.5 rounded-full border bg-background px-2 py-1.5 text-sm data-[pending=true]:opacity-60 sm:max-w-none sm:px-3"
       data-pending={pending}
       title="Setor ativo"
     >
@@ -32,7 +32,7 @@ export function SectorSwitcher({
         onChange={(e) =>
           startTransition(() => setActiveMinistry(e.target.value, churchSlug))
         }
-        className="max-w-[9rem] cursor-pointer truncate bg-transparent font-medium outline-none"
+        className="w-full min-w-0 max-w-[4.75rem] cursor-pointer truncate bg-transparent font-medium outline-none sm:max-w-[9rem]"
         aria-label="Trocar de setor"
       >
         {options.map((o) => (
