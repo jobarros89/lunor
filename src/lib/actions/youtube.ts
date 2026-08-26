@@ -12,9 +12,26 @@ export type YouTubeSongCandidate = {
   publishedAt: string;
 };
 
+export type SongMusicalMetadataCandidate = {
+  defaultKey: string | null;
+  bpm: number | null;
+  timeSignature: string | null;
+  source: "TheAudioDB";
+  confidence: "alta" | "media" | "baixa";
+  matchedTitle: string;
+  matchedArtist: string;
+};
+
 const searchSchema = z.object({
   churchId: z.string().uuid(),
   query: z.string().trim().min(2, "Digite ao menos 2 caracteres").max(120),
+});
+
+const metadataSchema = z.object({
+  churchId: z.string().uuid(),
+  title: z.string().trim().min(1, "Informe o título").max(160),
+  artist: z.string().trim().min(1, "Informe o artista").max(120),
+  youtubeVideoId: z.string().regex(/^[A-Za-z0-9_-]{11}$/),
 });
 
 type YouTubeSearchResponse = {
@@ -31,6 +48,19 @@ type YouTubeSearchResponse = {
     };
   }>;
   error?: { message?: string };
+};
+
+type AudioDbTrack = {
+  strTrack?: string | null;
+  strArtist?: string | null;
+  intTempo?: string | null;
+  strTimeSignature?: string | null;
+  strKey?: string | null;
+  strMusicVid?: string | null;
+};
+
+type AudioDbSearchResponse = {
+  track?: AudioDbTrack[] | null;
 };
 
 function decodeYouTubeText(value: string): string {
@@ -55,6 +85,128 @@ function decodeYouTubeText(value: string): string {
   );
 }
 
+function normalized(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\b(official|oficial|video|vídeo|audio|áudio|lyrics?|letra|live|ao vivo|clipe|topic)\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function cleanLookupTerms(title: string, artist: string) {
+  let lookupTitle = decodeYouTubeText(title)
+    .replace(/[\[(][^\])]*(official|oficial|video|vídeo|audio|áudio|lyrics?|letra|live|ao vivo|clipe)[^\])]*[\])]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  let lookupArtist = decodeYouTubeText(artist)
+    .replace(/\s*(?:-\s*Topic|VEVO|Oficial|Official)\s*$/i, "")
+    .trim();
+
+  const dash = lookupTitle.split(/\s+[–—-]\s+/).map((part) => part.trim());
+  if (dash.length >= 2 && dash[0] && dash[1]) {
+    lookupArtist = dash[0];
+    lookupTitle = dash[1];
+  } else {
+    const pipe = lookupTitle.split(/\s*\|\s*/).map((part) => part.trim());
+    if (pipe.length >= 2 && pipe[0] && pipe[1]) {
+      lookupTitle = pipe[0];
+      lookupArtist = pipe[1];
+    }
+  }
+
+  return { lookupTitle, lookupArtist };
+}
+
+function normalizedKey(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const compact = value.trim().replace(/\s+major$/i, "").replace(/\s+minor$/i, "m");
+  const match = compact.match(/^([A-Ga-g])([#b]?)(m?)$/);
+  if (!match) return null;
+  return `${match[1].toUpperCase()}${match[2]}${match[3]}`;
+}
+
+async function canManageMusic(churchId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const [{ data: isLeader }, { data: isCoord }] = await Promise.all([
+    supabase.rpc("is_louvor_leader", { p_church: churchId }),
+    supabase.rpc("is_church_coord", { p_church: churchId }),
+  ]);
+  return Boolean(isLeader || isCoord);
+}
+
+export async function findSongMusicalMetadata(
+  raw: unknown
+): Promise<ActionResult<SongMusicalMetadataCandidate | null>> {
+  const parsed = metadataSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+  if (!(await canManageMusic(parsed.data.churchId))) {
+    return { ok: false, error: "Sem permissão para consultar dados musicais" };
+  }
+
+  const { lookupTitle, lookupArtist } = cleanLookupTerms(
+    parsed.data.title,
+    parsed.data.artist
+  );
+  if (!lookupTitle || !lookupArtist) return { ok: true, data: null };
+
+  const params = new URLSearchParams({ s: lookupArtist, t: lookupTitle });
+  try {
+    const response = await fetch(
+      `https://www.theaudiodb.com/api/v1/json/123/searchtrack.php?${params.toString()}`,
+      {
+        headers: { Accept: "application/json" },
+        next: { revalidate: 86_400 },
+      }
+    );
+    if (!response.ok) {
+      console.error("TheAudioDB search failed", response.status);
+      return { ok: false, error: "Não foi possível consultar tom e BPM agora" };
+    }
+
+    const payload = (await response.json()) as AudioDbSearchResponse;
+    const track = payload.track?.[0];
+    if (!track) return { ok: true, data: null };
+
+    const bpmValue = Number.parseInt(track.intTempo ?? "", 10);
+    const bpm = Number.isInteger(bpmValue) && bpmValue >= 20 && bpmValue <= 300
+      ? bpmValue
+      : null;
+    const defaultKey = normalizedKey(track.strKey);
+    if (!defaultKey && !bpm) return { ok: true, data: null };
+
+    const matchedTitle = track.strTrack?.trim() ?? lookupTitle;
+    const matchedArtist = track.strArtist?.trim() ?? lookupArtist;
+    const sameVideo = track.strMusicVid?.includes(parsed.data.youtubeVideoId) ?? false;
+    const sameTitle = normalized(matchedTitle) === normalized(lookupTitle);
+    const sameArtist = normalized(matchedArtist) === normalized(lookupArtist);
+    const confidence = sameVideo || (sameTitle && sameArtist)
+      ? "alta"
+      : sameTitle || sameArtist
+        ? "media"
+        : "baixa";
+
+    return {
+      ok: true,
+      data: {
+        defaultKey,
+        bpm,
+        timeSignature: track.strTimeSignature?.trim() || null,
+        source: "TheAudioDB",
+        confidence,
+        matchedTitle,
+        matchedArtist,
+      },
+    };
+  } catch (error) {
+    console.error("TheAudioDB request failed", error);
+    return { ok: false, error: "Não foi possível consultar tom e BPM agora" };
+  }
+}
+
 export async function searchYouTubeSongs(
   raw: unknown
 ): Promise<ActionResult<YouTubeSongCandidate[]>> {
@@ -63,12 +215,7 @@ export async function searchYouTubeSongs(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const supabase = await createClient();
-  const [{ data: isLeader }, { data: isCoord }] = await Promise.all([
-    supabase.rpc("is_louvor_leader", { p_church: parsed.data.churchId }),
-    supabase.rpc("is_church_coord", { p_church: parsed.data.churchId }),
-  ]);
-  if (!isLeader && !isCoord) {
+  if (!(await canManageMusic(parsed.data.churchId))) {
     return { ok: false, error: "Sem permissão para pesquisar o catálogo" };
   }
 
