@@ -34,7 +34,7 @@ export async function createChurch(formData: FormData): Promise<ActionResult> {
         .select("slug")
         .eq("id", data)
         .single();
-      redirect("/onboarding");
+      redirect(`/onboarding?igreja=${data}`);
     }
     if (error && !error.message.includes("churches_slug_key")) {
       return { ok: false, error: "Não foi possível criar a igreja" };
@@ -130,5 +130,5 @@ export async function joinChurch(formData: FormData): Promise<ActionResult> {
     .select("slug")
     .eq("id", data)
     .single();
-  redirect("/onboarding");
+  redirect(`/onboarding?igreja=${data}`);
 }
