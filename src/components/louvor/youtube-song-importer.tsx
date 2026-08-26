@@ -2,10 +2,12 @@
 
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Search, Video } from "lucide-react";
+import { Check, RefreshCw, Search, Video } from "lucide-react";
 import { createSong } from "@/lib/actions/louvor";
 import {
+  findSongMusicalMetadata,
   searchYouTubeSongs,
+  type SongMusicalMetadataCandidate,
   type YouTubeSongCandidate,
 } from "@/lib/actions/youtube";
 import { Button } from "@/components/ui/button";
@@ -26,9 +28,14 @@ export function YouTubeSongImporter({
   const [selected, setSelected] = useState<YouTubeSongCandidate | null>(null);
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
+  const [defaultKey, setDefaultKey] = useState("");
+  const [bpm, setBpm] = useState("");
+  const [metadata, setMetadata] = useState<SongMusicalMetadataCandidate | null>(null);
+  const [metadataMessage, setMetadataMessage] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searching, startSearch] = useTransition();
+  const [checkingMetadata, startMetadataSearch] = useTransition();
   const [saving, startSaving] = useTransition();
 
   function search(event: FormEvent<HTMLFormElement>) {
@@ -48,12 +55,46 @@ export function YouTubeSongImporter({
     });
   }
 
+  function lookUpMetadata(
+    candidate: YouTubeSongCandidate,
+    lookupTitle: string,
+    lookupArtist: string
+  ) {
+    setMetadata(null);
+    setMetadataMessage(null);
+    startMetadataSearch(async () => {
+      const result = await findSongMusicalMetadata({
+        churchId,
+        title: lookupTitle,
+        artist: lookupArtist,
+        youtubeVideoId: candidate.videoId,
+      });
+      if (!result.ok) {
+        setMetadataMessage(result.error ?? "Não foi possível consultar tom e BPM");
+        return;
+      }
+      if (!result.data) {
+        setMetadataMessage(
+          "Tom e BPM não foram encontrados com segurança. Você pode informá-los manualmente."
+        );
+        return;
+      }
+
+      setMetadata(result.data);
+      if (result.data.defaultKey) setDefaultKey(result.data.defaultKey);
+      if (result.data.bpm) setBpm(String(result.data.bpm));
+    });
+  }
+
   function choose(candidate: YouTubeSongCandidate) {
     setSelected(candidate);
     setTitle(candidate.title);
     setArtist(candidate.channelTitle);
+    setDefaultKey("");
+    setBpm("");
     setConfirmed(false);
     setError(null);
+    lookUpMetadata(candidate, candidate.title, candidate.channelTitle);
   }
 
   function save() {
@@ -65,8 +106,8 @@ export function YouTubeSongImporter({
         churchId,
         title,
         artist,
-        defaultKey: "",
-        bpm: undefined,
+        defaultKey,
+        bpm: bpm ? Number(bpm) : undefined,
         lyrics: "",
         chordChart: "",
         link: `https://www.youtube.com/watch?v=${selected.videoId}`,
@@ -100,8 +141,8 @@ export function YouTubeSongImporter({
       <div>
         <h3 className="font-semibold">Pesquisar no YouTube</h3>
         <p className="text-sm text-muted-foreground">
-          Escolha a gravação de referência. Letra, cifra e arranjos continuam
-          armazenados e revisados dentro do LUNOR.
+          Escolha a gravação de referência. O LUNOR tentará localizar tom, BPM
+          e compasso, mas você confirma os dados antes de salvar.
         </p>
       </div>
 
@@ -181,7 +222,66 @@ export function YouTubeSongImporter({
                 maxLength={120}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="youtube-key">Tom</Label>
+              <Input
+                id="youtube-key"
+                value={defaultKey}
+                onChange={(event) => setDefaultKey(event.target.value)}
+                maxLength={8}
+                placeholder="Ex.: G ou F#m"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="youtube-bpm">BPM</Label>
+              <Input
+                id="youtube-bpm"
+                type="number"
+                value={bpm}
+                onChange={(event) => setBpm(event.target.value)}
+                min={20}
+                max={300}
+                placeholder="20–300"
+              />
+            </div>
           </div>
+
+          {checkingMetadata && (
+            <p className="text-sm text-muted-foreground">
+              Buscando tom e BPM da gravação…
+            </p>
+          )}
+          {metadata && !checkingMetadata && (
+            <div className="rounded-xl border bg-background p-3 text-sm">
+              <p className="font-medium">
+                Dados sugeridos · confiança {metadata.confidence}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                {metadata.matchedTitle} — {metadata.matchedArtist}
+                {metadata.timeSignature
+                  ? ` · compasso ${metadata.timeSignature}`
+                  : ""}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Fonte: {metadata.source}. Confirme porque versões ao vivo podem
+                usar outro tom ou andamento.
+              </p>
+            </div>
+          )}
+          {metadataMessage && !checkingMetadata && (
+            <p className="text-sm text-muted-foreground">{metadataMessage}</p>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={checkingMetadata || !title.trim() || !artist.trim()}
+            onClick={() => lookUpMetadata(selected, title, artist)}
+          >
+            <RefreshCw className="size-4" />
+            {checkingMetadata ? "Consultando…" : "Buscar tom e BPM novamente"}
+          </Button>
+
           <p className="text-xs text-muted-foreground">
             Vídeo confirmado: youtube.com/watch?v={selected.videoId}. O YouTube
             não será usado como fonte de letra ou cifra.
@@ -194,8 +294,8 @@ export function YouTubeSongImporter({
               onChange={(event) => setConfirmed(event.target.checked)}
             />
             <span>
-              Conferi o vídeo, o título e o artista. Quero criar esta música no
-              acervo interno do LUNOR.
+              Conferi o vídeo, o título, o artista, o tom e o BPM. Quero criar
+              esta música no acervo interno do LUNOR.
             </span>
           </label>
           <div className="flex flex-wrap gap-2">
@@ -212,6 +312,8 @@ export function YouTubeSongImporter({
               disabled={saving}
               onClick={() => {
                 setSelected(null);
+                setMetadata(null);
+                setMetadataMessage(null);
                 setConfirmed(false);
               }}
             >
@@ -229,6 +331,8 @@ export function YouTubeSongImporter({
           setOpen(false);
           setResults([]);
           setSelected(null);
+          setMetadata(null);
+          setMetadataMessage(null);
           setError(null);
         }}
       >
