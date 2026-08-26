@@ -86,9 +86,7 @@ export async function completeChurchOnboarding(raw: unknown): Promise<ActionResu
 const memberSetupSchema = z.object({
   ministryIds: z.array(z.string().uuid()).min(1, "Selecione pelo menos um ministério"),
   phone: z.string().trim().max(30).default(""),
-  days: z.array(z.string()).default([]),
-  periods: z.array(z.string()).default([]),
-  skills: z.array(z.string()).default([]),
+  departments: z.array(z.string().trim().min(1)).default([]),
 });
 
 export async function completeMemberOnboarding(raw: unknown): Promise<ActionResult> {
@@ -123,22 +121,16 @@ export async function completeMemberOnboarding(raw: unknown): Promise<ActionResu
     p_church_id: membership.church_id,
     p_ministry_ids: uniqueMinistryIds,
     p_phone: parsed.data.phone || null,
-    p_availability: { dias: parsed.data.days, periodos: parsed.data.periods },
+    p_availability: {},
   });
   if (joinError) return { ok: false, error: "Não foi possível concluir seu cadastro" };
 
-  const { data: skillRows } = await supabase
-    .from("skills")
-    .select("id, slug")
-    .eq("church_id", membership.church_id)
-    .in("slug", parsed.data.skills);
-  if (skillRows?.length) {
-    await supabase.from("member_interests").upsert(skillRows.map((skill) => ({
-      church_id: membership.church_id,
-      user_id: user.id,
-      skill_id: skill.id,
-    })), { onConflict: "user_id,skill_id", ignoreDuplicates: true });
-  }
+  const departments = [...new Set(parsed.data.departments)];
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ departments })
+    .eq("id", user.id);
+  if (profileError) return { ok: false, error: "Não foi possível salvar os departamentos" };
 
   redirect(`/${church.slug}/escalas`);
 }
