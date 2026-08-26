@@ -34,6 +34,8 @@ export function SongForm(props: SongFormProps) {
       lyrics: String(form.get("lyrics") ?? ""),
       chordChart: String(form.get("chordChart") ?? ""),
       link: String(form.get("link") ?? ""),
+      youtubeVideoId: song?.youtube_video_id ?? "",
+      spotifyTrackId: song?.spotify_track_id ?? "",
     };
 
     setErro(null);
