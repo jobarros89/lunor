@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SongForm } from "@/components/louvor/song-form";
+import { YouTubeSongImporter } from "@/components/louvor/youtube-song-importer";
 
 export default async function LouvorPage({
   params,
@@ -75,7 +76,16 @@ export default async function LouvorPage({
               Cadastre uma vez — a letra corrigida aqui vale para todos os cultos
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-5">
+            <YouTubeSongImporter
+              churchSlug={churchSlug}
+              churchId={tenant.church.id}
+            />
+            <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              ou cadastre manualmente
+              <span className="h-px flex-1 bg-border" />
+            </div>
             <SongForm churchSlug={churchSlug} churchId={tenant.church.id} />
           </CardContent>
         </Card>
