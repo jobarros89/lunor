@@ -48,7 +48,7 @@ export default async function MusicaDetalhePage({
   ] = await Promise.all([
     supabase
       .from("songs")
-      .select("id, title, artist, default_key, bpm, lyrics, chord_chart, link, youtube_video_id, spotify_track_id, active")
+      .select("id, title, artist, default_key, bpm, time_signature, lyrics, chord_chart, link, youtube_video_id, spotify_track_id, active")
       .eq("id", songId)
       .eq("church_id", tenant.church.id)
       .maybeSingle(),
@@ -149,7 +149,7 @@ export default async function MusicaDetalhePage({
             Detalhes
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Tom padrão
@@ -161,6 +161,12 @@ export default async function MusicaDetalhePage({
               BPM
             </p>
             <p className="mt-1 font-medium">{musica.bpm ?? "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Compasso
+            </p>
+            <p className="mt-1 font-medium">{musica.time_signature || "—"}</p>
           </div>
           <div className="col-span-2 sm:col-span-1">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
