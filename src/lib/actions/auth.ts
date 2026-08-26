@@ -62,7 +62,7 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: { data: { full_name: parsed.data.fullName } },
@@ -70,6 +70,14 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
   if (error) {
     return { ok: false, error: "Não foi possível criar a conta" };
   }
+
+  // Quando a confirmação de e-mail está habilitada, o Supabase cria o usuário
+  // sem abrir sessão. Nesse caso o convite precisa continuar no cookie até o
+  // primeiro login autenticado; tentar aceitar agora falharia silenciosamente.
+  if (!data.session) {
+    redirect("/login?cadastro=confirme-email");
+  }
+
   const invitedChurchId = await acceptPendingInvite(supabase);
   if (invitedChurchId) redirect(`/onboarding?igreja=${invitedChurchId}`);
   redirect("/");
