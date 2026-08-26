@@ -16,12 +16,42 @@ import { SongForm } from "@/components/louvor/song-form";
 import { Button } from "@/components/ui/button";
 import { YouTubeSongImporter } from "@/components/louvor/youtube-song-importer";
 
+const youtubeStatusMessage: Record<
+  string,
+  { text: string; success?: boolean }
+> = {
+  connected: { text: "Conta do YouTube conectada com sucesso.", success: true },
+  "not-configured": {
+    text: "A conexão com o YouTube ainda não foi configurada no servidor.",
+  },
+  "connection-error": {
+    text: "Não foi possível conectar a conta do YouTube. Tente novamente.",
+  },
+  "authorization-denied": {
+    text: "A autorização do YouTube foi cancelada.",
+  },
+  "session-expired": {
+    text: "Sua sessão expirou. Entre novamente antes de conectar o YouTube.",
+  },
+  "state-expired": {
+    text: "A tentativa de conexão expirou. Inicie novamente.",
+  },
+};
+
 export default async function LouvorPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ churchSlug: string }>;
+  searchParams: Promise<{ youtube?: string }>;
 }) {
-  const { churchSlug } = await params;
+  const [{ churchSlug }, { youtube: youtubeStatus }] = await Promise.all([
+    params,
+    searchParams,
+  ]);
+  const youtubeMessage = youtubeStatus
+    ? youtubeStatusMessage[youtubeStatus]
+    : undefined;
   const tenant = await getTenant(churchSlug);
   const louvor = await getLouvorMinistry(tenant.church.id);
   if (!louvor) redirect(`/${churchSlug}`);
@@ -114,6 +144,18 @@ export default async function LouvorPage({
                 {youtubeIntegration ? "Reconectar" : "Conectar YouTube"}
               </Button>
             </div>
+            {youtubeMessage && (
+              <p
+                role="status"
+                className={
+                  youtubeMessage.success
+                    ? "text-sm text-emerald-600 dark:text-emerald-400"
+                    : "text-sm text-destructive"
+                }
+              >
+                {youtubeMessage.text}
+              </p>
+            )}
             <YouTubeSongImporter
               churchSlug={churchSlug}
               churchId={tenant.church.id}
