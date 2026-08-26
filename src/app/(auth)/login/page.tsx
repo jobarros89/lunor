@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { signIn } from "@/lib/actions/auth";
@@ -11,8 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const shouldConfirmEmail = searchParams.get("cadastro") === "confirme-email";
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -30,6 +33,11 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent>
         <form action={onSubmit} className="space-y-4">
+          {shouldConfirmEmail && (
+            <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-300">
+              Conta criada. Confirme seu e-mail e depois entre aqui. Se você chegou por um convite, ele será retomado automaticamente após o login.
+            </p>
+          )}
           <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" name="email" type="email" autoComplete="email" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-[#6e5ce6] focus-visible:ring-[#6e5ce6]/25" /></div>
           <div className="space-y-2"><Label htmlFor="password">Senha</Label><Input id="password" name="password" type="password" autoComplete="current-password" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-[#6e5ce6] focus-visible:ring-[#6e5ce6]/25" /></div>
           {error && <p className="text-sm text-destructive">{error}</p>}
