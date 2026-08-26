@@ -207,7 +207,7 @@ export function YouTubeSongImporter({
             <Check className="size-4" />
             Revise antes de importar
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="youtube-title">Título no LUNOR</Label>
               <Input
@@ -249,7 +249,7 @@ export function YouTubeSongImporter({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="youtube-time-signature">Compasso</Label>
+              <Label htmlFor="youtube-time-signature">Compasso (opcional)</Label>
               <Input
                 id="youtube-time-signature"
                 value={timeSignature}
