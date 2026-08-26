@@ -84,7 +84,7 @@ function OwnerWizard({ churchName }: Props) {
 
 function MemberWizard({ churchName, ministries, skills }: Props) {
   const [step, setStep] = useState(0);
-  const [ministryId, setMinistryId] = useState(ministries[0]?.id ?? "");
+  const [ministryIds, setMinistryIds] = useState<string[]>(ministries[0] ? [ministries[0].id] : []);
   const [phone, setPhone] = useState("");
   const [days, setDays] = useState<string[]>([]);
   const [periods, setPeriods] = useState<string[]>([]);
@@ -92,7 +92,7 @@ function MemberWizard({ churchName, ministries, skills }: Props) {
   const [pending, startTransition] = useTransition();
   const toggle = (list: string[], value: string, setter: (value: string[]) => void) => setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
   const finish = () => startTransition(async () => {
-    const result = await completeMemberOnboarding({ ministryId, phone, days, periods, skills: selectedSkills });
+    const result = await completeMemberOnboarding({ ministryIds, phone, days, periods, skills: selectedSkills });
     if (result && !result.ok) toast.error(result.error);
   });
 
@@ -101,10 +101,10 @@ function MemberWizard({ churchName, ministries, skills }: Props) {
     <Card className="rounded-3xl shadow-sm">
       <CardHeader className="text-center">
         <CardTitle>{step === 0 ? `Bem-vindo à ${churchName}` : "Complete seu perfil de serviço"}</CardTitle>
-        <CardDescription>{step === 0 ? "Escolha o ministério em que você vai servir." : "Só informações úteis para montar escalas melhores."}</CardDescription>
+        <CardDescription>{step === 0 ? "Selecione todos os ministérios em que você serve." : "Só informações úteis para montar escalas melhores."}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        {step === 0 && (ministries.length ? <div className="flex flex-wrap gap-2">{ministries.map((ministry) => <Chip key={ministry.id} selected={ministryId === ministry.id} onClick={() => setMinistryId(ministry.id)}>{ministry.name}</Chip>)}</div> : <p className="rounded-2xl border p-4 text-sm text-muted-foreground">A igreja ainda não criou um ministério. Peça ao administrador para concluir a configuração inicial.</p>)}
+        {step === 0 && (ministries.length ? <div className="flex flex-wrap gap-2">{ministries.map((ministry) => <Chip key={ministry.id} selected={ministryIds.includes(ministry.id)} onClick={() => toggle(ministryIds, ministry.id, setMinistryIds)}>{ministry.name}</Chip>)}</div> : <p className="rounded-2xl border p-4 text-sm text-muted-foreground">A igreja ainda não criou um ministério. Peça ao administrador para concluir a configuração inicial.</p>)}
         {step === 1 && <>
           <div className="space-y-2"><Label htmlFor="phone">Telefone <span className="text-muted-foreground">(opcional)</span></Label><Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-12 rounded-full" /></div>
           <div className="space-y-2"><Label>Funções ou instrumentos</Label><div className="flex flex-wrap gap-2">{skills.map((skill) => <Chip key={skill.slug} selected={selectedSkills.includes(skill.slug)} onClick={() => toggle(selectedSkills, skill.slug, setSelectedSkills)}>{skill.name}</Chip>)}</div></div>
@@ -113,7 +113,7 @@ function MemberWizard({ churchName, ministries, skills }: Props) {
         </>}
         <div className="flex gap-3 pt-2">
           {step > 0 && <Button variant="outline" onClick={() => setStep(0)} className="h-12 flex-1 rounded-full">Voltar</Button>}
-          {step === 0 ? <Button disabled={!ministryId} onClick={() => setStep(1)} className="h-12 flex-1 rounded-full">Confirmar ministério</Button>
+          {step === 0 ? <Button disabled={ministryIds.length === 0} onClick={() => setStep(1)} className="h-12 flex-1 rounded-full">Confirmar ministérios</Button>
             : <Button disabled={pending} onClick={finish} className="h-12 flex-1 rounded-full">{pending ? "Salvando…" : "Ver minhas escalas"}</Button>}
         </div>
       </CardContent>
