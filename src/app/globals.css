@@ -113,8 +113,8 @@
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  html { @apply font-sans; -webkit-tap-highlight-color: transparent; }
-  body { @apply bg-background text-foreground; font-feature-settings: "cv11", "ss01"; letter-spacing: -0.012em; }
+  html { @apply max-w-full overflow-x-clip font-sans; -webkit-tap-highlight-color: transparent; }
+  body { @apply max-w-full overflow-x-clip bg-background text-foreground; font-feature-settings: "cv11", "ss01"; letter-spacing: -0.012em; }
   ::selection { background: #d8ff00; color: #111; }
 }
 
