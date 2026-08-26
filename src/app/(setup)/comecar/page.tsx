@@ -27,7 +27,7 @@ export default function ComecarPage() {
             {mode === "choose" ? "Como você quer começar?" : mode === "join" ? "Entrar em uma igreja" : "Criar sua igreja"}
           </CardTitle>
           <CardDescription>
-            {mode === "choose" ? "Escolha a opção que representa você agora." : mode === "join" ? "Use o código enviado pelo seu líder." : "O endereço da igreja será criado automaticamente."}
+            {mode === "choose" ? "Escolha a opção que representa você agora." : mode === "join" ? "Abra o link enviado pelo seu líder ou use o código como alternativa." : "O endereço da igreja será criado automaticamente."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -37,13 +37,13 @@ export default function ComecarPage() {
               <span className="mt-2 block text-sm text-muted-foreground">Sou líder ou administrador e quero configurar o LUNOR.</span>
             </button>
             <button type="button" onClick={() => setMode("join")} className="min-h-32 rounded-2xl border p-5 text-left transition-colors hover:border-foreground/40 hover:bg-muted/40">
-              <strong className="block text-base">Recebi um convite</strong>
+              <strong className="block text-base">Já pertenço a uma igreja</strong>
               <span className="mt-2 block text-sm text-muted-foreground">Tenho um código e quero entrar na equipe da minha igreja.</span>
             </button>
           </div>}
 
           {mode === "join" && <form action={(fd) => submit(joinChurch, fd)} className="space-y-4">
-            <div className="space-y-2"><Label htmlFor="inviteCode">Código de convite</Label><Input id="inviteCode" name="inviteCode" required autoCapitalize="none" autoComplete="off" spellCheck={false} className="h-12 rounded-full text-center font-mono tracking-widest" /></div>
+            <div className="space-y-2"><Label htmlFor="inviteCode">Código do convite</Label><Input id="inviteCode" name="inviteCode" required autoCapitalize="none" autoComplete="off" spellCheck={false} className="h-12 rounded-full text-center font-mono tracking-widest" /></div>
             <Button type="submit" disabled={pending} className="h-12 w-full rounded-full text-base">{pending ? "Verificando…" : "Continuar"}</Button>
           </form>}
 
