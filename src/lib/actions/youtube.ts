@@ -16,7 +16,7 @@ export type SongMusicalMetadataCandidate = {
   defaultKey: string | null;
   bpm: number | null;
   timeSignature: string | null;
-  source: "TheAudioDB";
+  source: "TheAudioDB" | "ReccoBeats";
   confidence: "alta" | "media" | "baixa";
   matchedTitle: string;
   matchedArtist: string;
@@ -63,6 +63,23 @@ type AudioDbSearchResponse = {
   track?: AudioDbTrack[] | null;
 };
 
+type ReccoBeatsTrack = {
+  id?: string;
+  trackTitle?: string;
+  artists?: Array<{ name?: string }>;
+  popularity?: number;
+};
+
+type ReccoBeatsSearchResponse = {
+  content?: ReccoBeatsTrack[];
+};
+
+type ReccoBeatsAudioFeatures = {
+  key?: number;
+  mode?: number;
+  tempo?: number;
+};
+
 function decodeYouTubeText(value: string): string {
   const named: Record<string, string> = {
     amp: "&",
@@ -106,8 +123,19 @@ function cleanLookupTerms(title: string, artist: string) {
 
   const dash = lookupTitle.split(/\s+[–—-]\s+/).map((part) => part.trim());
   if (dash.length >= 2 && dash[0] && dash[1]) {
-    lookupArtist = dash[0];
-    lookupTitle = dash[1];
+    const channel = normalized(lookupArtist);
+    const left = normalized(dash[0]);
+    const right = normalized(dash[1]);
+    const leftIsChannel = channel.includes(left) || left.includes(channel);
+    const rightIsChannel = channel.includes(right) || right.includes(channel);
+
+    if (rightIsChannel && !leftIsChannel) {
+      lookupTitle = dash[0];
+      lookupArtist = dash[1];
+    } else {
+      lookupArtist = dash[0];
+      lookupTitle = dash[1];
+    }
   } else {
     const pipe = lookupTitle.split(/\s*\|\s*/).map((part) => part.trim());
     if (pipe.length >= 2 && pipe[0] && pipe[1]) {
@@ -125,6 +153,97 @@ function normalizedKey(value: string | null | undefined): string | null {
   const match = compact.match(/^([A-Ga-g])([#b]?)(m?)$/);
   if (!match) return null;
   return `${match[1].toUpperCase()}${match[2]}${match[3]}`;
+}
+
+function reccoBeatsKey(key: number | undefined, mode: number | undefined): string | null {
+  const keys = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  if (!Number.isInteger(key) || key === undefined || key < 0 || key >= keys.length) {
+    return null;
+  }
+  return `${keys[key]}${mode === 0 ? "m" : ""}`;
+}
+
+function matchScore(track: ReccoBeatsTrack, title: string, artist: string): number {
+  const expectedTitle = normalized(title);
+  const expectedArtist = normalized(artist);
+  const candidateTitle = normalized(track.trackTitle ?? "");
+  const candidateArtists = normalized(
+    (track.artists ?? []).map((item) => item.name ?? "").join(" ")
+  );
+
+  const titleScore = candidateTitle === expectedTitle
+    ? 6
+    : candidateTitle.includes(expectedTitle) || expectedTitle.includes(candidateTitle)
+      ? 3
+      : 0;
+  const artistScore = candidateArtists === expectedArtist
+    ? 4
+    : candidateArtists.includes(expectedArtist) || expectedArtist.includes(candidateArtists)
+      ? 2
+      : 0;
+  return titleScore + artistScore;
+}
+
+async function findOnReccoBeats(
+  lookupTitle: string,
+  lookupArtist: string
+): Promise<SongMusicalMetadataCandidate | null> {
+  const params = new URLSearchParams({ searchText: lookupTitle });
+  const searchResponse = await fetch(
+    `https://api.reccobeats.com/v1/track/search?${params.toString()}`,
+    {
+      headers: { Accept: "application/json" },
+      next: { revalidate: 86_400 },
+    }
+  );
+  if (!searchResponse.ok) {
+    console.error("ReccoBeats search failed", searchResponse.status);
+    return null;
+  }
+
+  const searchPayload = (await searchResponse.json()) as ReccoBeatsSearchResponse;
+  const ranked = (searchPayload.content ?? [])
+    .map((track) => ({ track, score: matchScore(track, lookupTitle, lookupArtist) }))
+    .filter(({ track, score }) => Boolean(track.id) && score >= 6)
+    .sort((left, right) =>
+      right.score - left.score ||
+      (right.track.popularity ?? 0) - (left.track.popularity ?? 0)
+    );
+  const match = ranked[0];
+  if (!match?.track.id) return null;
+
+  const featuresResponse = await fetch(
+    `https://api.reccobeats.com/v1/track/${encodeURIComponent(match.track.id)}/audio-features`,
+    {
+      headers: { Accept: "application/json" },
+      next: { revalidate: 86_400 },
+    }
+  );
+  if (!featuresResponse.ok) {
+    console.error("ReccoBeats audio features failed", featuresResponse.status);
+    return null;
+  }
+
+  const features = (await featuresResponse.json()) as ReccoBeatsAudioFeatures;
+  const roundedTempo = Math.round(features.tempo ?? 0);
+  const bpm = roundedTempo >= 20 && roundedTempo <= 300 ? roundedTempo : null;
+  const defaultKey = reccoBeatsKey(features.key, features.mode);
+  if (!defaultKey && !bpm) return null;
+
+  const matchedTitle = match.track.trackTitle?.trim() || lookupTitle;
+  const matchedArtist = (match.track.artists ?? [])
+    .map((item) => item.name?.trim())
+    .filter((name): name is string => Boolean(name))
+    .join(", ") || lookupArtist;
+  return {
+    defaultKey,
+    bpm,
+    timeSignature: null,
+    source: "ReccoBeats",
+    confidence: match.score >= 10 ? "alta" : match.score >= 8 ? "media" : "baixa",
+    matchedTitle,
+    matchedArtist,
+  };
 }
 
 async function canManageMusic(churchId: string): Promise<boolean> {
@@ -164,45 +283,50 @@ export async function findSongMusicalMetadata(
     );
     if (!response.ok) {
       console.error("TheAudioDB search failed", response.status);
-      return { ok: false, error: "Não foi possível consultar tom e BPM agora" };
+    } else {
+      const payload = (await response.json()) as AudioDbSearchResponse;
+      const track = payload.track?.[0];
+      if (track) {
+        const bpmValue = Number.parseInt(track.intTempo ?? "", 10);
+        const bpm = Number.isInteger(bpmValue) && bpmValue >= 20 && bpmValue <= 300
+          ? bpmValue
+          : null;
+        const defaultKey = normalizedKey(track.strKey);
+        if (defaultKey || bpm) {
+          const matchedTitle = track.strTrack?.trim() ?? lookupTitle;
+          const matchedArtist = track.strArtist?.trim() ?? lookupArtist;
+          const sameVideo = track.strMusicVid?.includes(parsed.data.youtubeVideoId) ?? false;
+          const sameTitle = normalized(matchedTitle) === normalized(lookupTitle);
+          const sameArtist = normalized(matchedArtist) === normalized(lookupArtist);
+          const confidence = sameVideo || (sameTitle && sameArtist)
+            ? "alta"
+            : sameTitle || sameArtist
+              ? "media"
+              : "baixa";
+
+          return {
+            ok: true,
+            data: {
+              defaultKey,
+              bpm,
+              timeSignature: track.strTimeSignature?.trim() || null,
+              source: "TheAudioDB",
+              confidence,
+              matchedTitle,
+              matchedArtist,
+            },
+          };
+        }
+      }
     }
-
-    const payload = (await response.json()) as AudioDbSearchResponse;
-    const track = payload.track?.[0];
-    if (!track) return { ok: true, data: null };
-
-    const bpmValue = Number.parseInt(track.intTempo ?? "", 10);
-    const bpm = Number.isInteger(bpmValue) && bpmValue >= 20 && bpmValue <= 300
-      ? bpmValue
-      : null;
-    const defaultKey = normalizedKey(track.strKey);
-    if (!defaultKey && !bpm) return { ok: true, data: null };
-
-    const matchedTitle = track.strTrack?.trim() ?? lookupTitle;
-    const matchedArtist = track.strArtist?.trim() ?? lookupArtist;
-    const sameVideo = track.strMusicVid?.includes(parsed.data.youtubeVideoId) ?? false;
-    const sameTitle = normalized(matchedTitle) === normalized(lookupTitle);
-    const sameArtist = normalized(matchedArtist) === normalized(lookupArtist);
-    const confidence = sameVideo || (sameTitle && sameArtist)
-      ? "alta"
-      : sameTitle || sameArtist
-        ? "media"
-        : "baixa";
-
-    return {
-      ok: true,
-      data: {
-        defaultKey,
-        bpm,
-        timeSignature: track.strTimeSignature?.trim() || null,
-        source: "TheAudioDB",
-        confidence,
-        matchedTitle,
-        matchedArtist,
-      },
-    };
   } catch (error) {
     console.error("TheAudioDB request failed", error);
+  }
+
+  try {
+    return { ok: true, data: await findOnReccoBeats(lookupTitle, lookupArtist) };
+  } catch (error) {
+    console.error("ReccoBeats request failed", error);
     return { ok: false, error: "Não foi possível consultar tom e BPM agora" };
   }
 }
