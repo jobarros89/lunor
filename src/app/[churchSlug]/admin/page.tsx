@@ -15,6 +15,7 @@ import { CreateMinistryForm } from "@/components/admin/create-ministry-form";
 import { DeleteChurchZone } from "@/components/admin/delete-church";
 import { EditChurchName } from "@/components/admin/edit-church-name";
 import { DepartmentsManager } from "@/components/admin/departments-manager";
+import { InviteLink } from "@/components/invite-link";
 
 export default async function AdminPage({
   params,
@@ -109,15 +110,15 @@ export default async function AdminPage({
 
       <Card className="rounded-3xl">
         <CardHeader>
-          <CardTitle className="text-base">Código de convite</CardTitle>
+          <CardTitle className="text-base">Convite da equipe</CardTitle>
           <CardDescription>
-            Novos membros entram na igreja com este código
+            Compartilhe o link. O código de segurança fica protegido dentro dele.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="rounded-xl bg-muted px-4 py-3 text-center font-mono text-lg tracking-widest">
-            {tenant.church.invite_code}
-          </p>
+          <div className="rounded-2xl bg-[#151518] p-4 text-white">
+            <InviteLink inviteCode={tenant.church.invite_code} />
+          </div>
         </CardContent>
       </Card>
 

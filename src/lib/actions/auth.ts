@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -14,6 +14,23 @@ const credentialsSchema = z.object({
 const signUpSchema = credentialsSchema.extend({
   fullName: z.string().min(2, "Informe seu nome").max(80),
 });
+
+const INVITE_COOKIE = "lunor_invite";
+
+async function acceptPendingInvite(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<string | null> {
+  const cookieStore = await cookies();
+  const inviteCode = cookieStore.get(INVITE_COOKIE)?.value;
+  if (!inviteCode) return null;
+
+  const { data, error } = await supabase.rpc("join_church", {
+    p_invite_code: inviteCode.toLowerCase(),
+  });
+  if (error || !data) return null;
+  cookieStore.delete(INVITE_COOKIE);
+  return data;
+}
 
 export async function signIn(formData: FormData): Promise<ActionResult> {
   const parsed = credentialsSchema.safeParse({
@@ -29,6 +46,8 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
   if (error) {
     return { ok: false, error: "E-mail ou senha incorretos" };
   }
+  const invitedChurchId = await acceptPendingInvite(supabase);
+  if (invitedChurchId) redirect(`/onboarding?igreja=${invitedChurchId}`);
   redirect("/");
 }
 
@@ -43,7 +62,7 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: { data: { full_name: parsed.data.fullName } },
@@ -51,6 +70,16 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
   if (error) {
     return { ok: false, error: "Não foi possível criar a conta" };
   }
+
+  // Quando a confirmação de e-mail está habilitada, o Supabase cria o usuário
+  // sem abrir sessão. Nesse caso o convite precisa continuar no cookie até o
+  // primeiro login autenticado; tentar aceitar agora falharia silenciosamente.
+  if (!data.session) {
+    redirect("/login?cadastro=confirme-email");
+  }
+
+  const invitedChurchId = await acceptPendingInvite(supabase);
+  if (invitedChurchId) redirect(`/onboarding?igreja=${invitedChurchId}`);
   redirect("/");
 }
 

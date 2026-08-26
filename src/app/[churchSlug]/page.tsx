@@ -5,6 +5,7 @@ import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
 import { checkPlatformAdmin } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
+import { InviteLink } from "@/components/invite-link";
 import { ASSIGNMENT_STATUS_BADGE, ASSIGNMENT_STATUS_LABELS, formatEventDate, formatEventTime } from "@/lib/escalas";
 import { Badge } from "@/components/ui/badge";
 import { QuickConfirm } from "@/components/escalas/quick-confirm";
@@ -139,8 +140,11 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
 
       {isAdmin && (
         <section className="flex min-w-0 flex-col justify-between gap-5 overflow-hidden border-l-4 border-[#6e5ce6] bg-[#151518] px-6 py-6 text-white sm:flex-row sm:items-center">
-          <div><p className="font-medium">Convide sua equipe</p><p className="mt-1 text-sm opacity-70">Compartilhe o código da igreja.</p></div>
-          <p className="max-w-full break-all font-mono text-base tracking-[0.18em] sm:text-xl sm:tracking-[0.3em]">{tenant.church.invite_code}</p>
+          <div>
+            <p className="font-medium">Convide sua equipe</p>
+            <p className="mt-1 text-sm opacity-70">Envie um link. A pessoa cria a conta e entra na igreja automaticamente.</p>
+          </div>
+          <InviteLink inviteCode={tenant.church.invite_code} />
         </section>
       )}
     </div>

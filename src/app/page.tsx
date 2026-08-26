@@ -108,7 +108,15 @@ function Landing() {
             className="h-12 rounded-full px-7 text-base"
             render={<Link href="/signup" />}
           >
-            Criar a igreja
+            Criar minha igreja
+          </Button>
+          <Button
+            variant="outline"
+            nativeButton={false}
+            className="h-12 rounded-full px-7 text-base"
+            render={<Link href="/signup?intencao=entrar" />}
+          >
+            Entrar em uma igreja
           </Button>
           <span className="text-sm text-muted-foreground">
             {DIAS_TRIAL} dias grátis · sem cartão
@@ -187,12 +195,20 @@ function Landing() {
             className="h-12 rounded-full px-7 text-base"
             render={<Link href="/signup" />}
           >
-            Criar a igreja
+            Criar minha igreja
           </Button>
           <Button
             variant="outline"
             nativeButton={false}
             className="h-12 rounded-full px-7 text-base"
+            render={<Link href="/signup?intencao=entrar" />}
+          >
+            Entrar em uma igreja
+          </Button>
+          <Button
+            variant="ghost"
+            nativeButton={false}
+            className="h-12 rounded-full px-5 text-base"
             render={<Link href="/login" />}
           >
             Já tenho conta
