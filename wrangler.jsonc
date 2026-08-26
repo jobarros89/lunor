@@ -3,6 +3,7 @@
   // entry próprio: reexporta o fetch do OpenNext e acrescenta o `scheduled`
   "main": "worker.js",
   "name": "lunor-dev",
+  // Sincronização de deploy: onboarding #29 publicado na main.
   // Mantém variáveis Text cadastradas no dashboard entre os deploys do Wrangler.
   "keep_vars": true,
   "compatibility_date": "2025-04-01",
