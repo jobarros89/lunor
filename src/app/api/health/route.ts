@@ -8,15 +8,19 @@ import { createClient } from "@/lib/supabase/server";
  */
 export const dynamic = "force-dynamic";
 
-function youtubeOAuthStatus(): "ok" | "missing" {
-  const configured = [
-    process.env.YOUTUBE_OAUTH_CLIENT_ID,
-    process.env.YOUTUBE_OAUTH_CLIENT_SECRET,
-    process.env.YOUTUBE_OAUTH_REDIRECT_URI,
-    process.env.INTEGRATIONS_ENCRYPTION_KEY,
-  ].every(Boolean);
+function youtubeOAuthStatus() {
+  const credentials = Boolean(
+    process.env.YOUTUBE_OAUTH_CLIENT_ID &&
+      process.env.YOUTUBE_OAUTH_CLIENT_SECRET
+  );
+  const encryption = Boolean(process.env.INTEGRATIONS_ENCRYPTION_KEY);
 
-  return configured ? "ok" : "missing";
+  return {
+    status: credentials && encryption ? "ok" : "missing",
+    credentials: credentials ? "ok" : "missing",
+    encryption: encryption ? "ok" : "missing",
+    redirect: process.env.YOUTUBE_OAUTH_REDIRECT_URI ? "configured" : "default",
+  } as const;
 }
 
 export async function GET() {
