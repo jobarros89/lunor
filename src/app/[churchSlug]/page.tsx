@@ -40,7 +40,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const showManage = canAdmin || tenant.isLeader || temInfantil;
 
   return (
-    <div className="lunor-home space-y-16 pb-8">
+    <div className="lunor-home min-w-0 space-y-16 overflow-x-clip pb-8">
       {(anuncios ?? []).length > 0 && (
         <section className="border-l-4 border-[#6e5ce6] bg-black px-5 py-4 text-white">
           {(anuncios as { code: string | null; kind: string }[]).map((a, i) => (
@@ -138,9 +138,9 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
       )}
 
       {isAdmin && (
-        <section className="flex flex-col justify-between gap-5 border-l-4 border-[#6e5ce6] bg-[#151518] px-6 py-6 text-white sm:flex-row sm:items-center">
+        <section className="flex min-w-0 flex-col justify-between gap-5 overflow-hidden border-l-4 border-[#6e5ce6] bg-[#151518] px-6 py-6 text-white sm:flex-row sm:items-center">
           <div><p className="font-medium">Convide sua equipe</p><p className="mt-1 text-sm opacity-70">Compartilhe o código da igreja.</p></div>
-          <p className="font-mono text-xl tracking-[0.3em]">{tenant.church.invite_code}</p>
+          <p className="max-w-full break-all font-mono text-base tracking-[0.18em] sm:text-xl sm:tracking-[0.3em]">{tenant.church.invite_code}</p>
         </section>
       )}
     </div>
