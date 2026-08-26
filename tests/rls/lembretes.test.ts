@@ -28,12 +28,18 @@ const uid = async (c: SupabaseClient) => (await c.auth.getUser()).data.user!.id;
 
 // "Amanhã" no fuso da igreja, às 19h — é o que a RPC procura.
 function amanhaAs19(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(new Date());
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)!.value);
+  const d = new Date(Date.UTC(value("year"), value("month") - 1, value("day"), 22));
+  d.setUTCDate(d.getUTCDate() + 1);
   // 19h em São Paulo (UTC-3) = 22h UTC
-  return new Date(
-    Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 22, 0, 0)
-  ).toISOString();
+  return d.toISOString();
 }
 
 describe("Lembretes agendados (migration 28)", () => {

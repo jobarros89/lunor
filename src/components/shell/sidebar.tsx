@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Baby, BookOpen, Calendar, Camera, Home, Music2, Settings, User, Users, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandLockup } from "@/components/brand-lockup";
 
 export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMinistryNavigation, escalasPending = 0 }: {
   churchSlug: string;
@@ -35,8 +36,8 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-black/10 bg-[#f8f8f5]/95 px-5 py-7 backdrop-blur-xl md:flex dark:border-white/10 dark:bg-[#111]/95">
       <div className="mb-10 px-2">
-        <Link href={`/${churchSlug}`} aria-label="Ir para o início" className="inline-block text-[2rem] font-bold tracking-[0.22em] text-foreground transition-opacity hover:opacity-70">
-          LUNOR
+        <Link href={`/${churchSlug}`} aria-label="Ir para o início" className="inline-block transition-opacity hover:opacity-70">
+          <BrandLockup />
         </Link>
         <p className="mt-2 truncate text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{churchName}</p>
       </div>
@@ -60,7 +61,6 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
           );
         })}
       </nav>
-      <p className="mt-auto px-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Presença · preparo · propósito</p>
     </aside>
   );
 }
