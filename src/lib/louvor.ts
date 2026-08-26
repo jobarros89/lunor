@@ -8,6 +8,7 @@ export type Song = {
   artist: string | null;
   default_key: string | null;
   bpm: number | null;
+  time_signature?: string | null;
   lyrics: string | null;
   chord_chart?: string | null;
   link: string | null;

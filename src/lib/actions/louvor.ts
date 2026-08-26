@@ -15,6 +15,15 @@ const songSchema = z.object({
   artist: z.string().max(120).default(""),
   defaultKey: z.string().max(8).default(""),
   bpm: z.coerce.number().int().min(20).max(300).optional(),
+  timeSignature: z
+    .string()
+    .trim()
+    .max(5)
+    .regex(
+      /^(?:|(?:[1-9]|[12][0-9]|3[0-2])\/(?:1|2|4|8|16|32))$/,
+      "Informe um compasso como 4/4, 6/8 ou 12/8"
+    )
+    .default(""),
   lyrics: z.string().max(20000).default(""),
   chordChart: z
     .string()
@@ -53,6 +62,7 @@ export async function createSong(
       artist: d.artist || null,
       default_key: d.defaultKey || null,
       bpm: d.bpm ?? null,
+      time_signature: d.timeSignature || null,
       lyrics: d.lyrics || null,
       chord_chart: d.chordChart,
       link: d.link || null,
@@ -93,6 +103,7 @@ export async function updateSong(raw: unknown): Promise<ActionResult> {
       artist: d.artist || null,
       default_key: d.defaultKey || null,
       bpm: d.bpm ?? null,
+      time_signature: d.timeSignature || null,
       lyrics: d.lyrics || null,
       chord_chart: d.chordChart,
       link: d.link || null,

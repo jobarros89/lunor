@@ -30,6 +30,7 @@ export function YouTubeSongImporter({
   const [artist, setArtist] = useState("");
   const [defaultKey, setDefaultKey] = useState("");
   const [bpm, setBpm] = useState("");
+  const [timeSignature, setTimeSignature] = useState("");
   const [metadata, setMetadata] = useState<SongMusicalMetadataCandidate | null>(null);
   const [metadataMessage, setMetadataMessage] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -70,12 +71,12 @@ export function YouTubeSongImporter({
         youtubeVideoId: candidate.videoId,
       });
       if (!result.ok) {
-        setMetadataMessage(result.error ?? "Não foi possível consultar tom e BPM");
+        setMetadataMessage(result.error ?? "Não foi possível consultar tom, BPM e compasso");
         return;
       }
       if (!result.data) {
         setMetadataMessage(
-          "Tom e BPM não foram encontrados com segurança. Você pode informá-los manualmente."
+          "Tom, BPM e compasso não foram encontrados com segurança. Você pode informá-los manualmente."
         );
         return;
       }
@@ -83,6 +84,7 @@ export function YouTubeSongImporter({
       setMetadata(result.data);
       if (result.data.defaultKey) setDefaultKey(result.data.defaultKey);
       if (result.data.bpm) setBpm(String(result.data.bpm));
+      if (result.data.timeSignature) setTimeSignature(result.data.timeSignature);
     });
   }
 
@@ -92,6 +94,7 @@ export function YouTubeSongImporter({
     setArtist(candidate.channelTitle);
     setDefaultKey("");
     setBpm("");
+    setTimeSignature("");
     setConfirmed(false);
     setError(null);
     lookUpMetadata(candidate, candidate.title, candidate.channelTitle);
@@ -108,6 +111,7 @@ export function YouTubeSongImporter({
         artist,
         defaultKey,
         bpm: bpm ? Number(bpm) : undefined,
+        timeSignature,
         lyrics: "",
         chordChart: "",
         link: `https://www.youtube.com/watch?v=${selected.videoId}`,
@@ -203,7 +207,7 @@ export function YouTubeSongImporter({
             <Check className="size-4" />
             Revise antes de importar
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="youtube-title">Título no LUNOR</Label>
               <Input
@@ -244,11 +248,24 @@ export function YouTubeSongImporter({
                 placeholder="20–300"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="youtube-time-signature">Compasso</Label>
+              <Input
+                id="youtube-time-signature"
+                value={timeSignature}
+                onChange={(event) => setTimeSignature(event.target.value)}
+                maxLength={5}
+                pattern="(?:[1-9]|[12][0-9]|3[0-2])/(?:1|2|4|8|16|32)"
+                title="Informe um compasso como 4/4, 6/8 ou 12/8"
+                placeholder="Ex.: 4/4 ou 6/8"
+                inputMode="numeric"
+              />
+            </div>
           </div>
 
           {checkingMetadata && (
             <p className="text-sm text-muted-foreground">
-              Buscando tom e BPM da gravação…
+              Buscando tom, BPM e compasso da gravação…
             </p>
           )}
           {metadata && !checkingMetadata && (
@@ -279,7 +296,7 @@ export function YouTubeSongImporter({
             onClick={() => lookUpMetadata(selected, title, artist)}
           >
             <RefreshCw className="size-4" />
-            {checkingMetadata ? "Consultando…" : "Buscar tom e BPM novamente"}
+            {checkingMetadata ? "Consultando…" : "Buscar dados musicais novamente"}
           </Button>
 
           <p className="text-xs text-muted-foreground">
@@ -294,7 +311,7 @@ export function YouTubeSongImporter({
               onChange={(event) => setConfirmed(event.target.checked)}
             />
             <span>
-              Conferi o vídeo, o título, o artista, o tom e o BPM. Quero criar
+              Conferi o vídeo, o título, o artista, o tom, o BPM e o compasso. Quero criar
               esta música no acervo interno do LUNOR.
             </span>
           </label>

@@ -31,6 +31,7 @@ export function SongForm(props: SongFormProps) {
       artist: String(form.get("artist") ?? ""),
       defaultKey: String(form.get("defaultKey") ?? ""),
       bpm: form.get("bpm") ? Number(form.get("bpm")) : undefined,
+      timeSignature: String(form.get("timeSignature") ?? ""),
       lyrics: String(form.get("lyrics") ?? ""),
       chordChart: String(form.get("chordChart") ?? ""),
       link: String(form.get("link") ?? ""),
@@ -91,7 +92,7 @@ export function SongForm(props: SongFormProps) {
         />
       </Field>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Field label="Tom padrão">
           <Input
             name="defaultKey"
@@ -109,6 +110,18 @@ export function SongForm(props: SongFormProps) {
             min={20}
             max={300}
             placeholder="20–300"
+            className="h-11 rounded-xl"
+          />
+        </Field>
+        <Field label="Compasso">
+          <Input
+            name="timeSignature"
+            defaultValue={song?.time_signature ?? ""}
+            maxLength={5}
+            pattern="(?:[1-9]|[12][0-9]|3[0-2])/(?:1|2|4|8|16|32)"
+            title="Informe um compasso como 4/4, 6/8 ou 12/8"
+            placeholder="Ex.: 4/4 ou 6/8"
+            inputMode="numeric"
             className="h-11 rounded-xl"
           />
         </Field>
