@@ -387,6 +387,8 @@ export default async function EventoDetailPage({
               itens={itensRepertorio}
               publicado={event.setlist_status === "publicado"}
               publicadoEm={event.setlist_published_at}
+              youtubePlaylistUrl={event.youtube_playlist_url}
+              youtubePlaylistError={event.youtube_playlist_error}
               podeEditar={podeEditarRepertorio}
             />
 
