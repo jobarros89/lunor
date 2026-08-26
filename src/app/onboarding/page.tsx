@@ -8,6 +8,9 @@ export default async function OnboardingPage({
   searchParams: Promise<{ igreja?: string }>;
 }) {
   const { igreja } = await searchParams;
+  const scopedChurchId = igreja && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(igreja)
+    ? igreja
+    : null;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -17,8 +20,8 @@ export default async function OnboardingPage({
     .select("church_id, role")
     .eq("user_id", user.id)
     .eq("status", "active");
-  const membershipQuery = igreja
-    ? membershipBase.eq("church_id", igreja)
+  const membershipQuery = scopedChurchId
+    ? membershipBase.eq("church_id", scopedChurchId)
     : membershipBase;
   const { data: membership } = await membershipQuery
     .limit(1)
