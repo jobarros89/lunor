@@ -3,7 +3,7 @@ alter table public.church_members
 
 create or replace function public.complete_member_onboarding(
   p_church_id uuid,
-  p_ministry_id uuid,
+  p_ministry_ids uuid[],
   p_phone text,
   p_availability jsonb
 ) returns void
@@ -25,15 +25,26 @@ begin
     raise exception 'active church membership required';
   end if;
 
-  if not exists (
-    select 1 from public.ministries
-    where id = p_ministry_id and church_id = p_church_id
+  if coalesce(cardinality(p_ministry_ids), 0) = 0 then
+    raise exception 'at least one ministry is required';
+  end if;
+
+  if exists (
+    select 1
+    from unnest(p_ministry_ids) as requested(id)
+    left join public.ministries m
+      on m.id = requested.id
+     and m.church_id = p_church_id
+    where m.id is null
   ) then
     raise exception 'invalid ministry';
   end if;
 
   insert into public.ministry_members (church_id, ministry_id, user_id, role, active)
-  values (p_church_id, p_ministry_id, v_user_id, 'voluntario', true)
+  select p_church_id, m.id, v_user_id, 'voluntario', true
+  from public.ministries m
+  where m.church_id = p_church_id
+    and m.id = any(p_ministry_ids)
   on conflict (ministry_id, user_id) do update set active = true;
 
   update public.profiles
@@ -49,8 +60,8 @@ begin
 end;
 $$;
 
-revoke all on function public.complete_member_onboarding(uuid, uuid, text, jsonb) from public, anon;
-grant execute on function public.complete_member_onboarding(uuid, uuid, text, jsonb) to authenticated;
+revoke all on function public.complete_member_onboarding(uuid, uuid[], text, jsonb) from public, anon;
+grant execute on function public.complete_member_onboarding(uuid, uuid[], text, jsonb) to authenticated;
 
-comment on function public.complete_member_onboarding(uuid, uuid, text, jsonb)
-  is 'Completa o onboarding do próprio membro, validando igreja e ministério antes de criar o vínculo.';
+comment on function public.complete_member_onboarding(uuid, uuid[], text, jsonb)
+  is 'Completa o onboarding do próprio membro, validando a igreja e todos os ministérios antes de criar os vínculos.';
