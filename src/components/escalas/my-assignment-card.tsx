@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CalendarPlus, Check, MessageCircle, X } from "lucide-react";
 import { respondToAssignment } from "@/lib/actions/assignment-response";
+import { getAssignmentServingArea } from "@/lib/actions/assignment-serving";
 import {
   ASSIGNMENT_STATUS_BADGE,
   ASSIGNMENT_STATUS_LABELS,
@@ -46,6 +47,17 @@ export function MyAssignmentCard({
   const [pending, startTransition] = useTransition();
   const [responseMode, setResponseMode] = useState<ResponseMode>(null);
   const [note, setNote] = useState("");
+  const [servingArea, setServingArea] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getAssignmentServingArea({ churchId, assignmentId }).then((result) => {
+      if (active && result.ok) setServingArea(result.data.departmentName);
+    });
+    return () => {
+      active = false;
+    };
+  }, [churchId, assignmentId]);
 
   function respond(response: "confirmar" | "nao_posso" | "falar_lider") {
     startTransition(async () => {
@@ -84,6 +96,9 @@ export function MyAssignmentCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-1 text-sm">
+          {servingArea && (
+            <p><span className="text-muted-foreground">Onde vai servir:</span>{" "}<span className="font-medium">{servingArea}</span></p>
+          )}
           <p><span className="text-muted-foreground">Função:</span>{" "}<span className="font-medium">{roleName}</span></p>
           {arrivalTime && (
             <p>
