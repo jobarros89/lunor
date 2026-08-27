@@ -46,7 +46,11 @@ export default async function AdminPage({
       .select("ministry_id")
       .eq("church_id", cid)
       .eq("active", true),
-    supabase.from("departments").select("id, name").eq("church_id", cid).order("name"),
+    supabase
+      .from("departments")
+      .select("id, name, ministry_id")
+      .eq("church_id", cid)
+      .order("name"),
     supabase
       .from("member_interests")
       .select("user_id, skill_id, skills!inner(name), profiles!inner(full_name)")
@@ -191,9 +195,9 @@ export default async function AdminPage({
 
       <Card className="rounded-3xl">
         <CardHeader>
-          <CardTitle className="text-base">Públicos dos eventos</CardTitle>
+          <CardTitle className="text-base">Departamentos por ministério</CardTitle>
           <CardDescription>
-            Classificações como Jovens, Crianças ou outros públicos usadas ao montar cada escala.
+            Subdivisões opcionais, como Vocal, Banda ou Berçário. Só aparecem ao montar uma escala quando o ministério selecionado tiver departamentos cadastrados.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -201,6 +205,7 @@ export default async function AdminPage({
             churchSlug={churchSlug}
             churchId={tenant.church.id}
             departments={departments ?? []}
+            ministries={ministries ?? []}
           />
         </CardContent>
       </Card>
