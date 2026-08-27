@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
+import { Check, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { signUp } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,10 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const intent = searchParams.get("intencao");
+  const passwordReady = password.length >= 8;
 
   const copy =
     intent === "criar"
@@ -86,14 +90,38 @@ function SignupForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              className="h-12 rounded-full"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                minLength={8}
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="h-12 rounded-full pr-12"
+                aria-describedby="password-requirement"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute inset-y-0 right-1 flex w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6e5ce6]"
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            <p
+              id="password-requirement"
+              className={`flex items-center gap-2 text-xs ${passwordReady ? "text-foreground" : "text-muted-foreground"}`}
+            >
+              <span className={`flex size-4 items-center justify-center rounded-full border ${passwordReady ? "border-[#6e5ce6] bg-[#6e5ce6] text-white" : "border-foreground/25"}`}>
+                {passwordReady && <Check className="size-3" strokeWidth={2.5} />}
+              </span>
+              Pelo menos 8 caracteres
+            </p>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button
