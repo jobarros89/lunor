@@ -36,7 +36,10 @@ export function DepartmentsManager({
         name: formData.get("name"),
       });
       if (result && !result.ok) toast.error(result.error);
-      else if (inputRef.current) inputRef.current.value = "";
+      else {
+        toast.success("Opção adicionada");
+        if (inputRef.current) inputRef.current.value = "";
+      }
     });
   }
 
@@ -81,7 +84,7 @@ export function DepartmentsManager({
         </form>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Crie um ministério antes de adicionar departamentos.
+          Nenhum ministério disponível para configurar.
         </p>
       )}
 
@@ -96,7 +99,7 @@ export function DepartmentsManager({
               <p className="text-xs text-muted-foreground">
                 {d.ministry_id
                   ? ministryNameById.get(d.ministry_id) ?? "Ministério"
-                  : "Departamento legado sem ministério"}
+                  : "Opção antiga sem ministério"}
               </p>
             </div>
             <Button
@@ -113,7 +116,7 @@ export function DepartmentsManager({
         ))}
         {departments.length === 0 && ministries.length > 0 && (
           <p className="text-sm text-muted-foreground">
-            Nenhum departamento ainda. Eles são opcionais e aparecem nas escalas somente quando o ministério selecionado tiver departamentos cadastrados.
+            Nenhuma opção criada. Esse campo é opcional e só aparece na escala quando o ministério tiver opções cadastradas em “Onde servir?”.
           </p>
         )}
       </div>
