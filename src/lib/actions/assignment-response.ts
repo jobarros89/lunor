@@ -8,7 +8,7 @@ import type { ActionResult } from "./types";
 
 const responseSchema = z.object({
   churchSlug: z.string().min(2),
-  churchId: z.string().uuid(),
+  churchId: z.string().uuid().optional(),
   eventId: z.string().uuid(),
   assignmentId: z.string().uuid(),
   response: z.enum(["confirmar", "nao_posso", "falar_lider"]),
@@ -26,16 +26,19 @@ export async function respondToAssignment(raw: unknown): Promise<ActionResult> {
 
   const { data: assignment } = await supabase
     .from("assignments")
-    .select("id, user_id, leader_id, role_name, status")
+    .select("id, church_id, user_id, leader_id, role_name, status")
     .eq("id", d.assignmentId)
-    .eq("church_id", d.churchId)
     .eq("event_id", d.eventId)
     .maybeSingle();
 
   if (!assignment || assignment.user_id !== user.id) {
     return { ok: false, error: "Essa escala não pertence a você" };
   }
+  if (d.churchId && d.churchId !== assignment.church_id) {
+    return { ok: false, error: "Igreja inválida para essa escala" };
+  }
 
+  const churchId = assignment.church_id;
   const now = new Date().toISOString();
   const note = d.note || null;
 
@@ -58,7 +61,7 @@ export async function respondToAssignment(raw: unknown): Promise<ActionResult> {
 
     await notifyAssignmentLeaders({
       supabase,
-      churchId: d.churchId,
+      churchId,
       eventId: d.eventId,
       assignmentId: d.assignmentId,
       churchSlug: d.churchSlug,
@@ -81,7 +84,7 @@ export async function respondToAssignment(raw: unknown): Promise<ActionResult> {
       const { error: requestError } = await supabase
         .from("substitution_requests")
         .insert({
-          church_id: d.churchId,
+          church_id: churchId,
           assignment_id: d.assignmentId,
           requested_by: user.id,
           reason: note,
@@ -98,7 +101,7 @@ export async function respondToAssignment(raw: unknown): Promise<ActionResult> {
 
     await notifyAssignmentLeaders({
       supabase,
-      churchId: d.churchId,
+      churchId,
       eventId: d.eventId,
       assignmentId: d.assignmentId,
       churchSlug: d.churchSlug,
