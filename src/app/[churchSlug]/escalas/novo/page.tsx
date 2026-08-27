@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
@@ -36,19 +35,11 @@ export default async function NovoEventoPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Novo evento</h1>
-          <p className="text-muted-foreground">
-            Culto, conferência, ensaio, reunião…
-          </p>
-        </div>
-        <Link
-          href={`/${churchSlug}/onde-servir`}
-          className="text-sm font-medium text-muted-foreground underline-offset-4 hover:underline"
-        >
-          Configurar “Onde servir?”
-        </Link>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Novo evento</h1>
+        <p className="text-muted-foreground">
+          Culto, conferência, ensaio, reunião…
+        </p>
       </div>
       <EventForm
         churchSlug={churchSlug}
