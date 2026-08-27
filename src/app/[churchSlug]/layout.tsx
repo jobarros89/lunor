@@ -62,7 +62,7 @@ export default async function TenantLayout({ children, params }: { children: Rea
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 pb-32 pt-4 md:px-8 md:pb-12">{children}</main>
+        <main className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-4 md:px-8 md:pb-12">{children}</main>
       </div>
       <BottomNav churchSlug={churchSlug} isLeader={tenant.isLeader} activeMinistryNavigation={activeMinistryNavigation} escalasPending={escalasPending ?? 0} />
     </div>
