@@ -88,11 +88,12 @@ export async function createMinistry(raw: unknown): Promise<ActionResult> {
       ok: false,
       error:
         error.code === "23505"
-          ? "Já existe um ministério com esse nome"
-          : "Sem permissão para criar ministérios",
+          ? "Já existe uma equipe com esse nome"
+          : "Sem permissão para criar equipes",
     };
   }
   revalidatePath(`/${churchSlug}/admin`);
+  revalidatePath(`/${churchSlug}`, "layout");
   return { ok: true, data: undefined };
 }
 
@@ -103,7 +104,6 @@ const churchRoleSchema = z.object({
   role: z.enum(["admin", "coordenador", "member"]),
 });
 
-/** Define o papel DA IGREJA (admin/coordenador/member). Só admin executa (RLS). */
 export async function setChurchRole(raw: unknown): Promise<ActionResult> {
   const parsed = churchRoleSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Dados inválidos" };
@@ -114,7 +114,6 @@ export async function setChurchRole(raw: unknown): Promise<ActionResult> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Não autenticado" };
-  // trava de segurança: não altera o próprio papel (evita ficar sem admin)
   if (user.id === userId) {
     return {
       ok: false,
@@ -157,7 +156,7 @@ export async function setMinistryRole(raw: unknown): Promise<ActionResult> {
     )
     .select();
   if (error || !data || data.length === 0) {
-    return { ok: false, error: "Sem permissão para gerenciar o ministério" };
+    return { ok: false, error: "Sem permissão para gerenciar a equipe" };
   }
   revalidatePath(`/${churchSlug}/pessoas/${userId}`);
   return { ok: true, data: undefined };
