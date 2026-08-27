@@ -123,6 +123,36 @@ function SignupForm() {
               Pelo menos 8 caracteres
             </p>
           </div>
+
+          <label className="flex items-start gap-3 text-sm leading-relaxed text-muted-foreground">
+            <input
+              type="checkbox"
+              name="legalAccepted"
+              value="true"
+              required
+              className="mt-1 size-4 shrink-0 accent-[#6e5ce6]"
+            />
+            <span>
+              Li e aceito os{" "}
+              <Link
+                href="/termos"
+                target="_blank"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                Termos de Uso
+              </Link>{" "}
+              e a{" "}
+              <Link
+                href="/privacidade"
+                target="_blank"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                Política de Privacidade
+              </Link>
+              .
+            </span>
+          </label>
+
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button
             type="submit"
