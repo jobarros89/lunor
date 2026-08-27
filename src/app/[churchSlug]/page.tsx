@@ -74,7 +74,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         </section>
       )}
 
-      <section className="lunor-prism relative -mx-4 overflow-hidden border-y border-white/10 px-5 py-10 md:-mx-8 md:min-h-[520px] md:px-10 md:py-14">
+      <section className="lunor-prism relative overflow-hidden rounded-[24px] border border-foreground/10 px-6 py-10 shadow-sm md:min-h-[520px] md:px-12 md:py-14">
         <div className="relative z-10 grid gap-12 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
           <div>
             <div className="flex flex-wrap items-center gap-3">
@@ -113,7 +113,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
                   <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={nextEvent.id} assignmentId={nextAssignment.id} />
                 </div>
               )}
-              <Link href={nextEvent ? `/${churchSlug}/escalas/${nextEvent.id}` : `/${churchSlug}/escalas`} className="mt-5 flex min-h-14 w-full items-center justify-between bg-[#6e5ce6] px-5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+              <Link href={nextEvent ? `/${churchSlug}/escalas/${nextEvent.id}` : `/${churchSlug}/escalas`} className="mt-5 flex min-h-14 w-full items-center justify-between rounded-md bg-[#6e5ce6] px-5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
                 {nextEvent ? "Abrir meu preparo" : "Ver escalas"}
                 <ArrowRight className="size-5" />
               </Link>
