@@ -13,6 +13,9 @@ const credentialsSchema = z.object({
 
 const signUpSchema = credentialsSchema.extend({
   fullName: z.string().min(2, "Informe seu nome").max(80),
+  legalAccepted: z.literal("true", {
+    error: "Você precisa aceitar os Termos de Uso e a Política de Privacidade",
+  }),
 });
 
 const INVITE_COOKIE = "lunor_invite";
@@ -56,6 +59,7 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
     email: formData.get("email"),
     password: formData.get("password"),
     fullName: formData.get("fullName"),
+    legalAccepted: formData.get("legalAccepted"),
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
