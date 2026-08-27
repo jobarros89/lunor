@@ -9,26 +9,22 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 
 type Option = { id: string; name: string };
-type DepartmentOption = Option & { ministry_id: string | null };
 
 export function EventForm({
   churchSlug,
   churchId,
   eventTypes,
   ministries,
-  departments,
 }: {
   churchSlug: string;
   churchId: string;
   eventTypes: Option[];
   ministries: Option[];
-  departments: DepartmentOption[];
 }) {
   const [pending, startTransition] = useTransition();
   const [v, setV] = useState<{
     typeId: string | null;
     ministryId: string | null;
-    departmentId: string | null;
     title: string;
     description: string;
     location: string;
@@ -39,7 +35,6 @@ export function EventForm({
   }>({
     typeId: eventTypes[0]?.id ?? null,
     ministryId: null,
-    departmentId: null,
     title: "",
     description: "",
     location: "",
@@ -60,10 +55,6 @@ export function EventForm({
 
   const inputCls = "h-11 rounded-xl";
   const selectCls = "h-11 w-full rounded-xl border bg-background px-3 text-sm";
-  const ministryDepartments = v.ministryId
-    ? departments.filter((d) => d.ministry_id === v.ministryId)
-    : [];
-  const showDepartment = ministryDepartments.length > 0;
 
   return (
     <Card className="rounded-3xl">
@@ -95,11 +86,7 @@ export function EventForm({
             <select
               value={v.ministryId ?? ""}
               onChange={(e) =>
-                setV({
-                  ...v,
-                  ministryId: e.target.value || null,
-                  departmentId: null,
-                })
+                setV({ ...v, ministryId: e.target.value || null })
               }
               className={selectCls}
             >
@@ -111,24 +98,6 @@ export function EventForm({
               ))}
             </select>
           </Field>
-          {showDepartment && (
-            <Field label="Onde vai servir?">
-              <select
-                value={v.departmentId ?? ""}
-                onChange={(e) =>
-                  setV({ ...v, departmentId: e.target.value || null })
-                }
-                className={selectCls}
-              >
-                <option value="">Sem especificar</option>
-                {ministryDepartments.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          )}
           <Field label="Início" required>
             <Input
               type="datetime-local"

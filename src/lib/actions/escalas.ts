@@ -12,7 +12,6 @@ const eventSchema = z.object({
   churchId: z.string().uuid(),
   typeId: z.string().uuid().nullable().default(null),
   ministryId: z.string().uuid().nullable().default(null),
-  departmentId: z.string().uuid().nullable().default(null),
   title: z.string().min(2, "Informe o título").max(120),
   description: z.string().max(2000).default(""),
   location: z.string().max(200).default(""),
@@ -40,7 +39,7 @@ export async function createEvent(raw: unknown): Promise<ActionResult> {
       church_id: d.churchId,
       type_id: d.typeId,
       ministry_id: d.ministryId,
-      department_id: d.departmentId,
+      department_id: null,
       title: d.title,
       description: d.description || null,
       location: d.location || null,
@@ -65,6 +64,7 @@ const assignmentSchema = z.object({
   ministryId: z.string().uuid(),
   eventId: z.string().uuid(),
   userId: z.string().uuid(),
+  departmentId: z.string().uuid().nullable().default(null),
   roleName: z.string().min(2, "Informe a função").max(80),
   arrivalTime: z.string().default(""),
   itemsToBring: z.string().max(1000).default(""),
@@ -87,6 +87,7 @@ export async function addAssignment(raw: unknown): Promise<ActionResult> {
     ministry_id: d.ministryId,
     event_id: d.eventId,
     user_id: d.userId,
+    department_id: d.departmentId,
     role_name: d.roleName,
     arrival_time: d.arrivalTime ? new Date(d.arrivalTime).toISOString() : null,
     items_to_bring: d.itemsToBring || null,
@@ -102,7 +103,6 @@ export async function addAssignment(raw: unknown): Promise<ActionResult> {
     };
   }
 
-  // avisa a pessoa escalada (best-effort — não bloqueia o retorno em caso de falha)
   const { data: ev } = await supabase
     .from("events")
     .select("title")
@@ -117,6 +117,53 @@ export async function addAssignment(raw: unknown): Promise<ActionResult> {
 
   revalidatePath(`/${d.churchSlug}/escalas/${d.eventId}`);
   return { ok: true, data: undefined };
+}
+
+const servingContextSchema = z.object({
+  churchId: z.string().uuid(),
+  ministryId: z.string().uuid(),
+  eventId: z.string().uuid(),
+});
+
+export async function getAssignmentServingContext(raw: unknown) {
+  const parsed = servingContextSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false as const, error: "Dados inválidos" };
+  const d = parsed.data;
+  const supabase = await createClient();
+
+  const [{ data: departments, error: departmentsError }, { data: assignments, error: assignmentsError }] =
+    await Promise.all([
+      supabase
+        .from("departments")
+        .select("id, name")
+        .eq("church_id", d.churchId)
+        .eq("ministry_id", d.ministryId)
+        .eq("active", true)
+        .order("name"),
+      supabase
+        .from("assignments")
+        .select("id, department_id, departments(name)")
+        .eq("church_id", d.churchId)
+        .eq("ministry_id", d.ministryId)
+        .eq("event_id", d.eventId),
+    ]);
+
+  if (departmentsError || assignmentsError) {
+    return { ok: false as const, error: "Não foi possível carregar onde servir" };
+  }
+
+  return {
+    ok: true as const,
+    data: {
+      departments: departments ?? [],
+      assignments: (assignments ?? []).map((assignment) => ({
+        id: assignment.id,
+        department_id: assignment.department_id,
+        department_name:
+          (assignment.departments as unknown as { name: string } | null)?.name ?? null,
+      })),
+    },
+  };
 }
 
 const idSchema = z.object({
@@ -258,7 +305,6 @@ export async function requestSubstitution(raw: unknown): Promise<ActionResult> {
     return { ok: false, error: "Pedido registrado, mas o status não atualizou" };
   }
 
-  // avisa os líderes da igreja (admins/coordenadores) + quem escalou a pessoa
   const [{ data: me }, { data: leaders }, { data: asg }, { data: ev }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", user.id).single(),
     supabase
