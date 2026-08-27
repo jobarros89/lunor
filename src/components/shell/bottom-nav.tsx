@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Baby, Calendar, Guitar, Home, Music2, User, Users, Wrench } from "lucide-react";
+import { Baby, Calendar, Home, Music2, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, escalasPending = 0 }: {
@@ -21,9 +21,7 @@ export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, esca
     { href: "", label: "Início", icon: Home, badge: 0 },
     ...(ministryItem ? [ministryItem] : []),
     { href: "/escalas", label: "Escalas", icon: Calendar, badge: escalasPending },
-    { href: "/equipamentos", label: "Instrumentos", icon: Guitar, badge: 0 },
     ...(isLeader ? [
-      { href: "/manutencoes", label: "Manutenções", icon: Wrench, badge: 0 },
       { href: "/pessoas", label: "Equipe", icon: Users, badge: 0 },
     ] : []),
     { href: "/perfil", label: "Perfil", icon: User, badge: 0 },
