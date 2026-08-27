@@ -121,14 +121,18 @@
 .font-editorial { font-family: var(--font-editorial), Georgia, serif; }
 .lunor-prism {
   background-color: #f8f8f5;
-  background-image: url("/brand/lunor-prism.webp");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  background-image:
+    linear-gradient(90deg, rgba(248, 248, 245, 0.98) 0%, rgba(248, 248, 245, 0.78) 30%, rgba(248, 248, 245, 0.28) 50%, rgba(248, 248, 245, 0) 68%),
+    url("/brand/lunor-prism.webp");
+  background-position: center, 64% center;
+  background-repeat: no-repeat, no-repeat;
+  background-size: 100% 100%, 124% auto;
 }
 .dark .lunor-prism {
   background-color: #090a0c;
-  background-image: url("/brand/lunor-prism-dark.webp");
+  background-image:
+    linear-gradient(90deg, rgba(9, 10, 12, 0.98) 0%, rgba(9, 10, 12, 0.78) 30%, rgba(9, 10, 12, 0.28) 50%, rgba(9, 10, 12, 0) 68%),
+    url("/brand/lunor-prism-dark.webp");
   color: #f7f7f2;
 }
 .dark .lunor-prism .text-muted-foreground { color: rgb(212 212 216); }
@@ -147,7 +151,10 @@
 
 @media (max-width: 767px) {
   input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px !important; }
-  .lunor-prism { background-position: 66% center; }
+  .lunor-prism {
+    background-position: center, 72% center;
+    background-size: 100% 100%, 150% auto;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
