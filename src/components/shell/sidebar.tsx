@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Baby, BookOpen, Calendar, Guitar, Home, Music2, Settings, User, Users, Wrench } from "lucide-react";
+import { Baby, BookOpen, Calendar, Home, Music2, Settings, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLockup } from "@/components/brand-lockup";
 
@@ -23,11 +23,9 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
     { href: "", label: "Visão geral", icon: Home },
     ...(ministryItem ? [ministryItem] : []),
     { href: "/escalas", label: "Cultos e escalas", icon: Calendar },
-    { href: "/equipamentos", label: "Instrumentos", icon: Guitar },
     { href: "/perfil", label: "Perfil", icon: User },
     ...(isLeader ? [
       { href: "/pessoas", label: "Equipe", icon: Users },
-      { href: "/manutencoes", label: "Manutenções", icon: Wrench },
     ] : []),
     ...(canAdmin ? [{ href: "/admin", label: "Administração", icon: Settings }] : []),
     { href: "/guia", label: "Guia", icon: BookOpen },
