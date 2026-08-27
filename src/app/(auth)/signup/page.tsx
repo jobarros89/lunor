@@ -24,6 +24,7 @@ function SignupForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const intent = searchParams.get("intencao");
+  const normalizedIntent = intent === "criar" || intent === "entrar" || intent === "convite" ? intent : "direto";
   const passwordReady = password.length >= 8;
 
   const copy =
@@ -67,6 +68,7 @@ function SignupForm() {
       </CardHeader>
       <CardContent>
         <form action={onSubmit} className="space-y-4">
+          <input type="hidden" name="intent" value={normalizedIntent} />
           <div className="space-y-2">
             <Label htmlFor="fullName">Nome completo</Label>
             <Input
@@ -123,36 +125,26 @@ function SignupForm() {
               Pelo menos 8 caracteres
             </p>
           </div>
-
           <label className="flex items-start gap-3 text-sm leading-relaxed text-muted-foreground">
             <input
               type="checkbox"
               name="legalAccepted"
-              value="true"
+              value="yes"
               required
               className="mt-1 size-4 shrink-0 accent-[#6e5ce6]"
             />
             <span>
               Li e aceito os{" "}
-              <Link
-                href="/termos"
-                target="_blank"
-                className="font-medium text-foreground underline underline-offset-4"
-              >
+              <Link href="/termos" target="_blank" className="font-medium text-foreground underline underline-offset-4">
                 Termos de Uso
               </Link>{" "}
               e a{" "}
-              <Link
-                href="/privacidade"
-                target="_blank"
-                className="font-medium text-foreground underline underline-offset-4"
-              >
+              <Link href="/privacidade" target="_blank" className="font-medium text-foreground underline underline-offset-4">
                 Política de Privacidade
               </Link>
               .
             </span>
           </label>
-
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button
             type="submit"
