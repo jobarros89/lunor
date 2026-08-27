@@ -143,13 +143,13 @@ export async function requestPasswordReset(
 
   const h = await headers();
   const host = h.get("host");
-  const origin =
-    h.get("origin") ?? (host ? `https://${host}` : "");
+  const protocol = h.get("x-forwarded-proto") ?? "https";
+  const origin = h.get("origin") ?? (host ? `${protocol}://${host}` : "");
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(
     parsed.data.email,
-    { redirectTo: `${origin}/redefinir-senha` }
+    { redirectTo: `${origin}/auth/recovery` }
   );
   if (error) {
     console.error("requestPasswordReset:", error);
