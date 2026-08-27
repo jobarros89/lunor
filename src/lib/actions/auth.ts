@@ -16,9 +16,11 @@ const signUpSchema = credentialsSchema.extend({
   legalAccepted: z.literal("true", {
     error: "Você precisa aceitar os Termos de Uso e a Política de Privacidade",
   }),
+  intent: z.enum(["criar", "entrar", "convite", "direto"]).default("direto"),
 });
 
 const INVITE_COOKIE = "lunor_invite";
+const SIGNUP_INTENT_COOKIE = "lunor_signup_intent";
 
 async function acceptPendingInvite(
   supabase: Awaited<ReturnType<typeof createClient>>
@@ -32,7 +34,18 @@ async function acceptPendingInvite(
   });
   if (error || !data) return null;
   cookieStore.delete(INVITE_COOKIE);
+  cookieStore.delete(SIGNUP_INTENT_COOKIE);
   return data;
+}
+
+async function redirectToPendingStart(): Promise<never> {
+  const cookieStore = await cookies();
+  const intent = cookieStore.get(SIGNUP_INTENT_COOKIE)?.value;
+  cookieStore.delete(SIGNUP_INTENT_COOKIE);
+
+  if (intent === "criar") redirect("/comecar?intencao=criar");
+  if (intent === "entrar" || intent === "convite") redirect("/comecar?intencao=entrar");
+  redirect("/comecar");
 }
 
 export async function signIn(formData: FormData): Promise<ActionResult> {
@@ -51,6 +64,11 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
   }
   const invitedChurchId = await acceptPendingInvite(supabase);
   if (invitedChurchId) redirect(`/onboarding?igreja=${invitedChurchId}`);
+
+  const cookieStore = await cookies();
+  if (cookieStore.has(SIGNUP_INTENT_COOKIE)) {
+    return redirectToPendingStart();
+  }
   redirect("/");
 }
 
@@ -60,9 +78,23 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
     password: formData.get("password"),
     fullName: formData.get("fullName"),
     legalAccepted: formData.get("legalAccepted"),
+    intent: formData.get("intent") ?? "direto",
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const cookieStore = await cookies();
+  if (parsed.data.intent !== "direto") {
+    cookieStore.set(SIGNUP_INTENT_COOKIE, parsed.data.intent, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+  } else {
+    cookieStore.delete(SIGNUP_INTENT_COOKIE);
   }
 
   const supabase = await createClient();
@@ -75,16 +107,15 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
     return { ok: false, error: "Não foi possível criar a conta" };
   }
 
-  // Quando a confirmação de e-mail está habilitada, o Supabase cria o usuário
-  // sem abrir sessão. Nesse caso o convite precisa continuar no cookie até o
-  // primeiro login autenticado; tentar aceitar agora falharia silenciosamente.
+  // Com confirmação de e-mail habilitada, mantemos convite/intenção em cookie
+  // até o primeiro login autenticado para retomar exatamente o próximo passo.
   if (!data.session) {
     redirect("/login?cadastro=confirme-email");
   }
 
   const invitedChurchId = await acceptPendingInvite(supabase);
   if (invitedChurchId) redirect(`/onboarding?igreja=${invitedChurchId}`);
-  redirect("/");
+  return redirectToPendingStart();
 }
 
 export async function signOut(): Promise<void> {
@@ -121,7 +152,6 @@ export async function requestPasswordReset(
     { redirectTo: `${origin}/redefinir-senha` }
   );
   if (error) {
-    // logado no servidor, mas não exposto ao usuário (anti-enumeração)
     console.error("requestPasswordReset:", error);
   }
   return { ok: true, data: undefined };
