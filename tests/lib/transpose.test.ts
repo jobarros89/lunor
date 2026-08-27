@@ -38,12 +38,30 @@ describe("transposeChordChart", () => {
     ).toBe("Dmaj7 Bm7 Esus4 A7 Bsus4");
   });
 
-  it("transpõe acordes na mesma linha de um marcador de seção", () => {
+  it("transpõe a introdução e outras seções na mesma linha", () => {
     expect(transposeChordChart("[Intro] C  G  Am F", "C", "D")).toBe(
       "[Intro] D  A  Bm G"
     );
+    expect(transposeChordChart("Introdução: C G/B Am7 F", "C", "D")).toBe(
+      "Introdução: D A/C# Bm7 G"
+    );
     expect(transposeChordChart("Refrão: C G Am F", "C", "D")).toBe(
       "Refrão: D A Bm G"
+    );
+    expect(transposeChordChart("Instrumental: C G Am F", "C", "D")).toBe(
+      "Instrumental: D A Bm G"
+    );
+  });
+
+  it("preserva barras de compasso e marcadores musicais", () => {
+    expect(
+      transposeChordChart("Introdução: | C | G/B | Am7 | F |", "C", "D")
+    ).toBe("Introdução: | D | A/C# | Bm7 | G |");
+  });
+
+  it("aceita pontuação comum em linhas de acordes", () => {
+    expect(transposeChordChart("C, G/B, Am7, F;", "C", "D")).toBe(
+      "D, A/C#, Bm7, G;"
     );
   });
 
@@ -92,6 +110,11 @@ describe("transposeChordChart", () => {
     expect(transposeChordChart(chart, "C", "D")).toBe(
       "[Ponte]\n[D]Canto [Bm]outra vez"
     );
+  });
+
+  it("não transpõe frases comuns que começam com letras de acordes", () => {
+    const chart = "A graça me encontrou\nCanto ao Senhor";
+    expect(transposeChordChart(chart, "C", "D")).toBe(chart);
   });
 
   it("mantém a cifra idêntica quando origem e destino são iguais", () => {
