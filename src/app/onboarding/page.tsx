@@ -54,6 +54,7 @@ export default async function OnboardingPage({
         </div>
         <OnboardingWizard
           mode={membership.role === "admin" ? "owner" : "member"}
+          churchId={membership.church_id}
           churchName={church.name}
           churchSlug={church.slug}
           ministries={ministries ?? []}
