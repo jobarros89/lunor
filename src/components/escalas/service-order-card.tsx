@@ -19,7 +19,7 @@ import {
   updateServiceItem,
 } from "@/lib/actions/service-items";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -189,12 +189,13 @@ export function ServiceOrderCard({
           Ordem do Culto
         </CardTitle>
         <div className="flex flex-wrap justify-end gap-2">
-          <Button asChild variant="secondary" className="h-10 rounded-full">
-            <Link href={`/${churchSlug}/escalas/${eventId}/modo-culto`}>
-              <MonitorPlay className="size-4" />
-              Modo Culto
-            </Link>
-          </Button>
+          <Link
+            href={`/${churchSlug}/escalas/${eventId}/modo-culto`}
+            className={buttonVariants({ variant: "secondary", className: "h-10 rounded-full" })}
+          >
+            <MonitorPlay className="size-4" />
+            Modo Culto
+          </Link>
           {canManage && !adding && (
             <Button
               variant="outline"
