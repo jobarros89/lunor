@@ -24,7 +24,6 @@ export default async function AdminPage({
 }) {
   const { churchSlug } = await params;
   const tenant = await getTenant(churchSlug);
-  // admin e coordenador acessam; coordenador não vê nome/apagar da igreja
   if (!tenant.isCoord) redirect(`/${churchSlug}`);
   const isAdmin = tenant.role === "admin";
 
@@ -67,8 +66,6 @@ export default async function AdminPage({
     );
   }
 
-  // "Quem quer crescer": interesse SEM a aptidão aprovada = candidato a treino.
-  // Agrupado por aptidão, para montar uma turma.
   const jaApto = new Set((aptas ?? []).map((a) => `${a.user_id}:${a.skill_id}`));
   const gapPorSkill = new Map<string, string[]>();
   for (const i of interesses ?? []) {
@@ -116,7 +113,7 @@ export default async function AdminPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-2xl border border-foreground/12 bg-foreground/[0.025] p-4">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-zinc-950 dark:border-white/10 dark:bg-[#151518] dark:text-white">
             <InviteLink inviteCode={tenant.church.invite_code} />
           </div>
         </CardContent>
@@ -194,10 +191,9 @@ export default async function AdminPage({
 
       <Card className="rounded-3xl">
         <CardHeader>
-          <CardTitle className="text-base">Departamentos</CardTitle>
+          <CardTitle className="text-base">Públicos dos eventos</CardTitle>
           <CardDescription>
-            Para qual público é o evento (Jovens, Irmãs, Crianças…). Você escolhe
-            o departamento ao montar cada escala.
+            Classificações como Jovens, Crianças ou outros públicos usadas ao montar cada escala.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -211,10 +207,9 @@ export default async function AdminPage({
 
       <Card className="rounded-3xl">
         <CardHeader>
-          <CardTitle className="text-base">Ministérios</CardTitle>
+          <CardTitle className="text-base">Equipes</CardTitle>
           <CardDescription>
-            Crie os ministérios da igreja e gerencie papéis na página de cada
-            pessoa
+            Crie os times que servem na igreja. Administradores e gestores têm acesso a todas as equipes automaticamente.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -236,7 +231,7 @@ export default async function AdminPage({
             ))}
             {(ministries ?? []).length === 0 && (
               <p className="text-sm text-muted-foreground">
-                Nenhum ministério ainda — crie o primeiro acima.
+                Nenhuma equipe ainda — crie a primeira acima.
               </p>
             )}
           </div>
