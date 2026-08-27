@@ -2,48 +2,75 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { Check } from "lucide-react";
-import { setAssignmentStatus } from "@/lib/actions/escalas";
+import { Check, ChevronDown, MessageCircle, X } from "lucide-react";
+import { respondToAssignment } from "@/lib/actions/assignment-response";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-/**
- * Confirma presença numa escala com um toque, direto da Home — sem
- * precisar abrir o detalhe do evento. Fecha o loop do aviso in-app
- * (badge de escala pendente → confirmar aqui mesmo).
- */
 export function QuickConfirm({
   churchSlug,
+  churchId,
   eventId,
   assignmentId,
 }: {
   churchSlug: string;
+  churchId: string;
   eventId: string;
   assignmentId: string;
 }) {
   const [pending, startTransition] = useTransition();
 
-  function confirm() {
+  function respond(response: "confirmar" | "nao_posso" | "falar_lider") {
     startTransition(async () => {
-      const result = await setAssignmentStatus({
+      const result = await respondToAssignment({
         churchSlug,
+        churchId,
         eventId,
         assignmentId,
-        status: "confirmado",
+        response,
       });
-      if (result && !result.ok) toast.error(result.error);
-      else toast.success("Presença confirmada!");
+      if (result && !result.ok) {
+        toast.error(result.error);
+        return;
+      }
+
+      if (response === "confirmar") toast.success("Escala confirmada!");
+      if (response === "nao_posso") toast.success("Líder avisado. Vamos buscar uma substituição.");
+      if (response === "falar_lider") toast.success("Seu líder foi avisado.");
     });
   }
 
   return (
-    <Button
-      size="sm"
-      disabled={pending}
-      onClick={confirm}
-      className="h-9 shrink-0 rounded-full px-4"
-    >
-      <Check className="size-4" />
-      {pending ? "…" : "Confirmar"}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          size="sm"
+          disabled={pending}
+          className="h-9 shrink-0 rounded-full px-4"
+        >
+          {pending ? "Salvando…" : "Responder"}
+          {!pending && <ChevronDown className="size-3.5" />}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-52 rounded-2xl p-1.5">
+        <DropdownMenuItem onClick={() => respond("confirmar")} className="min-h-11 rounded-xl">
+          <Check className="size-4" />
+          Confirmo
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => respond("nao_posso")} className="min-h-11 rounded-xl">
+          <X className="size-4" />
+          Não posso servir
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => respond("falar_lider")} className="min-h-11 rounded-xl">
+          <MessageCircle className="size-4" />
+          Falar com o líder
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
