@@ -27,7 +27,7 @@ export default async function NovoEventoPage({
         .order("name"),
       supabase
         .from("departments")
-        .select("id, name")
+        .select("id, name, ministry_id")
         .eq("church_id", tenant.church.id)
         .eq("active", true)
         .order("name"),
