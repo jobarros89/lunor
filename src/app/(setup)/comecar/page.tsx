@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Suspense, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { createChurch, joinChurch } from "@/lib/actions/church";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function ComecarPage() {
+function ComecarContent() {
+  const searchParams = useSearchParams();
+  const intent = searchParams.get("intencao");
+  const initialMode = intent === "criar" ? "create" : intent === "entrar" ? "join" : "choose";
   const [pending, startTransition] = useTransition();
-  const [mode, setMode] = useState<"choose" | "join" | "create">("choose");
+  const [mode, setMode] = useState<"choose" | "join" | "create">(initialMode);
 
   function submit(action: typeof createChurch, formData: FormData) {
     startTransition(async () => {
@@ -27,7 +31,7 @@ export default function ComecarPage() {
             {mode === "choose" ? "Como você quer começar?" : mode === "join" ? "Entrar em uma igreja" : "Criar sua igreja"}
           </CardTitle>
           <CardDescription>
-            {mode === "choose" ? "Escolha a opção que representa você agora." : mode === "join" ? "Abra o link enviado pelo seu líder ou use o código como alternativa." : "O endereço da igreja será criado automaticamente."}
+            {mode === "choose" ? "Escolha a opção que representa você agora." : mode === "join" ? "Abra o link enviado pelo seu líder ou use o código como alternativa." : "Agora dê um nome à sua igreja. O endereço será criado automaticamente."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -54,7 +58,15 @@ export default function ComecarPage() {
           </form>}
         </CardContent>
       </Card>
-      {mode !== "choose" && <button type="button" onClick={() => setMode("choose")} className="min-h-11 w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline">Voltar para as opções</button>}
+      {mode !== "choose" && <button type="button" onClick={() => setMode("choose")} className="min-h-11 w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline">Escolher outra opção</button>}
     </div>
   </main>;
+}
+
+export default function ComecarPage() {
+  return (
+    <Suspense fallback={null}>
+      <ComecarContent />
+    </Suspense>
+  );
 }
