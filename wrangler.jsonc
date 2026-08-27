@@ -8,6 +8,12 @@
   "keep_vars": true,
   "compatibility_date": "2025-04-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // O Cloudflare Git deploy executa `wrangler versions upload` diretamente.
+  // Sem este custom build, `.open-next/worker.js` e `.open-next/assets` ainda
+  // não existem quando o Wrangler tenta empacotar o Worker.
+  "build": {
+    "command": "npx opennextjs-cloudflare build"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
