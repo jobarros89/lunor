@@ -13,7 +13,12 @@ const schema = z.object({
   replacementUserId: z.string().uuid(),
 });
 
-export async function resolveSubstitution(raw: unknown): Promise<ActionResult> {
+type ResolveSubstitutionResult = {
+  newAssignmentId: string;
+  replacementName: string | null;
+};
+
+export async function resolveSubstitution(raw: unknown): Promise<ActionResult<ResolveSubstitutionResult>> {
   const parsed = schema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Dados inválidos" };
   const d = parsed.data;
