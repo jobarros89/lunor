@@ -3,6 +3,7 @@ export const ASSIGNMENT_STATUS_LABELS: Record<string, string> = {
   confirmado: "Confirmado",
   falar_lider: "Quer falar com o líder",
   substituicao_solicitada: "Não pode servir",
+  substituido: "Substituído",
   ausente: "Ausente",
   presente: "Presente",
 };
@@ -12,6 +13,7 @@ export const ASSIGNMENT_STATUS_BADGE: Record<string, string> = {
   confirmado: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
   falar_lider: "bg-sky-500/15 text-sky-700 dark:text-sky-400",
   substituicao_solicitada: "bg-purple-500/15 text-purple-700 dark:text-purple-400",
+  substituido: "bg-zinc-500/15 text-zinc-700 dark:text-zinc-400",
   ausente: "bg-red-500/15 text-red-700 dark:text-red-400",
   presente: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
 };
