@@ -32,6 +32,7 @@ describe("Onde servir? (RLS)", () => {
   let churchId: string;
   let ministryId: string;
   let otherMinistryId: string;
+  let gerenteUserId: string;
   const run = Date.now();
 
   beforeAll(async () => {
@@ -73,6 +74,7 @@ describe("Onde servir? (RLS)", () => {
     const users = await Promise.all(
       [gerente, lider].map(async (client) => (await client.auth.getUser()).data.user!.id)
     );
+    gerenteUserId = users[0];
 
     await adminC.from("ministry_members").insert([
       {
@@ -141,7 +143,7 @@ describe("Onde servir? (RLS)", () => {
     expect(error).not.toBeNull();
   });
 
-  it("evento pode apontar para opção do mesmo ministério", async () => {
+  it("evento é criado sem Onde servir?; a área fica na pessoa escalada", async () => {
     const { data: dep } = await adminC
       .from("departments")
       .select("id")
@@ -150,36 +152,67 @@ describe("Onde servir? (RLS)", () => {
       .eq("name", "Vocal")
       .single();
 
-    const { data, error } = await adminC
+    const { data: event, error: eventError } = await adminC
       .from("events")
       .insert({
         church_id: churchId,
         ministry_id: ministryId,
         title: "Culto de Louvor",
         starts_at: new Date().toISOString(),
+        department_id: null,
+      })
+      .select("id, department_id")
+      .single();
+    expect(eventError).toBeNull();
+    expect(event!.department_id).toBeNull();
+
+    const { data: assignment, error } = await adminC
+      .from("assignments")
+      .insert({
+        church_id: churchId,
+        ministry_id: ministryId,
+        event_id: event!.id,
+        user_id: gerenteUserId,
+        role_name: "Vocal",
         department_id: dep!.id,
       })
       .select("department_id")
       .single();
+
     expect(error).toBeNull();
-    expect(data!.department_id).toBe(dep!.id);
+    expect(assignment!.department_id).toBe(dep!.id);
   });
 
-  it("evento rejeita opção de outro ministério", async () => {
-    const { data: dep } = await adminC
+  it("escala rejeita Onde servir? de outro ministério", async () => {
+    const { data: otherDep, error: depError } = await adminC
       .from("departments")
+      .insert({
+        church_id: churchId,
+        ministry_id: otherMinistryId,
+        name: "Berçário",
+      })
       .select("id")
-      .eq("church_id", churchId)
-      .eq("ministry_id", ministryId)
-      .eq("name", "Vocal")
+      .single();
+    expect(depError).toBeNull();
+
+    const { data: event } = await adminC
+      .from("events")
+      .insert({
+        church_id: churchId,
+        ministry_id: ministryId,
+        title: "Culto com área inválida",
+        starts_at: new Date(Date.now() + 60_000).toISOString(),
+      })
+      .select("id")
       .single();
 
-    const { error } = await adminC.from("events").insert({
+    const { error } = await adminC.from("assignments").insert({
       church_id: churchId,
-      ministry_id: otherMinistryId,
-      title: "Evento inválido",
-      starts_at: new Date().toISOString(),
-      department_id: dep!.id,
+      ministry_id: ministryId,
+      event_id: event!.id,
+      user_id: gerenteUserId,
+      role_name: "Vocal",
+      department_id: otherDep!.id,
     });
 
     expect(error).not.toBeNull();
