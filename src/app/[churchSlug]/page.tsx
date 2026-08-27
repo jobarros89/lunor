@@ -10,7 +10,20 @@ import { ASSIGNMENT_STATUS_BADGE, ASSIGNMENT_STATUS_LABELS, formatEventDate, for
 import { Badge } from "@/components/ui/badge";
 import { QuickConfirm } from "@/components/escalas/quick-confirm";
 
-type AssignmentEvent = { id: string; title: string; starts_at: string };
+type AssignmentEvent = { id: string; title: string; starts_at: string; location: string | null };
+type HomeAssignment = {
+  id: string;
+  role_name: string;
+  status: string;
+  arrival_time: string | null;
+  items_to_bring: string | null;
+  events: AssignmentEvent | AssignmentEvent[];
+  ministries: { name: string } | { name: string }[] | null;
+};
+
+function firstRelated<T>(value: T | T[] | null | undefined): T | null {
+  return Array.isArray(value) ? value[0] ?? null : value ?? null;
+}
 
 export default async function HomePage({ params }: { params: Promise<{ churchSlug: string }> }) {
   const { churchSlug } = await params;
@@ -22,20 +35,26 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const supabase = await createClient();
   const { data: myEscalas } = await supabase
     .from("assignments")
-    .select("id, role_name, status, events!inner(id, title, starts_at)")
+    .select("id, role_name, status, arrival_time, items_to_bring, ministries(name), events!inner(id, title, starts_at, location)")
     .eq("church_id", tenant.church.id)
     .eq("user_id", tenant.userId)
+    .neq("status", "substituido")
     .gte("events.starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true, referencedTable: "events" })
     .limit(3);
   const { data: anuncios } = await supabase.rpc("anuncios_infantil", { p_church: tenant.church.id });
 
-  const escalas = myEscalas ?? [];
-  const nextEvent = escalas[0]?.events as unknown as AssignmentEvent | undefined;
+  const escalas = (myEscalas ?? []) as unknown as HomeAssignment[];
+  const nextAssignment = escalas[0];
+  const nextEvent = firstRelated(nextAssignment?.events);
+  const nextMinistry = firstRelated(nextAssignment?.ministries);
   const nextDate = nextEvent ? new Date(nextEvent.starts_at) : null;
   const day = nextDate ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit" }).format(nextDate) : "—";
   const month = nextDate ? new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(nextDate).replace(".", "") : "sem data";
   const weekday = nextDate ? new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(nextDate) : "Próximo encontro";
+  const arrival = nextAssignment?.arrival_time
+    ? new Date(nextAssignment.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+    : null;
   const isAdmin = tenant.role === "admin";
   const canAdmin = tenant.isCoord;
   const showManage = canAdmin || tenant.isLeader || temInfantil;
@@ -58,13 +77,28 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
       <section className="lunor-prism relative -mx-4 overflow-hidden border-y border-white/10 px-5 py-10 md:-mx-8 md:min-h-[520px] md:px-10 md:py-14">
         <div className="relative z-10 grid gap-12 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em]">Próximo culto</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em]">{nextAssignment ? "Meu domingo" : "Próximo culto"}</p>
+              {nextAssignment && (
+                <Badge className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[nextAssignment.status] ?? ""}`}>
+                  {ASSIGNMENT_STATUS_LABELS[nextAssignment.status] ?? nextAssignment.status}
+                </Badge>
+              )}
+            </div>
             <h1 className="mt-6 max-w-3xl font-editorial text-[clamp(3.6rem,8vw,7.7rem)] font-medium leading-[0.82] tracking-[-0.055em]">
               {nextEvent?.title ?? "Prepare com propósito."}
             </h1>
-            <p className="mt-8 max-w-md text-sm leading-relaxed text-muted-foreground">
-              Prepare o coração. Prepare o time. Prepare o ambiente.
-            </p>
+            {nextAssignment ? (
+              <div className="mt-8 flex max-w-2xl flex-wrap gap-x-5 gap-y-2 text-sm">
+                <span><span className="text-muted-foreground">Você serve em</span> <strong>{nextAssignment.role_name}</strong></span>
+                {nextMinistry?.name && <span><span className="text-muted-foreground">Equipe</span> <strong>{nextMinistry.name}</strong></span>}
+                {arrival && <span><span className="text-muted-foreground">Chegada</span> <strong>{arrival}</strong></span>}
+                {nextEvent?.location && <span><span className="text-muted-foreground">Local</span> <strong>{nextEvent.location}</strong></span>}
+                {nextAssignment.items_to_bring && <span><span className="text-muted-foreground">Levar</span> <strong>{nextAssignment.items_to_bring}</strong></span>}
+              </div>
+            ) : (
+              <p className="mt-8 max-w-md text-sm leading-relaxed text-muted-foreground">Prepare o coração. Prepare o time. Prepare o ambiente.</p>
+            )}
           </div>
 
           <div className="grid gap-8 sm:grid-cols-[150px_1fr] lg:block">
@@ -74,8 +108,13 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
             </div>
             <div>
               <p className="text-sm font-medium">{nextEvent ? formatEventTime(nextEvent.starts_at) : "Tudo começa aqui"}</p>
+              {nextAssignment?.status === "convidado" && nextEvent && (
+                <div className="mt-4">
+                  <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={nextEvent.id} assignmentId={nextAssignment.id} />
+                </div>
+              )}
               <Link href={nextEvent ? `/${churchSlug}/escalas/${nextEvent.id}` : `/${churchSlug}/escalas`} className="mt-5 flex min-h-14 w-full items-center justify-between bg-[#6e5ce6] px-5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-                {nextEvent ? "Abrir preparação" : "Criar o próximo culto"}
+                {nextEvent ? "Abrir meu preparo" : "Ver escalas"}
                 <ArrowRight className="size-5" />
               </Link>
             </div>
@@ -94,17 +133,18 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
           </div>
           <div className="divide-y divide-foreground/15">
             {escalas.map((a, index) => {
-              const ev = a.events as unknown as AssignmentEvent;
+              const ev = firstRelated(a.events);
+              if (!ev) return null;
               const pendente = a.status === "convidado";
               return (
                 <div key={a.id} className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 py-5">
                   <span className="font-editorial text-3xl text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
                   <Link href={`/${churchSlug}/escalas/${ev.id}`} className="min-w-0 hover:opacity-65">
                     <p className="truncate font-medium">{ev.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{formatEventDate(ev.starts_at)} · {formatEventTime(ev.starts_at)} · {a.role_name}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{formatEventDate(ev.starts_at)} · {formatEventTime(ev.starts_at)} · {a.role_name}{a.arrival_time ? ` · chegada ${new Date(a.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</p>
                   </Link>
-                  {pendente ? <QuickConfirm churchSlug={churchSlug} eventId={ev.id} assignmentId={a.id} /> : (
-                    <Badge className={`shrink-0 rounded-none border-0 ${ASSIGNMENT_STATUS_BADGE[a.status]}`}>{ASSIGNMENT_STATUS_LABELS[a.status]}</Badge>
+                  {pendente ? <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={ev.id} assignmentId={a.id} /> : (
+                    <Badge className={`shrink-0 rounded-none border-0 ${ASSIGNMENT_STATUS_BADGE[a.status] ?? ""}`}>{ASSIGNMENT_STATUS_LABELS[a.status] ?? a.status}</Badge>
                   )}
                 </div>
               );
@@ -121,7 +161,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
           <div className="divide-y divide-foreground/15">
             {temLouvor && <ActionRow href={`/${churchSlug}/louvor`} label="Repertório" description="Músicas, cifras e arranjos" icon={<Music className="size-4" />} />}
             {tenant.isLeader && <ActionRow href={`/${churchSlug}/pessoas`} label="Equipe" description="Pessoas, aptidões e ministérios" icon={<Users className="size-4" />} />}
-            {tenant.isLeader && <ActionRow href={`/${churchSlug}/distribuicao`} label="Distribuição" description="Cuide da carga de cada pessoa" icon={<BarChart3 className="size-4" />} />}
+            {tenant.isLeader && <ActionRow href={`/${churchSlug}/distribuicao`} label="Radar de carga" description="Cuide da frequência e do revezamento" icon={<BarChart3 className="size-4" />} />}
             {temInfantil && <ActionRow href={`/${churchSlug}/infantil`} label="Infantil" description="Check-in e retirada segura" icon={<Baby className="size-4" />} />}
           </div>
         </div>
