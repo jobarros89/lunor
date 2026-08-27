@@ -24,27 +24,32 @@ alter table public.rehearsal_materials enable row level security;
 drop policy if exists rehearsal_materials_select on public.rehearsal_materials;
 create policy rehearsal_materials_select
   on public.rehearsal_materials for select
-  using (public.is_church_member(church_id));
+  using (public.is_church_member(rehearsal_materials.church_id));
 
 drop policy if exists rehearsal_materials_insert on public.rehearsal_materials;
 create policy rehearsal_materials_insert
   on public.rehearsal_materials for insert
   with check (
-    (public.is_louvor_leader(church_id) or public.is_church_coord(church_id))
+    (
+      public.is_louvor_leader(rehearsal_materials.church_id)
+      or public.is_church_coord(rehearsal_materials.church_id)
+    )
     and exists (
-      select 1 from public.songs s
-      where s.id = song_id and s.church_id = church_id
+      select 1
+      from public.songs s
+      where s.id = rehearsal_materials.song_id
+        and s.church_id = rehearsal_materials.church_id
     )
     and (
-      arrangement_version_id is null
+      rehearsal_materials.arrangement_version_id is null
       or exists (
         select 1
         from public.song_arrangement_versions sav
         join public.song_arrangements sa on sa.id = sav.arrangement_id
-        where sav.id = arrangement_version_id
-          and sav.church_id = church_id
-          and sa.song_id = song_id
-          and sa.church_id = church_id
+        where sav.id = rehearsal_materials.arrangement_version_id
+          and sav.church_id = rehearsal_materials.church_id
+          and sa.song_id = rehearsal_materials.song_id
+          and sa.church_id = rehearsal_materials.church_id
       )
     )
   );
@@ -52,7 +57,10 @@ create policy rehearsal_materials_insert
 drop policy if exists rehearsal_materials_delete on public.rehearsal_materials;
 create policy rehearsal_materials_delete
   on public.rehearsal_materials for delete
-  using (public.is_louvor_leader(church_id) or public.is_church_coord(church_id));
+  using (
+    public.is_louvor_leader(rehearsal_materials.church_id)
+    or public.is_church_coord(rehearsal_materials.church_id)
+  );
 
 grant select, insert, delete on public.rehearsal_materials to authenticated;
 
