@@ -129,7 +129,7 @@ function SignupForm() {
             <input
               type="checkbox"
               name="legalAccepted"
-              value="yes"
+              value="true"
               required
               className="mt-1 size-4 shrink-0 accent-[#6e5ce6]"
             />
