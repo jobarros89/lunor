@@ -195,9 +195,9 @@ export default async function AdminPage({
 
       <Card className="rounded-3xl">
         <CardHeader>
-          <CardTitle className="text-base">Departamentos por ministério</CardTitle>
+          <CardTitle className="text-base">Onde servir?</CardTitle>
           <CardDescription>
-            Subdivisões opcionais, como Vocal, Banda ou Berçário. Só aparecem ao montar uma escala quando o ministério selecionado tiver departamentos cadastrados.
+            Subdivisões opcionais de cada ministério, como Vocal, Banda ou Berçário. Só aparecem na escala quando o ministério selecionado tiver opções cadastradas.
           </CardDescription>
         </CardHeader>
         <CardContent>
