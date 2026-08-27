@@ -116,7 +116,7 @@ export default async function AdminPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-2xl bg-[#151518] p-4 text-white">
+          <div className="rounded-2xl border border-foreground/12 bg-foreground/[0.025] p-4">
             <InviteLink inviteCode={tenant.church.invite_code} />
           </div>
         </CardContent>
