@@ -6,6 +6,19 @@ import { createMinistry } from "@/lib/actions/pessoas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+const TEAM_PRESETS = [
+  "Louvor",
+  "Kids",
+  "Conexão",
+  "Mídia",
+  "Recepção",
+  "Lojinha",
+  "The Table",
+  "Logística",
+  "Intercessão",
+  "MC",
+] as const;
+
 export function CreateMinistryForm({
   churchSlug,
   churchId,
@@ -16,34 +29,52 @@ export function CreateMinistryForm({
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function onSubmit(formData: FormData) {
+  function createTeam(name: string) {
+    if (!name.trim()) return;
     startTransition(async () => {
-      const result = await createMinistry({
-        churchSlug,
-        churchId,
-        name: formData.get("name"),
-      });
+      const result = await createMinistry({ churchSlug, churchId, name });
       if (result && !result.ok) {
         toast.error(result.error);
       } else {
-        toast.success("Ministério criado");
+        toast.success(`Equipe ${name} criada`);
         if (inputRef.current) inputRef.current.value = "";
       }
     });
   }
 
+  function onSubmit(formData: FormData) {
+    createTeam(String(formData.get("name") ?? ""));
+  }
+
   return (
-    <form action={onSubmit} className="flex gap-2">
-      <Input
-        ref={inputRef}
-        name="name"
-        placeholder="Ex.: Mídia, Louvor, Recepção…"
-        required
-        className="h-12 rounded-full"
-      />
-      <Button type="submit" disabled={pending} className="h-12 rounded-full">
-        {pending ? "Criando…" : "Criar"}
-      </Button>
-    </form>
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {TEAM_PRESETS.map((name) => (
+          <Button
+            key={name}
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => createTeam(name)}
+            className="h-10 rounded-full px-4"
+          >
+            + {name}
+          </Button>
+        ))}
+      </div>
+
+      <form action={onSubmit} className="flex gap-2">
+        <Input
+          ref={inputRef}
+          name="name"
+          placeholder="Outra equipe…"
+          required
+          className="h-12 rounded-full"
+        />
+        <Button type="submit" disabled={pending} className="h-12 rounded-full">
+          {pending ? "Criando…" : "Criar equipe"}
+        </Button>
+      </form>
+    </div>
   );
 }
