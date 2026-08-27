@@ -112,7 +112,7 @@ export function EventForm({
             </select>
           </Field>
           {showDepartment && (
-            <Field label="Onde servir?">
+            <Field label="Onde vai servir?">
               <select
                 value={v.departmentId ?? ""}
                 onChange={(e) =>
