@@ -139,10 +139,10 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
       )}
 
       {isAdmin && (
-        <section className="flex min-w-0 flex-col justify-between gap-5 overflow-hidden border-l-4 border-[#6e5ce6] bg-[#151518] px-6 py-6 text-white sm:flex-row sm:items-center">
+        <section className="flex min-w-0 flex-col justify-between gap-5 overflow-hidden border border-foreground/12 border-l-4 border-l-[#6e5ce6] bg-foreground/[0.025] px-6 py-6 sm:flex-row sm:items-center">
           <div>
             <p className="font-medium">Convide sua equipe</p>
-            <p className="mt-1 text-sm opacity-70">Envie um link. A pessoa cria a conta e entra na igreja automaticamente.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Envie um link. A pessoa cria a conta e entra na igreja automaticamente.</p>
           </div>
           <InviteLink inviteCode={tenant.church.invite_code} />
         </section>
