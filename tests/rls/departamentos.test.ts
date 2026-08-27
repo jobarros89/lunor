@@ -28,6 +28,7 @@ describe("Departamentos (RLS)", () => {
   let adminC: SupabaseClient;
   let membro: SupabaseClient;
   let churchId: string;
+  let ministryId: string;
   const run = Date.now();
 
   beforeAll(async () => {
@@ -39,6 +40,18 @@ describe("Departamentos (RLS)", () => {
       p_slug: `igreja-dep-${run}`,
     });
     churchId = a.data;
+
+    const { data: ministry, error: ministryError } = await adminC
+      .from("ministries")
+      .insert({
+        church_id: churchId,
+        name: "Louvor",
+        slug: `louvor-${run}`,
+      })
+      .select("id")
+      .single();
+    if (ministryError) throw ministryError;
+    ministryId = ministry!.id;
 
     const { data: church } = await adminC
       .from("churches")
@@ -55,9 +68,11 @@ describe("Departamentos (RLS)", () => {
       .eq("church_id", churchId);
     expect(before).toEqual([]);
 
-    const { error } = await adminC
-      .from("departments")
-      .insert({ church_id: churchId, name: "UMADESP (Jovens)" });
+    const { error } = await adminC.from("departments").insert({
+      church_id: churchId,
+      ministry_id: ministryId,
+      name: "Vocal",
+    });
     expect(error).toBeNull();
   });
 
@@ -66,26 +81,30 @@ describe("Departamentos (RLS)", () => {
       .from("departments")
       .select("name")
       .eq("church_id", churchId);
-    expect(data!.map((d) => d.name)).toContain("UMADESP (Jovens)");
+    expect(data!.map((d) => d.name)).toContain("Vocal");
 
-    const { error } = await membro
-      .from("departments")
-      .insert({ church_id: churchId, name: "Pirata" });
+    const { error } = await membro.from("departments").insert({
+      church_id: churchId,
+      ministry_id: ministryId,
+      name: "Pirata",
+    });
     expect(error).not.toBeNull();
   });
 
-  it("evento pode apontar para um departamento", async () => {
+  it("evento pode apontar para departamento do mesmo ministério", async () => {
     const { data: dep } = await adminC
       .from("departments")
       .select("id")
       .eq("church_id", churchId)
+      .eq("ministry_id", ministryId)
       .single();
 
     const { data, error } = await adminC
       .from("events")
       .insert({
         church_id: churchId,
-        title: "Culto dos Jovens",
+        ministry_id: ministryId,
+        title: "Culto de Louvor",
         starts_at: new Date().toISOString(),
         department_id: dep!.id,
       })
@@ -93,5 +112,35 @@ describe("Departamentos (RLS)", () => {
       .single();
     expect(error).toBeNull();
     expect(data!.department_id).toBe(dep!.id);
+  });
+
+  it("evento rejeita departamento de outro ministério", async () => {
+    const { data: otherMinistry, error: ministryError } = await adminC
+      .from("ministries")
+      .insert({
+        church_id: churchId,
+        name: "Kids",
+        slug: `kids-${run}`,
+      })
+      .select("id")
+      .single();
+    if (ministryError) throw ministryError;
+
+    const { data: dep } = await adminC
+      .from("departments")
+      .select("id")
+      .eq("church_id", churchId)
+      .eq("ministry_id", ministryId)
+      .single();
+
+    const { error } = await adminC.from("events").insert({
+      church_id: churchId,
+      ministry_id: otherMinistry!.id,
+      title: "Evento inválido",
+      starts_at: new Date().toISOString(),
+      department_id: dep!.id,
+    });
+
+    expect(error).not.toBeNull();
   });
 });

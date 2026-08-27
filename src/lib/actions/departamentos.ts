@@ -8,26 +8,29 @@ import type { ActionResult } from "./types";
 const createSchema = z.object({
   churchSlug: z.string().min(2),
   churchId: z.string().uuid(),
+  ministryId: z.string().uuid(),
   name: z.string().min(2, "Informe o nome do departamento").max(60),
 });
 
-/** Cria um departamento (admin/gerente/master). Lista é 100% customizável. */
+/** Cria um departamento vinculado a um ministério da igreja. */
 export async function createDepartment(raw: unknown): Promise<ActionResult> {
   const parsed = createSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
-  const { churchSlug, churchId, name } = parsed.data;
+  const { churchSlug, churchId, ministryId, name } = parsed.data;
 
   const supabase = await createClient();
   const { error } = await supabase.from("departments").insert({
     church_id: churchId,
+    ministry_id: ministryId,
     name: name.trim(),
   });
   if (error) {
     return { ok: false, error: "Sem permissão para criar departamentos" };
   }
   revalidatePath(`/${churchSlug}/admin`);
+  revalidatePath(`/${churchSlug}/escalas/novo`);
   return { ok: true, data: undefined };
 }
 
@@ -48,5 +51,6 @@ export async function deleteDepartment(raw: unknown): Promise<ActionResult> {
     .eq("id", departmentId);
   if (error) return { ok: false, error: "Sem permissão para remover" };
   revalidatePath(`/${churchSlug}/admin`);
+  revalidatePath(`/${churchSlug}/escalas/novo`);
   return { ok: true, data: undefined };
 }

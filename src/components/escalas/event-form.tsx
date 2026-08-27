@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 
 type Option = { id: string; name: string };
+type DepartmentOption = Option & { ministry_id: string | null };
 
 export function EventForm({
   churchSlug,
@@ -21,7 +22,7 @@ export function EventForm({
   churchId: string;
   eventTypes: Option[];
   ministries: Option[];
-  departments: Option[];
+  departments: DepartmentOption[];
 }) {
   const [pending, startTransition] = useTransition();
   const [v, setV] = useState<{
@@ -59,6 +60,10 @@ export function EventForm({
 
   const inputCls = "h-11 rounded-xl";
   const selectCls = "h-11 w-full rounded-xl border bg-background px-3 text-sm";
+  const ministryDepartments = v.ministryId
+    ? departments.filter((d) => d.ministry_id === v.ministryId)
+    : [];
+  const showDepartment = ministryDepartments.length > 0;
 
   return (
     <Card className="rounded-3xl">
@@ -90,7 +95,11 @@ export function EventForm({
             <select
               value={v.ministryId ?? ""}
               onChange={(e) =>
-                setV({ ...v, ministryId: e.target.value || null })
+                setV({
+                  ...v,
+                  ministryId: e.target.value || null,
+                  departmentId: null,
+                })
               }
               className={selectCls}
             >
@@ -102,24 +111,24 @@ export function EventForm({
               ))}
             </select>
           </Field>
-          <Field label="Departamento">
-            <select
-              value={v.departmentId ?? ""}
-              onChange={(e) =>
-                setV({ ...v, departmentId: e.target.value || null })
-              }
-              className={selectCls}
-            >
-              <option value="">
-                {departments.length ? "Sem departamento" : "Nenhum criado"}
-              </option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+          {showDepartment && (
+            <Field label="Departamento">
+              <select
+                value={v.departmentId ?? ""}
+                onChange={(e) =>
+                  setV({ ...v, departmentId: e.target.value || null })
+                }
+                className={selectCls}
+              >
+                <option value="">Sem departamento</option>
+                {ministryDepartments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <Field label="Início" required>
             <Input
               type="datetime-local"
