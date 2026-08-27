@@ -26,7 +26,7 @@ function referenceHref(link: string): string | null {
   try {
     const candidate = /^https?:\/\//i.test(link) ? link : `https://${link}`;
     const url = new URL(candidate);
-    return url.protocol === "http:" || url.protocol === "https:"
+    return url.protocol === "http:" || url.protocol === "https"
       ? url.toString()
       : null;
   } catch {
@@ -165,6 +165,8 @@ export default async function MusicaDetalhePage({
             churchSlug={churchSlug}
             songId={songId}
             arrangements={arrangements ?? []}
+            hasLyrics={Boolean(musica.lyrics?.trim())}
+            hasChordChart={Boolean(musica.chord_chart?.trim())}
           />
         </div>
       )}
