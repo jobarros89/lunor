@@ -6,8 +6,14 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "./types";
 
+const normalizedEmailSchema = z
+  .string()
+  .trim()
+  .email("E-mail inválido")
+  .transform((email) => email.toLowerCase());
+
 const credentialsSchema = z.object({
-  email: z.string().email("E-mail inválido"),
+  email: normalizedEmailSchema,
   password: z.string().min(8, "Senha precisa de pelo menos 8 caracteres"),
 });
 
@@ -125,7 +131,7 @@ export async function signOut(): Promise<void> {
 }
 
 const emailSchema = z.object({
-  email: z.string().email("E-mail inválido"),
+  email: normalizedEmailSchema,
 });
 
 /**
