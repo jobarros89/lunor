@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { Suspense, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { signUp } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -15,9 +16,31 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function SignupPage() {
+function SignupForm() {
+  const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const intent = searchParams.get("intencao");
+
+  const copy =
+    intent === "criar"
+      ? {
+          title: "Crie sua conta",
+          description:
+            "Você será o administrador inicial da sua igreja no LUNOR.",
+        }
+      : intent === "convite" || intent === "entrar"
+        ? {
+            title: "Entre para sua equipe",
+            description:
+              intent === "convite"
+                ? "Crie sua conta para aceitar o convite e entrar na igreja."
+                : "Crie sua conta para entrar em uma igreja que já usa o LUNOR.",
+          }
+        : {
+            title: "Crie sua conta",
+            description: "Organize equipes, escalas e ministérios com o LUNOR.",
+          };
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -34,9 +57,9 @@ export default function SignupPage() {
     <Card className="rounded-3xl shadow-sm">
       <CardHeader className="space-y-2 text-center">
         <CardTitle className="text-2xl font-semibold tracking-tight">
-          Criar conta
+          {copy.title}
         </CardTitle>
-        <CardDescription>Comece a servir com sua equipe</CardDescription>
+        <CardDescription>{copy.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={onSubmit} className="space-y-4">
@@ -92,5 +115,13 @@ export default function SignupPage() {
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupForm />
+    </Suspense>
   );
 }
