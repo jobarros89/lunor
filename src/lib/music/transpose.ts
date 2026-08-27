@@ -44,9 +44,10 @@ const CHORD_PATTERN =
 const MUSICAL_MARKER = /^(?:\|+|:+|%|-+|\d+x|N\.C\.)$/i;
 const BRACKET_SECTION_PREFIX = /^(\s*\[[^\]\r\n]+\]\s*)(.*)$/;
 const NAMED_SECTION_PREFIX =
-  /^(\s*(?:Intro|Introdução|Verso|Estrofe|Pré-Refrão|Pre-Refrão|Refrão|Coro|Ponte|Interlúdio|Interludio|Solo|Final|Outro)(?:\s+\d+)?\s*:\s*)(.*)$/i;
+  /^(\s*(?:Intro|Introdução|Instrumental|Verso|Estrofe|Pré-Refrão|Pre-Refrão|Refrão|Coro|Ponte|Interlúdio|Interludio|Solo|Tag|Final|Outro)(?:\s+\d+)?\s*:\s*)(.*)$/i;
 const KEY_LINE_PATTERN = /^(\s*(?:Tom|Key)\s*:\s*)([A-Ga-g][#b]?(?:m)?)(\s*)$/i;
 const CHORDPRO_KEY_PATTERN = /(\{\s*key\s*:\s*)([A-Ga-g][#b]?(?:m)?)(\s*\})/gi;
+const TOKEN_PUNCTUATION = /^(.+?)([,;])?$/;
 
 function pitchClass(note: string): number | null {
   const match = /^([A-Ga-g])([#b]?)(?:m)?$/.exec(note.trim());
@@ -80,6 +81,26 @@ function transposeChord(chord: string, semitones: number, preferFlats: boolean) 
   return `${transposedRoot}${suffix}${bass}`;
 }
 
+function chordToken(token: string): { chord: string; suffix: string } | null {
+  const match = TOKEN_PUNCTUATION.exec(token);
+  if (!match || !CHORD_PATTERN.test(match[1])) return null;
+  return { chord: match[1], suffix: match[2] ?? "" };
+}
+
+function isMusicalToken(token: string) {
+  return chordToken(token) !== null || MUSICAL_MARKER.test(token);
+}
+
+function transposeMusicalToken(
+  token: string,
+  semitones: number,
+  preferFlats: boolean
+) {
+  const parsed = chordToken(token);
+  if (!parsed) return token;
+  return `${transposeChord(parsed.chord, semitones, preferFlats)}${parsed.suffix}`;
+}
+
 function transposeMusicalContent(
   content: string,
   semitones: number,
@@ -89,17 +110,15 @@ function transposeMusicalContent(
   const musicalTokens = tokens.filter((token) => token.trim().length > 0);
   if (
     musicalTokens.length === 0 ||
-    !musicalTokens.every(
-      (token) => CHORD_PATTERN.test(token) || MUSICAL_MARKER.test(token)
-    )
+    !musicalTokens.every((token) => isMusicalToken(token))
   ) {
     return null;
   }
 
   return tokens
     .map((token) =>
-      CHORD_PATTERN.test(token)
-        ? transposeChord(token, semitones, preferFlats)
+      token.trim().length > 0
+        ? transposeMusicalToken(token, semitones, preferFlats)
         : token
     )
     .join("");
