@@ -112,7 +112,7 @@ export function EventForm({
             </select>
           </Field>
           {showDepartment && (
-            <Field label="Departamento">
+            <Field label="Onde servir?">
               <select
                 value={v.departmentId ?? ""}
                 onChange={(e) =>
@@ -120,7 +120,7 @@ export function EventForm({
                 }
                 className={selectCls}
               >
-                <option value="">Sem departamento</option>
+                <option value="">Sem especificar</option>
                 {ministryDepartments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
