@@ -119,26 +119,43 @@
 }
 
 .font-editorial { font-family: var(--font-editorial), Georgia, serif; }
+
 .lunor-prism {
+  isolation: isolate;
   background-color: #f8f8f5;
-  background-image:
-    linear-gradient(90deg, rgba(248, 248, 245, 0.98) 0%, rgba(248, 248, 245, 0.78) 30%, rgba(248, 248, 245, 0.28) 50%, rgba(248, 248, 245, 0) 68%),
-    url("/brand/lunor-prism.webp");
-  background-position: center, 64% center;
-  background-repeat: no-repeat, no-repeat;
-  background-size: 100% 100%, 124% auto;
+}
+.lunor-prism::before,
+.lunor-prism::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.lunor-prism::before {
+  z-index: 0;
+  background-image: url("/brand/lunor-prism.webp");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  transform: scale(1.015);
+}
+.lunor-prism::after {
+  z-index: 1;
+  background: rgba(248, 248, 245, 0.10);
 }
 .dark .lunor-prism {
   background-color: #090a0c;
-  background-image:
-    linear-gradient(90deg, rgba(9, 10, 12, 0.98) 0%, rgba(9, 10, 12, 0.78) 30%, rgba(9, 10, 12, 0.28) 50%, rgba(9, 10, 12, 0) 68%),
-    url("/brand/lunor-prism-dark.webp");
   color: #f7f7f2;
+}
+.dark .lunor-prism::before {
+  background-image: url("/brand/lunor-prism-dark.webp");
+}
+.dark .lunor-prism::after {
+  background: rgba(9, 10, 12, 0.10);
 }
 .dark .lunor-prism .text-muted-foreground { color: rgb(212 212 216); }
 
-/* Permite que as duas colunas encolham dentro do shell sem alterar a pintura
-   do background nem introduzir containment no hero. */
+/* O conteúdo permanece independente da arte; as colunas podem encolher sem overflow. */
 .lunor-prism > .relative.z-10.grid > * { min-width: 0; }
 
 @media (min-width: 1024px) {
@@ -151,10 +168,7 @@
 
 @media (max-width: 767px) {
   input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px !important; }
-  .lunor-prism {
-    background-position: center, 72% center;
-    background-size: 100% 100%, 150% auto;
-  }
+  .lunor-prism::before { background-position: 60% center; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
