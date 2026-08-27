@@ -120,6 +120,7 @@
 
 .font-editorial { font-family: var(--font-editorial), Georgia, serif; }
 .lunor-prism {
+  container-type: inline-size;
   background-color: #f8f8f5;
   background-image: url("/brand/lunor-prism.webp");
   background-position: center;
@@ -133,6 +134,33 @@
 }
 .dark .lunor-prism .text-muted-foreground { color: rgb(212 212 216); }
 
+/* O layout principal usa breakpoints do viewport, mas o hero pode ficar estreito
+   dentro do shell/sidebars. Basear esta decisão na largura real do próprio card
+   evita que a coluna da data e o CTA sejam empurrados para fora da tela. */
+.lunor-prism > .relative.z-10.grid > * { min-width: 0; }
+
+@container (max-width: 56rem) {
+  .lunor-prism > .relative.z-10.grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+  }
+
+  .lunor-prism > .relative.z-10.grid > :last-child {
+    display: grid !important;
+    grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .lunor-prism > .relative.z-10.grid > :last-child > :first-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+@container (max-width: 34rem) {
+  .lunor-prism > .relative.z-10.grid > :last-child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 
 [data-slot="card"] { border-color: color-mix(in oklab, currentColor 15%, transparent); box-shadow: none; }
 
