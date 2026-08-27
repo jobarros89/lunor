@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Sparkles, X } from "lucide-react";
 import {
   addAssignment,
+  getAssignmentServingContext,
   linkEquipment,
   removeAssignment,
   setAssignmentStatus,
@@ -28,6 +29,12 @@ type Member = {
   interesses: string[];
 };
 type Equipment = { id: string; name: string };
+type ServingArea = { id: string; name: string };
+type AssignmentServingArea = {
+  id: string;
+  department_id: string | null;
+  department_name: string | null;
+};
 export type AssignmentRow = {
   id: string;
   user_id: string;
@@ -85,6 +92,21 @@ export function AssignmentManager({
   const [pending, startTransition] = useTransition();
   const [userId, setUserId] = useState("");
   const [roleName, setRoleName] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [servingAreas, setServingAreas] = useState<ServingArea[]>([]);
+  const [assignmentAreas, setAssignmentAreas] = useState<AssignmentServingArea[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    getAssignmentServingContext({ churchId, ministryId, eventId }).then((result) => {
+      if (!active || !result.ok) return;
+      setServingAreas(result.data.departments);
+      setAssignmentAreas(result.data.assignments);
+    });
+    return () => {
+      active = false;
+    };
+  }, [churchId, ministryId, eventId, assignments]);
 
   function act(fn: () => Promise<{ ok: boolean; error?: string; data?: unknown } | void>, success?: string) {
     startTransition(async () => {
@@ -96,9 +118,24 @@ export function AssignmentManager({
 
   function escalar() {
     if (!userId) return toast.error("Escolha a pessoa");
-    if (roleName.length < 2) return toast.error("Informe a função (ex.: Fotógrafo)");
-    act(() => addAssignment({ churchSlug, churchId, ministryId, eventId, userId, roleName }), "Pessoa escalada");
+    if (servingAreas.length > 0 && !departmentId)
+      return toast.error("Escolha onde a pessoa vai servir");
+    if (roleName.length < 2) return toast.error("Informe a função (ex.: Guitarra)");
+    act(
+      () =>
+        addAssignment({
+          churchSlug,
+          churchId,
+          ministryId,
+          eventId,
+          userId,
+          departmentId: departmentId || null,
+          roleName,
+        }),
+      "Pessoa escalada"
+    );
     setUserId("");
+    setDepartmentId("");
     setRoleName("");
   }
 
@@ -161,13 +198,16 @@ export function AssignmentManager({
         {assignments.map((a) => {
           const suggestions = a.status === "substituicao_solicitada" ? suggestionsFor(a) : [];
           const statusIsManual = LEADER_STATUS_OPTIONS.includes(a.status as (typeof LEADER_STATUS_OPTIONS)[number]);
+          const servingArea = assignmentAreas.find((item) => item.id === a.id)?.department_name;
 
           return (
             <div key={a.id} className="space-y-3 rounded-2xl border p-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate font-medium">{a.full_name}</p>
-                  <p className="text-sm text-muted-foreground">{a.role_name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {servingArea ? `${servingArea} · ` : ""}{a.role_name}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[a.status] ?? ""}`}>
@@ -276,8 +316,8 @@ export function AssignmentManager({
           <Sparkles className="size-4 text-purple-600 dark:text-purple-400" />
           <p className="text-sm font-medium">Escalar pessoa</p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <select value={userId} onChange={(e) => setUserId(e.target.value)} className={`${selectCls} sm:flex-1`} aria-label="Escolher pessoa">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <select value={userId} onChange={(e) => setUserId(e.target.value)} className={selectCls} aria-label="Escolher pessoa">
             <option value="">Escolher pessoa…</option>
             {members.map((m) => (
               <option key={m.user_id} value={m.user_id}>
@@ -285,7 +325,20 @@ export function AssignmentManager({
               </option>
             ))}
           </select>
-          <Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Função (ex.: Fotógrafo)" className="h-11 rounded-xl sm:flex-1" />
+          {servingAreas.length > 0 && (
+            <select
+              value={departmentId}
+              onChange={(e) => setDepartmentId(e.target.value)}
+              className={selectCls}
+              aria-label="Onde vai servir?"
+            >
+              <option value="">Onde vai servir?</option>
+              {servingAreas.map((area) => (
+                <option key={area.id} value={area.id}>{area.name}</option>
+              ))}
+            </select>
+          )}
+          <Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Função (ex.: Guitarra)" className="h-11 rounded-xl" />
           <Button disabled={pending} className="h-11 rounded-full px-5" onClick={escalar}>Escalar</Button>
         </div>
 
