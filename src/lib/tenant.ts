@@ -36,7 +36,7 @@ export const getTenant = cache(
     const { data } = await supabase
       .from("church_members")
       .select(
-        "role, churches!inner(id, name, slug, invite_code), profiles!inner(full_name, avatar_url, onboarding_completed)"
+        "role, onboarding_completed_at, churches!inner(id, name, slug, invite_code), profiles!inner(full_name, avatar_url, onboarding_completed)"
       )
       .eq("user_id", user.id)
       .eq("status", "active")
@@ -82,10 +82,11 @@ export const getTenant = cache(
     const church = data.churches as unknown as TenantContext["church"];
     const profile = data.profiles as unknown as TenantContext["profile"];
 
-    // Master pula o briefing mesmo sendo membro/admin de uma igreja que criou.
-    if (!profile.onboarding_completed) {
+    // Onboarding é por igreja. A fonte de verdade é church_members.onboarding_completed_at.
+    // profiles.onboarding_completed permanece apenas por compatibilidade com dados legados.
+    if (!data.onboarding_completed_at) {
       const { data: isMaster } = await supabase.rpc("is_platform_admin");
-      if (!isMaster) redirect("/onboarding");
+      if (!isMaster) redirect(`/onboarding?igreja=${church.id}`);
     }
 
     const { data: memberships } = await supabase
