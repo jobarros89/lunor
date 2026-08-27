@@ -43,3 +43,45 @@ drop trigger if exists trg_department_ministry_church on public.departments;
 create trigger trg_department_ministry_church
   before insert or update on public.departments
   for each row execute function public.enforce_department_ministry_church();
+
+-- Um evento só pode usar um departamento do mesmo ministério.
+create or replace function public.enforce_event_department_scope()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_department_church uuid;
+  v_department_ministry uuid;
+begin
+  if new.department_id is null then
+    return new;
+  end if;
+
+  select church_id, ministry_id
+    into v_department_church, v_department_ministry
+  from public.departments
+  where id = new.department_id
+    and active = true;
+
+  if v_department_church is null then
+    raise exception 'department_id % inexistente ou inativo', new.department_id;
+  end if;
+
+  if v_department_church <> new.church_id then
+    raise exception 'evento e departamento devem pertencer à mesma igreja';
+  end if;
+
+  if new.ministry_id is null or v_department_ministry is null or v_department_ministry <> new.ministry_id then
+    raise exception 'departamento deve pertencer ao ministério selecionado no evento';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_event_department_scope on public.events;
+create trigger trg_event_department_scope
+  before insert or update on public.events
+  for each row execute function public.enforce_event_department_scope();
