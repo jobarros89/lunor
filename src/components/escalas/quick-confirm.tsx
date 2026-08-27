@@ -4,7 +4,6 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 import { Check, ChevronDown, MessageCircle, X } from "lucide-react";
 import { respondToAssignment } from "@/lib/actions/assignment-response";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,15 +46,12 @@ export function QuickConfirm({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          size="sm"
-          disabled={pending}
-          className="h-9 shrink-0 rounded-full px-4"
-        >
-          {pending ? "Salvando…" : "Responder"}
-          {!pending && <ChevronDown className="size-3.5" />}
-        </Button>
+      <DropdownMenuTrigger
+        disabled={pending}
+        className="inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-primary px-4 text-[0.8rem] font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:pointer-events-none disabled:opacity-50"
+      >
+        {pending ? "Salvando…" : "Responder"}
+        {!pending && <ChevronDown className="size-3.5" />}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-52 rounded-2xl p-1.5">
         <DropdownMenuItem onClick={() => respond("confirmar")} className="min-h-11 rounded-xl">
