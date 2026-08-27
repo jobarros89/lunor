@@ -19,7 +19,7 @@ export function QuickConfirm({
   assignmentId,
 }: {
   churchSlug: string;
-  churchId: string;
+  churchId?: string;
   eventId: string;
   assignmentId: string;
 }) {
