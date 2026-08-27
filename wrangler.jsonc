@@ -21,10 +21,11 @@
   // Ambiente compartilhado de desenvolvimento. O domínio próprio será
   // configurado somente quando houver um ambiente de produção separado.
   "workers_dev": true,
-  // 12:00 UTC = 09:00 em Brasília. Sem CRON_SECRET configurado, o handler
-  // encerra com 404 e não consulta o Supabase.
+  // 12:00 UTC = 09:00 em Brasília: lembretes operacionais da véspera.
+  // 22:00 UTC de sexta = 19:00 em Brasília: preparação espiritual de quem
+  // serve no fim de semana. Sem CRON_SECRET o handler encerra com 404.
   "triggers": {
-    "crons": ["0 12 * * *"]
+    "crons": ["0 12 * * *", "0 22 * * 5"]
   },
   "observability": {
     "enabled": true
