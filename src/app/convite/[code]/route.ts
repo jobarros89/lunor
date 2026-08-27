@@ -27,7 +27,9 @@ export async function GET(
     return NextResponse.redirect(new URL("/comecar?convite=invalido", request.url));
   }
 
-  const response = NextResponse.redirect(new URL("/signup", request.url));
+  const response = NextResponse.redirect(
+    new URL("/signup?intencao=convite", request.url)
+  );
   response.cookies.set(INVITE_COOKIE, code, {
     httpOnly: true,
     secure: new URL(request.url).protocol === "https:",
