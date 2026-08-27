@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   ChevronDown,
   ChevronUp,
   Clock3,
+  MonitorPlay,
   Pencil,
   Plus,
   Trash2,
@@ -186,20 +188,28 @@ export function ServiceOrderCard({
           <Clock3 className="size-4" />
           Ordem do Culto
         </CardTitle>
-        {canManage && !adding && (
-          <Button
-            variant="outline"
-            className="h-10 rounded-full"
-            disabled={pending}
-            onClick={() => {
-              setEditingId(null);
-              setAdding(true);
-            }}
-          >
-            <Plus className="size-4" />
-            Adicionar item
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button asChild variant="secondary" className="h-10 rounded-full">
+            <Link href={`/${churchSlug}/escalas/${eventId}/modo-culto`}>
+              <MonitorPlay className="size-4" />
+              Modo Culto
+            </Link>
           </Button>
-        )}
+          {canManage && !adding && (
+            <Button
+              variant="outline"
+              className="h-10 rounded-full"
+              disabled={pending}
+              onClick={() => {
+                setEditingId(null);
+                setAdding(true);
+              }}
+            >
+              <Plus className="size-4" />
+              Adicionar item
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {items.length === 0 && !adding && (
