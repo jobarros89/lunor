@@ -9,6 +9,7 @@ import type { ActionResult } from "./types";
 const modules = ["teams", "worship", "children", "equipment"] as const;
 
 const churchSetupSchema = z.object({
+  churchId: z.string().uuid(),
   modules: z.array(z.enum(modules)).min(1, "Escolha pelo menos um módulo"),
   ministryName: z.string().trim().min(2, "Informe o primeiro ministério").max(60),
 });
@@ -24,10 +25,10 @@ export async function completeChurchOnboarding(raw: unknown): Promise<ActionResu
   const { data: membership } = await supabase
     .from("church_members")
     .select("church_id, role")
+    .eq("church_id", parsed.data.churchId)
     .eq("user_id", user.id)
     .eq("role", "admin")
     .eq("status", "active")
-    .limit(1)
     .maybeSingle();
   if (!membership) return { ok: false, error: "Somente o administrador pode configurar a igreja" };
 
@@ -74,16 +75,17 @@ export async function completeChurchOnboarding(raw: unknown): Promise<ActionResu
   }, { onConflict: "ministry_id,user_id" });
   if (memberError) return { ok: false, error: "Não foi possível vincular o ministério" };
 
-  await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id);
   await supabase
     .from("church_members")
     .update({ onboarding_completed_at: new Date().toISOString() })
     .eq("church_id", membership.church_id)
     .eq("user_id", user.id);
+
   redirect(`/${church.slug}?welcome=1`);
 }
 
 const memberSetupSchema = z.object({
+  churchId: z.string().uuid(),
   ministryIds: z.array(z.string().uuid()).min(1, "Selecione pelo menos um ministério"),
   phone: z.string().trim().max(30).default(""),
   departments: z.array(z.string().trim().min(1)).default([]),
@@ -100,13 +102,17 @@ export async function completeMemberOnboarding(raw: unknown): Promise<ActionResu
   const { data: membership } = await supabase
     .from("church_members")
     .select("church_id")
+    .eq("church_id", parsed.data.churchId)
     .eq("user_id", user.id)
     .eq("status", "active")
-    .limit(1)
     .maybeSingle();
   if (!membership) redirect("/comecar");
 
-  const { data: church } = await supabase.from("churches").select("slug").eq("id", membership.church_id).single();
+  const { data: church } = await supabase
+    .from("churches")
+    .select("slug")
+    .eq("id", membership.church_id)
+    .single();
   const uniqueMinistryIds = [...new Set(parsed.data.ministryIds)];
   const { data: ministries } = await supabase
     .from("ministries")
