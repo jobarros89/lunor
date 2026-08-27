@@ -102,7 +102,7 @@ export function AssignmentManager({
     setRoleName("");
   }
 
-  function suggestionsFor(assignment: AssignmentRow): Suggestion[] {
+  function suggestionsForRole(role: string, excludedUserId?: string): Suggestion[] {
     const alreadyAssigned = new Set(
       assignments
         .filter((item) => item.status !== "substituido")
@@ -111,13 +111,13 @@ export function AssignmentManager({
 
     return members
       .filter((member) =>
-        member.user_id !== assignment.user_id &&
+        member.user_id !== excludedUserId &&
         !member.indisponivel &&
         !alreadyAssigned.has(member.user_id)
       )
       .map((member) => {
-        const skillMatch = matchesRole(member.aptidoes, assignment.role_name);
-        const interestMatch = matchesRole(member.interesses, assignment.role_name);
+        const skillMatch = matchesRole(member.aptidoes, role);
+        const interestMatch = matchesRole(member.interesses, role);
         const score = 100 - member.cargaMes * 10 + (skillMatch ? 35 : 0) + (interestMatch ? 15 : 0);
         const reasons: string[] = [];
         if (skillMatch) reasons.push("aptidão compatível");
@@ -129,8 +129,15 @@ export function AssignmentManager({
       .slice(0, 3);
   }
 
+  function suggestionsFor(assignment: AssignmentRow): Suggestion[] {
+    return suggestionsForRole(assignment.role_name, assignment.user_id);
+  }
+
   const selectCls = "h-11 rounded-xl border bg-background px-3 text-base md:text-sm";
   const selecionado = members.find((m) => m.user_id === userId);
+  const newAssignmentSuggestions = roleName.trim().length >= 2
+    ? suggestionsForRole(roleName)
+    : [];
 
   const confirmados = assignments.filter((a) => a.status === "confirmado").length;
   const aguardando = assignments.filter((a) => a.status === "convidado").length;
@@ -264,8 +271,11 @@ export function AssignmentManager({
         {assignments.length === 0 && <p className="text-sm text-muted-foreground">Ninguém escalado ainda.</p>}
       </div>
 
-      <div className="space-y-2 rounded-2xl border border-dashed p-4">
-        <p className="text-sm font-medium">Escalar pessoa</p>
+      <div className="space-y-3 rounded-2xl border border-dashed p-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="size-4 text-purple-600 dark:text-purple-400" />
+          <p className="text-sm font-medium">Escalar pessoa</p>
+        </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <select value={userId} onChange={(e) => setUserId(e.target.value)} className={`${selectCls} sm:flex-1`} aria-label="Escolher pessoa">
             <option value="">Escolher pessoa…</option>
@@ -278,6 +288,42 @@ export function AssignmentManager({
           <Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Função (ex.: Fotógrafo)" className="h-11 rounded-xl sm:flex-1" />
           <Button disabled={pending} className="h-11 rounded-full px-5" onClick={escalar}>Escalar</Button>
         </div>
+
+        {roleName.trim().length >= 2 && !userId && (
+          <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-purple-600 dark:text-purple-400" />
+              <div>
+                <p className="text-sm font-medium">Sugestões LUNOR</p>
+                <p className="text-xs text-muted-foreground">Com base em aptidão, interesse, disponibilidade e carga deste mês.</p>
+              </div>
+            </div>
+            {newAssignmentSuggestions.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {newAssignmentSuggestions.map((candidate, index) => (
+                  <div key={candidate.user_id} className="flex items-center gap-3 rounded-xl bg-background p-3">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">{index + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{candidate.full_name}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{candidate.reason}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="rounded-full"
+                      onClick={() => setUserId(candidate.user_id)}
+                    >
+                      Selecionar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-muted-foreground">Nenhuma pessoa disponível desta equipe para sugerir nesta função.</p>
+            )}
+          </div>
+        )}
 
         {selecionado && (
           <div className="space-y-2 rounded-2xl bg-muted/40 p-3 text-sm">
