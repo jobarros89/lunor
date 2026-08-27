@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   mode: "owner" | "member";
+  churchId: string;
   churchName: string;
   churchSlug: string;
   ministries: { id: string; name: string }[];
@@ -63,7 +64,7 @@ export function OnboardingWizard(props: Props) {
   return props.mode === "owner" ? <OwnerWizard {...props} /> : <MemberWizard {...props} />;
 }
 
-function OwnerWizard({ churchName }: Props) {
+function OwnerWizard({ churchId, churchName }: Props) {
   const [step, setStep] = useState(0);
   const [modules, setModules] = useState<string[]>(["teams", "worship"]);
   const [ministryName, setMinistryName] = useState("Louvor");
@@ -72,7 +73,7 @@ function OwnerWizard({ churchName }: Props) {
   const toggle = (id: string) => setModules((value) => value.includes(id) ? value.filter((item) => item !== id) : [...value, id]);
 
   const finish = () => startTransition(async () => {
-    const result = await completeChurchOnboarding({ modules, ministryName });
+    const result = await completeChurchOnboarding({ churchId, modules, ministryName });
     if (result && !result.ok) toast.error(result.error);
   });
 
@@ -103,7 +104,7 @@ function OwnerWizard({ churchName }: Props) {
   </div>;
 }
 
-function MemberWizard({ churchName, ministries }: Props) {
+function MemberWizard({ churchId, churchName, ministries }: Props) {
   const [step, setStep] = useState(0);
   const [ministryIds, setMinistryIds] = useState<string[]>(ministries[0] ? [ministries[0].id] : []);
   const [phone, setPhone] = useState("");
@@ -111,7 +112,7 @@ function MemberWizard({ churchName, ministries }: Props) {
   const [pending, startTransition] = useTransition();
   const toggle = (list: string[], value: string, setter: (value: string[]) => void) => setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
   const finish = () => startTransition(async () => {
-    const result = await completeMemberOnboarding({ ministryIds, phone, departments });
+    const result = await completeMemberOnboarding({ churchId, ministryIds, phone, departments });
     if (result && !result.ok) toast.error(result.error);
   });
 
