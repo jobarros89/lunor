@@ -24,15 +24,20 @@ async function newUser(email: string): Promise<SupabaseClient> {
   return client;
 }
 
-describe("Departamentos (RLS)", () => {
+describe("Onde servir? (RLS)", () => {
   let adminC: SupabaseClient;
+  let gerente: SupabaseClient;
+  let lider: SupabaseClient;
   let membro: SupabaseClient;
   let churchId: string;
   let ministryId: string;
+  let otherMinistryId: string;
   const run = Date.now();
 
   beforeAll(async () => {
     adminC = await newUser(`dep-admin-${run}@teste.dev`);
+    gerente = await newUser(`dep-gerente-${run}@teste.dev`);
+    lider = await newUser(`dep-lider-${run}@teste.dev`);
     membro = await newUser(`dep-membro-${run}@teste.dev`);
 
     const a = await adminC.rpc("create_church", {
@@ -41,33 +46,51 @@ describe("Departamentos (RLS)", () => {
     });
     churchId = a.data;
 
-    const { data: ministry, error: ministryError } = await adminC
+    const { data: ministry } = await adminC
       .from("ministries")
-      .insert({
-        church_id: churchId,
-        name: "Louvor",
-        slug: `louvor-${run}`,
-      })
+      .insert({ church_id: churchId, name: "Louvor", slug: `louvor-${run}` })
       .select("id")
       .single();
-    if (ministryError) throw ministryError;
     ministryId = ministry!.id;
+
+    const { data: otherMinistry } = await adminC
+      .from("ministries")
+      .insert({ church_id: churchId, name: "Kids", slug: `kids-${run}` })
+      .select("id")
+      .single();
+    otherMinistryId = otherMinistry!.id;
 
     const { data: church } = await adminC
       .from("churches")
       .select("invite_code")
       .eq("id", churchId)
       .single();
-    await membro.rpc("join_church", { p_invite_code: church!.invite_code });
+
+    for (const client of [gerente, lider, membro]) {
+      await client.rpc("join_church", { p_invite_code: church!.invite_code });
+    }
+
+    const users = await Promise.all(
+      [gerente, lider].map(async (client) => (await client.auth.getUser()).data.user!.id)
+    );
+
+    await adminC.from("ministry_members").insert([
+      {
+        church_id: churchId,
+        ministry_id: ministryId,
+        user_id: users[0],
+        role: "gerente",
+      },
+      {
+        church_id: churchId,
+        ministry_id: ministryId,
+        user_id: users[1],
+        role: "lider",
+      },
+    ]);
   });
 
-  it("admin cria departamento; começa vazio (sem seed)", async () => {
-    const { data: before } = await adminC
-      .from("departments")
-      .select("id")
-      .eq("church_id", churchId);
-    expect(before).toEqual([]);
-
+  it("admin cria opção de Onde servir?", async () => {
     const { error } = await adminC.from("departments").insert({
       church_id: churchId,
       ministry_id: ministryId,
@@ -76,7 +99,34 @@ describe("Departamentos (RLS)", () => {
     expect(error).toBeNull();
   });
 
-  it("membro comum lê os departamentos mas NÃO cria", async () => {
+  it("gerente cria opção no próprio ministério", async () => {
+    const { error } = await gerente.from("departments").insert({
+      church_id: churchId,
+      ministry_id: ministryId,
+      name: "Banda",
+    });
+    expect(error).toBeNull();
+  });
+
+  it("líder cria opção no próprio ministério", async () => {
+    const { error } = await lider.from("departments").insert({
+      church_id: churchId,
+      ministry_id: ministryId,
+      name: "Vocal 2",
+    });
+    expect(error).toBeNull();
+  });
+
+  it("líder não cria opção em outro ministério", async () => {
+    const { error } = await lider.from("departments").insert({
+      church_id: churchId,
+      ministry_id: otherMinistryId,
+      name: "Berçário",
+    });
+    expect(error).not.toBeNull();
+  });
+
+  it("membro comum lê as opções mas não cria", async () => {
     const { data } = await membro
       .from("departments")
       .select("name")
@@ -91,12 +141,13 @@ describe("Departamentos (RLS)", () => {
     expect(error).not.toBeNull();
   });
 
-  it("evento pode apontar para departamento do mesmo ministério", async () => {
+  it("evento pode apontar para opção do mesmo ministério", async () => {
     const { data: dep } = await adminC
       .from("departments")
       .select("id")
       .eq("church_id", churchId)
       .eq("ministry_id", ministryId)
+      .eq("name", "Vocal")
       .single();
 
     const { data, error } = await adminC
@@ -114,28 +165,18 @@ describe("Departamentos (RLS)", () => {
     expect(data!.department_id).toBe(dep!.id);
   });
 
-  it("evento rejeita departamento de outro ministério", async () => {
-    const { data: otherMinistry, error: ministryError } = await adminC
-      .from("ministries")
-      .insert({
-        church_id: churchId,
-        name: "Kids",
-        slug: `kids-${run}`,
-      })
-      .select("id")
-      .single();
-    if (ministryError) throw ministryError;
-
+  it("evento rejeita opção de outro ministério", async () => {
     const { data: dep } = await adminC
       .from("departments")
       .select("id")
       .eq("church_id", churchId)
       .eq("ministry_id", ministryId)
+      .eq("name", "Vocal")
       .single();
 
     const { error } = await adminC.from("events").insert({
       church_id: churchId,
-      ministry_id: otherMinistry!.id,
+      ministry_id: otherMinistryId,
       title: "Evento inválido",
       starts_at: new Date().toISOString(),
       department_id: dep!.id,
