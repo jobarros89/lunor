@@ -55,7 +55,7 @@ describe("delete_song — exclusão permanente segura", () => {
     if (church.error || !church.data) throw church.error;
     churchId = church.data;
 
-    const invite = await owner
+    const invite = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchId)

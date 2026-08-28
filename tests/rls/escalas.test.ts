@@ -53,7 +53,7 @@ describe("Fase 3 — escalas (RLS + transições de status)", () => {
     expect(a.error).toBeNull();
     churchId = a.data;
 
-    const { data: church } = await lider
+    const { data: church } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchId)

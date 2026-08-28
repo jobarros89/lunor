@@ -50,7 +50,7 @@ describe("Ordem do Culto — schema e RLS (migration 29)", () => {
     ).data;
 
     const invite = (
-      await gestor
+      await admin
         .from("churches")
         .select("invite_code")
         .eq("id", churchId)

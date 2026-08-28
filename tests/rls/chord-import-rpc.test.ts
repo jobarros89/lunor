@@ -97,7 +97,7 @@ describe("confirm_chord_import — fluxo transacional", () => {
     if (churchBResult.error || !churchBResult.data) throw churchBResult.error;
     churchB = churchBResult.data;
 
-    const invite = await ownerA.from("churches").select("invite_code").eq("id", churchA).single();
+    const invite = await admin.from("churches").select("invite_code").eq("id", churchA).single();
     if (invite.error || !invite.data) throw invite.error;
     for (const client of [leaderA, memberA]) {
       const joined = await client.rpc("join_church", { p_invite_code: invite.data.invite_code });

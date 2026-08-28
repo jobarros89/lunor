@@ -61,7 +61,7 @@ describe("Onde servir? (RLS)", () => {
       .single();
     otherMinistryId = otherMinistry!.id;
 
-    const { data: church } = await adminC
+    const { data: church } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchId)

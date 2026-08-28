@@ -79,7 +79,7 @@ describe("Escopo por setor — isolamento (migrations 20/21)", () => {
 
     // todos entram na igreja e o coord distribui nos setores
     const invite = (
-      await coord.from("churches").select("invite_code").eq("id", churchId).single()
+      await admin.from("churches").select("invite_code").eq("id", churchId).single()
     ).data!.invite_code;
     for (const c of [midiaLider, louvorLider, midiaVol, midiaVol2, louvorVol]) {
       await c.rpc("join_church", { p_invite_code: invite });

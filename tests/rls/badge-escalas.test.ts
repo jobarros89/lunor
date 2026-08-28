@@ -59,7 +59,7 @@ describe("Badge de escalas pendentes (aviso in-app)", () => {
         p_slug: `badge-${run}`,
       })
     ).data;
-    const { data: ch } = await lider
+    const { data: ch } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchId)

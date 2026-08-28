@@ -44,7 +44,7 @@ describe("Equipamento — dono (igreja x pessoal) RLS", () => {
       p_slug: `igreja-dono-${run}`,
     });
     churchId = a.data;
-    const { data: c } = await gestor
+    const { data: c } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchId)

@@ -94,7 +94,7 @@ describe("Arranjos, versões e imports — migration 31", () => {
     }
     churchB = churchBResult.data;
 
-    const invite = await coordA
+    const invite = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchA)
