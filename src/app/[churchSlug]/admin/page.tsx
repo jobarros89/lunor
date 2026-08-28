@@ -61,6 +61,9 @@ export default async function AdminPage({
       .eq("church_id", cid)
       .not("approved_by", "is", null),
   ]);
+  const { data: inviteCode } = isAdmin
+    ? await supabase.rpc("get_church_invite_code", { p_church: cid })
+    : { data: null };
 
   const countByMinistry = new Map<string, number>();
   for (const c of counts ?? []) {
@@ -109,19 +112,21 @@ export default async function AdminPage({
         </Card>
       )}
 
-      <Card className="rounded-3xl">
-        <CardHeader>
-          <CardTitle className="text-base">Convite da equipe</CardTitle>
-          <CardDescription>
-            Compartilhe o link. O código de segurança fica protegido dentro dele.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-zinc-950 dark:border-white/10 dark:bg-[#151518] dark:text-white">
-            <InviteLink inviteCode={tenant.church.invite_code} />
-          </div>
-        </CardContent>
-      </Card>
+      {isAdmin && inviteCode && (
+        <Card className="rounded-3xl">
+          <CardHeader>
+            <CardTitle className="text-base">Convite da equipe</CardTitle>
+            <CardDescription>
+              Compartilhe o link. O código de segurança fica protegido dentro dele.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-2xl border border-zinc-200 bg-white p-4 text-zinc-950 dark:border-white/10 dark:bg-[#151518] dark:text-white">
+              <InviteLink inviteCode={inviteCode} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Link href={`/${churchSlug}/assinatura`} className="block">
         <Card className="rounded-3xl transition-colors hover:bg-accent/40">
