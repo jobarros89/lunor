@@ -62,7 +62,7 @@ describe("Apagar igreja (RLS)", () => {
       .from("churches")
       .delete()
       .eq("id", churchA)
-      .select();
+      .select("id");
     expect(data).toEqual([]);
     // segue existindo
     const { data: still } = await owner
@@ -85,7 +85,7 @@ describe("Apagar igreja (RLS)", () => {
       .from("churches")
       .delete()
       .eq("id", churchB)
-      .select();
+      .select("id");
     expect(data).toHaveLength(1);
   });
 
@@ -94,7 +94,7 @@ describe("Apagar igreja (RLS)", () => {
       .from("churches")
       .delete()
       .eq("id", churchA)
-      .select();
+      .select("id");
     expect(error).toBeNull();
     expect(data).toHaveLength(1);
   });
