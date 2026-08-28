@@ -1,0 +1,47 @@
+name: Bootstrap Capacitor dependencies
+
+on:
+  push:
+    branches: [mobile/capacitor]
+    paths:
+      - ".github/workflows/mobile-dependency-bootstrap.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mobile/capacitor
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar Capacitor e gerar lockfile
+        run: |
+          npm install --save-exact @capacitor/core@latest @capacitor/ios@latest @capacitor/android@latest
+          npm install --save-dev --save-exact @capacitor/cli@latest
+
+      - name: Validar lint e TypeScript
+        run: |
+          npm run lint
+          npx tsc --noEmit
+
+      - name: Persistir dependências
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "Dependências já estavam atualizadas."
+          else
+            git commit -m "chore(mobile): install Capacitor dependencies"
+            git push origin HEAD:mobile/capacitor
+          fi
