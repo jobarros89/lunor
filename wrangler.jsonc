@@ -8,6 +8,11 @@
   "keep_vars": true,
   "compatibility_date": "2025-04-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Workers AI fica disponível no runtime como env.AI. Não exige API key
+  // dentro do Worker e toda inferência do LUNOR passa pela camada src/lib/ai.
+  "ai": {
+    "binding": "AI"
+  },
   // Workers Builds usa `wrangler versions upload` nos previews. Antes de o
   // Wrangler empacotar o Worker, precisamos gerar `.open-next/worker.js` e
   // `.open-next/assets` com o adaptador oficial do OpenNext.
