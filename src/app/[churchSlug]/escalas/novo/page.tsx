@@ -13,18 +13,26 @@ export default async function NovoEventoPage({
   if (!tenant.isLeader) redirect(`/${churchSlug}/escalas`);
 
   const supabase = await createClient();
-  const [{ data: eventTypes }, { data: ministries }] = await Promise.all([
-    supabase
-      .from("event_types")
-      .select("id, name")
-      .eq("church_id", tenant.church.id)
-      .order("name"),
-    supabase
-      .from("ministries")
-      .select("id, name")
-      .eq("church_id", tenant.church.id)
-      .order("name"),
-  ]);
+  const [{ data: eventTypes }, { data: ministries }, { data: campuses }] =
+    await Promise.all([
+      supabase
+        .from("event_types")
+        .select("id, name")
+        .eq("church_id", tenant.church.id)
+        .order("name"),
+      supabase
+        .from("ministries")
+        .select("id, name")
+        .eq("church_id", tenant.church.id)
+        .order("name"),
+      supabase
+        .from("campuses")
+        .select("id, name")
+        .eq("church_id", tenant.church.id)
+        .eq("active", true)
+        .order("sort_order")
+        .order("name"),
+    ]);
 
   return (
     <div className="space-y-6">
@@ -39,6 +47,7 @@ export default async function NovoEventoPage({
         churchId={tenant.church.id}
         eventTypes={eventTypes ?? []}
         ministries={ministries ?? []}
+        campuses={campuses ?? []}
       />
     </div>
   );
