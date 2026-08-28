@@ -8,6 +8,7 @@ import {
   formatEventDate,
   formatEventTime,
 } from "@/lib/escalas";
+import { eventContextLabel } from "@/lib/event-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadError } from "@/components/shell/load-error";
@@ -24,8 +25,6 @@ export default async function EscalasPage({
   const { churchSlug } = await params;
   const { filtro } = await searchParams;
   const tenant = await getTenant(churchSlug);
-  // voluntário abre em "minhas" (a pergunta dele é "onde eu sirvo?");
-  // líder abre em "todas" porque precisa enxergar a agenda para gerenciar
   const verMinhas = filtro ? filtro === "minhas" : !tenant.isLeader;
 
   const supabase = await createClient();
@@ -37,7 +36,7 @@ export default async function EscalasPage({
       supabase
         .from("events")
         .select(
-          "id, title, location, starts_at, event_types(name), departments(name)"
+          "id, title, location, campus_id, service_period, starts_at, event_types(name), departments(name), campuses(name)"
         )
         .eq("church_id", tenant.church.id)
         .gte("starts_at", since.toISOString())
@@ -51,9 +50,7 @@ export default async function EscalasPage({
     ]);
   if (eventsError) console.error("escalas:", eventsError);
 
-  const myByEvent = new Map(
-    (myAssignments ?? []).map((a) => [a.event_id, a])
-  );
+  const myByEvent = new Map((myAssignments ?? []).map((a) => [a.event_id, a]));
 
   const todos = events ?? [];
   const meus = todos.filter((e) => myByEvent.has(e.id));
@@ -78,8 +75,6 @@ export default async function EscalasPage({
         )}
       </div>
 
-      {/* "onde eu sirvo?" é a pergunta nº1 do voluntário — não deve virar
-          caça visual numa lista com todos os eventos da igreja */}
       <div className="flex gap-2">
         <Link
           href={`/${churchSlug}/escalas?filtro=minhas`}
@@ -111,6 +106,12 @@ export default async function EscalasPage({
         {visiveis.map((e) => {
           const type = e.event_types as unknown as { name: string } | null;
           const dept = e.departments as unknown as { name: string } | null;
+          const campus = e.campuses as unknown as { name: string } | null;
+          const context = eventContextLabel({
+            campusName: campus?.name,
+            servicePeriod: e.service_period,
+            fallbackLocation: e.location,
+          });
           const mine = myByEvent.get(e.id);
           return (
             <Link key={e.id} href={`/${churchSlug}/escalas/${e.id}`} className="block">
@@ -119,15 +120,13 @@ export default async function EscalasPage({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {formatEventDate(e.starts_at)} ·{" "}
-                        {formatEventTime(e.starts_at)}
+                        {formatEventDate(e.starts_at)} · {formatEventTime(e.starts_at)}
                       </p>
                       <p className="mt-0.5 truncate text-lg font-semibold tracking-tight">
                         {e.title}
                       </p>
                       <p className="truncate text-sm text-muted-foreground">
-                        {[type?.name, e.location].filter(Boolean).join(" · ") ||
-                          "—"}
+                        {[type?.name, context].filter(Boolean).join(" · ") || "—"}
                       </p>
                     </div>
                     {dept?.name && (
