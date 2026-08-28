@@ -218,7 +218,7 @@ export async function chamarResponsavel(raw: unknown): Promise<ActionResult> {
 
   const { data: checkin } = await supabase
     .from("child_checkins")
-    .select("code, child_id, children!inner(full_name)")
+    .select("code, child_id")
     .eq("id", d.checkinId)
     .single();
   if (!checkin) return { ok: false, error: "Presença não encontrada" };
@@ -234,7 +234,8 @@ export async function chamarResponsavel(raw: unknown): Promise<ActionResult> {
   });
   if (error) return { ok: false, error: "Não foi possível chamar" };
 
-  // push para os responsáveis que têm conta no app
+  // Push apenas para responsáveis vinculados a uma conta LUNOR.
+  // O conteúdo de lock-screen usa somente o código operacional, sem PII da criança.
   const { data: vinculos } = await supabase
     .from("child_guardians")
     .select("guardians!inner(user_id)")
@@ -242,10 +243,9 @@ export async function chamarResponsavel(raw: unknown): Promise<ActionResult> {
   const alvos = (vinculos ?? [])
     .map((v) => (v.guardians as unknown as { user_id: string | null }).user_id)
     .filter((id): id is string => !!id);
-  const nome = (checkin.children as unknown as { full_name: string }).full_name;
   await notifyUsers(alvos, {
-    title: "Chamado do Infantil 🔔",
-    body: `Compareça ao Infantil — ${nome} (código ${checkin.code})`,
+    title: "Chamado do Kids 🔔",
+    body: `Compareça ao Kids — código ${checkin.code}`,
     url: `/${d.churchSlug}`,
     tag: `infantil-${d.checkinId}`,
   });
