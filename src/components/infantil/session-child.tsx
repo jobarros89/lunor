@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PrintLabelButton } from "@/components/infantil/print-label-button";
-import { chamarResponsavel, checkInChild, checkOutChild } from "@/lib/actions/infantil";
+import { checkInChild, checkOutChild } from "@/lib/actions/infantil";
+import { chamarResponsavelComSms } from "@/lib/actions/infantil-sms";
 
 export type Guardian = {
   id: string;
@@ -90,6 +91,40 @@ export function SessionChildRow({
     });
   }
 
+  function chamar() {
+    startTransition(async () => {
+      const r = await chamarResponsavelComSms({
+        churchSlug,
+        churchId,
+        ministryId,
+        eventId,
+        checkinId: child.checkin!.id,
+        reason: "",
+      });
+      if (!r.ok) return toast.error(r.error);
+
+      if (r.data.sms === "sent") {
+        toast.success(`Responsável chamado por SMS — código ${child.checkin!.code}`);
+        return;
+      }
+      if (r.data.sms === "no_phone" || r.data.sms === "invalid_phone") {
+        toast.success(`Chamado registrado — código ${child.checkin!.code}`, {
+          description: "Sem telefone válido para SMS. O Web Push continua sendo tentado quando disponível.",
+        });
+        return;
+      }
+      if (r.data.sms === "unconfigured") {
+        toast.success(`Chamado registrado — código ${child.checkin!.code}`, {
+          description: "SMS ainda não configurado no ambiente; Web Push continua ativo.",
+        });
+        return;
+      }
+      toast.success(`Chamado registrado — código ${child.checkin!.code}`, {
+        description: "O SMS falhou, mas o chamado e o Web Push foram preservados.",
+      });
+    });
+  }
+
   return (
     <div className="space-y-3 rounded-2xl border p-4">
       <div className="flex items-start justify-between gap-3">
@@ -156,23 +191,7 @@ export function SessionChildRow({
               <Button
                 variant="outline"
                 disabled={pending}
-                onClick={() =>
-                  startTransition(async () => {
-                    const r = await chamarResponsavel({
-                      churchSlug,
-                      churchId,
-                      ministryId,
-                      eventId,
-                      checkinId: child.checkin!.id,
-                      reason: "",
-                    });
-                    if (r.ok)
-                      toast.success(
-                        `Responsável chamado — código ${child.checkin!.code}`
-                      );
-                    else toast.error(r.error);
-                  })
-                }
+                onClick={chamar}
                 className="h-10 rounded-full"
               >
                 <BellRing className="size-4" />
