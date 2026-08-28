@@ -90,7 +90,7 @@ export async function GET(
     },
   };
 
-  const nome = `acts-${churchSlug}-${new Date().toISOString().slice(0, 10)}.json`;
+  const nome = `lunor-${churchSlug}-${new Date().toISOString().slice(0, 10)}.json`;
   return new NextResponse(JSON.stringify(dados, null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
