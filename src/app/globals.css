@@ -60,18 +60,18 @@
   --secondary-foreground: var(--foreground);
   --muted: oklch(0.95 0.004 95);
   --muted-foreground: oklch(0.45 0.006 285);
-  --accent: oklch(0.91 0.22 120);
-  --accent-foreground: oklch(0.12 0.004 285);
+  --accent: oklch(0.64 0.19 292);
+  --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.72 0.005 285);
   --input: oklch(0.72 0.005 285);
-  --ring: oklch(0.3 0.006 285);
-  --chart-1: oklch(0.91 0.22 120);
+  --ring: oklch(0.56 0.16 292);
+  --chart-1: oklch(0.64 0.19 292);
   --chart-2: oklch(0.7 0.1 220);
-  --chart-3: oklch(0.65 0.1 310);
+  --chart-3: oklch(0.68 0.12 330);
   --chart-4: oklch(0.75 0.1 70);
   --chart-5: oklch(0.3 0.006 285);
-  --radius: 0.5rem;
+  --radius: 0.625rem;
   --sidebar: oklch(0.978 0.004 95);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
@@ -95,12 +95,12 @@
   --secondary-foreground: var(--foreground);
   --muted: oklch(0.22 0.004 285);
   --muted-foreground: oklch(0.72 0 0);
-  --accent: oklch(0.88 0.21 120);
-  --accent-foreground: oklch(0.12 0.004 285);
+  --accent: oklch(0.69 0.18 292);
+  --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 20%);
   --input: oklch(1 0 0 / 20%);
-  --ring: oklch(0.72 0 0);
+  --ring: oklch(0.68 0.15 292);
   --sidebar: oklch(0.12 0.004 285);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
@@ -114,8 +114,11 @@
 @layer base {
   * { @apply border-border outline-ring/50; }
   html { @apply max-w-full overflow-x-clip font-sans; -webkit-tap-highlight-color: transparent; }
-  body { @apply max-w-full overflow-x-clip bg-background text-foreground; font-feature-settings: "cv11", "ss01"; letter-spacing: -0.012em; }
-  ::selection { background: #d8ff00; color: #111; }
+  body { @apply max-w-full overflow-x-clip bg-background text-foreground; font-feature-settings: "cv11", "ss01"; letter-spacing: -0.01em; }
+  ::selection { background: color-mix(in oklab, var(--accent) 78%, white); color: #111; }
+  h1 { text-wrap: balance; letter-spacing: -0.035em; }
+  h2 { text-wrap: balance; letter-spacing: -0.025em; }
+  h3 { text-wrap: balance; letter-spacing: -0.018em; }
 }
 
 .font-editorial { font-family: var(--font-editorial), Georgia, serif; }
