@@ -6,12 +6,13 @@ import { Baby, BookOpen, Calendar, Home, Music2, Settings, User, Users } from "l
 import { cn } from "@/lib/utils";
 import { BrandLockup } from "@/components/brand-lockup";
 
-export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMinistryNavigation, escalasPending = 0 }: {
+export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMinistryNavigation, hasKids = false, escalasPending = 0 }: {
   churchSlug: string;
   churchName: string;
   canAdmin: boolean;
   isLeader: boolean;
   activeMinistryNavigation: { href: string; label: string; module: "louvor" | "infantil" } | null;
+  hasKids?: boolean;
   escalasPending?: number;
 }) {
   const pathname = usePathname();
@@ -19,9 +20,11 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
     ...activeMinistryNavigation,
     icon: activeMinistryNavigation.module === "louvor" ? Music2 : Baby,
   } : null;
+  const showStandaloneKids = hasKids && activeMinistryNavigation?.module !== "infantil";
   const nav = [
     { href: "", label: "Visão geral", icon: Home },
     ...(ministryItem ? [ministryItem] : []),
+    ...(showStandaloneKids ? [{ href: "/infantil", label: "Kids", icon: Baby }] : []),
     { href: "/escalas", label: "Cultos e escalas", icon: Calendar },
     { href: "/perfil", label: "Perfil", icon: User },
     ...(isLeader ? [
@@ -44,7 +47,7 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
           const full = `/${churchSlug}${href}`;
           const active = href === "" ? pathname === full : pathname.startsWith(full);
           return (
-            <Link key={label} href={full} className={cn(
+            <Link key={`${href}-${label}`} href={full} className={cn(
               "group flex min-h-11 items-center gap-3 border-l-2 px-3 py-2.5 text-sm transition-colors",
               active ? "border-[#d8ff00] bg-black text-white dark:bg-white dark:text-black" : "border-transparent text-muted-foreground hover:border-foreground/25 hover:text-foreground"
             )}>

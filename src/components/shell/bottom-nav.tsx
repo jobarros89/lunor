@@ -5,10 +5,11 @@ import { usePathname } from "next/navigation";
 import { Baby, Calendar, Home, Music2, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, escalasPending = 0 }: {
+export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, hasKids = false, escalasPending = 0 }: {
   churchSlug: string;
   isLeader: boolean;
   activeMinistryNavigation: { href: string; label: string; module: "louvor" | "infantil" } | null;
+  hasKids?: boolean;
   escalasPending?: number;
 }) {
   const pathname = usePathname();
@@ -17,9 +18,11 @@ export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, esca
     icon: activeMinistryNavigation.module === "louvor" ? Music2 : Baby,
     badge: 0,
   } : null;
+  const showStandaloneKids = hasKids && activeMinistryNavigation?.module !== "infantil";
   const items = [
     { href: "", label: "Início", icon: Home, badge: 0 },
     ...(ministryItem ? [ministryItem] : []),
+    ...(showStandaloneKids ? [{ href: "/infantil", label: "Kids", icon: Baby, badge: 0 }] : []),
     { href: "/escalas", label: "Escalas", icon: Calendar, badge: escalasPending },
     ...(isLeader ? [
       { href: "/pessoas", label: "Equipe", icon: Users, badge: 0 },
@@ -38,7 +41,7 @@ export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, esca
           const active = href === "" ? pathname === full : pathname.startsWith(full);
           return (
             <Link
-              key={label}
+              key={`${href}-${label}`}
               href={full}
               aria-label={badge > 0 ? `${label} (${badge} pendente)` : label}
               aria-current={active ? "page" : undefined}
