@@ -12,7 +12,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,6 +38,9 @@ jobs:
           npm ci --no-audit --no-fund
           npm run lint
           npx tsc --noEmit
+
+      - name: Validar build OpenNext para Cloudflare
+        run: npx opennextjs-cloudflare build
 
       - name: Persistir atualização validada
         run: |
