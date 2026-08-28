@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 export type InfantilMinistry = { id: string; name: string };
 
 /**
- * O módulo infantil opera sobre o setor "Infantil" da igreja.
- * Retorna null quando a igreja ainda não criou esse setor.
+ * O módulo Kids aceita os nomes históricos "Infantil" e "Crianças".
+ * A rota interna continua /infantil por compatibilidade.
  */
 export async function getInfantilMinistry(
   churchId: string
@@ -14,7 +14,7 @@ export async function getInfantilMinistry(
     .from("ministries")
     .select("id, name")
     .eq("church_id", churchId)
-    .or("slug.eq.infantil,name.ilike.%infantil%")
+    .or("slug.eq.kids,slug.eq.infantil,slug.eq.criancas,name.ilike.%kids%,name.ilike.%infantil%,name.ilike.%crianças%,name.ilike.%criancas%")
     .limit(1)
     .maybeSingle();
   return data ?? null;
