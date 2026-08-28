@@ -1,0 +1,76 @@
+name: Mobile Capacitor
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'mobile/capacitor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || 'mobile/capacitor' }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Instalar dependências do projeto
+        run: npm ci --no-audit --no-fund
+
+      - name: Garantir dependências Capacitor
+        run: |
+          npm install --save-exact @capacitor/core@8.5.0 @capacitor/android@8.5.0 @capacitor/ios@8.5.0
+          npm install --save-dev --save-exact @capacitor/cli@8.5.0
+
+      - name: Validar aplicação
+        run: |
+          npm run lint
+          npx tsc --noEmit
+
+      - name: Gerar projeto Android
+        run: |
+          mkdir -p out
+          printf '<!doctype html><html><body>LUNOR</body></html>' > out/index.html
+          rm -rf android
+          npx cap add android
+          npx cap sync android
+
+      - name: Gerar APK de validação
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lunor-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Salvar projeto Android na branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json android
+          if git diff --cached --quiet; then
+            echo "Nada novo para persistir."
+          else
+            git commit -m "chore(mobile): generate Capacitor Android shell"
+            git fetch origin mobile/capacitor
+            git rebase origin/mobile/capacitor
+            git push origin HEAD:mobile/capacitor
+          fi
