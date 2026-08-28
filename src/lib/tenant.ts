@@ -6,7 +6,7 @@ export type MinistryRole = "gerente" | "lider" | "instrutor" | "voluntario";
 
 export type TenantContext = {
   userId: string;
-  church: { id: string; name: string; slug: string; invite_code: string };
+  church: { id: string; name: string; slug: string };
   role: "admin" | "coordenador" | "member";
   profile: {
     full_name: string;
@@ -36,7 +36,7 @@ export const getTenant = cache(
     const { data } = await supabase
       .from("church_members")
       .select(
-        "role, onboarding_completed_at, churches!inner(id, name, slug, invite_code), profiles!inner(full_name, avatar_url, onboarding_completed)"
+        "role, onboarding_completed_at, churches!inner(id, name, slug), profiles!inner(full_name, avatar_url, onboarding_completed)"
       )
       .eq("user_id", user.id)
       .eq("status", "active")
@@ -49,7 +49,7 @@ export const getTenant = cache(
       if (isMaster) {
         const { data: church } = await supabase
           .from("churches")
-          .select("id, name, slug, invite_code")
+          .select("id, name, slug")
           .eq("slug", churchSlug)
           .maybeSingle();
         if (!church) notFound();
