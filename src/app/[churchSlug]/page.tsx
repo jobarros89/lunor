@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { QuickConfirm } from "@/components/escalas/quick-confirm";
 
 type AssignmentEvent = { id: string; title: string; starts_at: string; location: string | null };
+type RelatedName = { name: string } | { name: string }[] | null;
 type HomeAssignment = {
   id: string;
   role_name: string;
@@ -18,11 +19,55 @@ type HomeAssignment = {
   arrival_time: string | null;
   items_to_bring: string | null;
   events: AssignmentEvent | AssignmentEvent[];
-  ministries: { name: string } | { name: string }[] | null;
+  ministries: RelatedName;
+  departments: RelatedName;
 };
 
 function firstRelated<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
+}
+
+function uniqueNames(values: (string | null | undefined)[]) {
+  return [...new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))];
+}
+
+function joinPtBr(values: string[]) {
+  if (values.length <= 1) return values[0] ?? "";
+  return `${values.slice(0, -1).join(", ")} e ${values.at(-1)}`;
+}
+
+function roleWithArticle(role: string) {
+  const feminine = /^(dire[cç][aã]o|recep[cç][aã]o|lideran[cç]a|intercess[aã]o|m[ií]dia|proje[cç][aã]o|log[ií]stica|produ[cç][aã]o)/i.test(role);
+  return `${feminine ? "na" : "no"} ${role}`;
+}
+
+function describeService(assignments: HomeAssignment[]) {
+  const roles = uniqueNames(assignments.map((assignment) => assignment.role_name));
+  const departments = uniqueNames(assignments.map((assignment) => firstRelated(assignment.departments)?.name));
+
+  if (departments.length === 1) {
+    const department = departments[0];
+    const relevantRoles = roles.filter((role) => role.toLocaleLowerCase("pt-BR") !== department.toLocaleLowerCase("pt-BR"));
+    if (relevantRoles.length === 0) return `Você serve no ${department}`;
+    if (relevantRoles.length === 1) return `Você serve no ${department} como ${relevantRoles[0]}`;
+    return `Você serve no ${department} como ${joinPtBr(relevantRoles)}`;
+  }
+
+  if (departments.length > 1) {
+    return `Você serve em ${joinPtBr(departments)}`;
+  }
+
+  if (roles.length === 0) return "Você serve neste encontro";
+  if (roles.length === 1) {
+    const role = roles[0];
+    if (/^(baixo|guitarra|viol[aã]o|teclado|piano|bateria|percuss[aã]o|sax|saxofone|violino|cello|violoncelo)$/i.test(role)) {
+      return `Você serve tocando ${role}`;
+    }
+    if (/^vocal$/i.test(role)) return "Você serve fazendo Vocal";
+    return `Você serve ${roleWithArticle(role)}`;
+  }
+
+  return `Você serve ${joinPtBr(roles.map(roleWithArticle))}`;
 }
 
 export default async function HomePage({ params }: { params: Promise<{ churchSlug: string }> }) {
@@ -35,19 +80,23 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const supabase = await createClient();
   const { data: myEscalas } = await supabase
     .from("assignments")
-    .select("id, role_name, status, arrival_time, items_to_bring, ministries(name), events!inner(id, title, starts_at, location)")
+    .select("id, role_name, status, arrival_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, location)")
     .eq("church_id", tenant.church.id)
     .eq("user_id", tenant.userId)
     .neq("status", "substituido")
     .gte("events.starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true, referencedTable: "events" })
-    .limit(3);
+    .limit(8);
   const { data: anuncios } = await supabase.rpc("anuncios_infantil", { p_church: tenant.church.id });
 
   const escalas = (myEscalas ?? []) as unknown as HomeAssignment[];
   const nextAssignment = escalas[0];
   const nextEvent = firstRelated(nextAssignment?.events);
-  const nextMinistry = firstRelated(nextAssignment?.ministries);
+  const nextEventAssignments = nextEvent
+    ? escalas.filter((assignment) => firstRelated(assignment.events)?.id === nextEvent.id)
+    : [];
+  const nextMinistries = uniqueNames(nextEventAssignments.map((assignment) => firstRelated(assignment.ministries)?.name));
+  const serviceSummary = describeService(nextEventAssignments);
   const nextDate = nextEvent ? new Date(nextEvent.starts_at) : null;
   const day = nextDate ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit" }).format(nextDate) : "—";
   const month = nextDate ? new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(nextDate).replace(".", "") : "sem data";
@@ -111,8 +160,8 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         <div className="relative z-10 mt-10 border-t border-foreground/10 bg-background/20 px-6 py-5 backdrop-blur-sm md:px-10 lg:flex lg:items-center lg:justify-between lg:gap-8 lg:px-12">
           {nextAssignment ? (
             <div className="flex min-w-0 flex-1 flex-wrap gap-x-5 gap-y-2 text-sm">
-              <span><span className="text-muted-foreground">Você serve em</span> <strong>{nextAssignment.role_name}</strong></span>
-              {nextMinistry?.name && <span><span className="text-muted-foreground">Equipe</span> <strong>{nextMinistry.name}</strong></span>}
+              <span className="font-medium">{serviceSummary}</span>
+              {nextMinistries.length > 0 && <span><span className="text-muted-foreground">Equipe</span> <strong>{joinPtBr(nextMinistries)}</strong></span>}
               {arrival && <span><span className="text-muted-foreground">Chegada</span> <strong>{arrival}</strong></span>}
               {nextEvent?.location && <span><span className="text-muted-foreground">Local</span> <strong>{nextEvent.location}</strong></span>}
               {nextAssignment.items_to_bring && <span><span className="text-muted-foreground">Levar</span> <strong>{nextAssignment.items_to_bring}</strong></span>}
