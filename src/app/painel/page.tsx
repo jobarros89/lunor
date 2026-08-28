@@ -35,7 +35,7 @@ export default async function PainelPage() {
     supabase
       .from("churches")
       .select(
-        "id, name, slug, invite_code, created_at, billing_status, paid_until"
+        "id, name, slug, created_at, billing_status, paid_until"
       )
       .order("created_at", { ascending: false }),
     supabase.from("church_members").select("church_id, user_id"),
@@ -143,8 +143,7 @@ export default async function PainelPage() {
               <div className="min-w-0">
                 <p className="truncate font-medium">{c.name}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  /{c.slug} · convite {c.invite_code} · desde{" "}
-                  {new Date(c.created_at).toLocaleDateString("pt-BR")}
+                  /{c.slug} · desde {new Date(c.created_at).toLocaleDateString("pt-BR")}
                 </p>
               </div>
               <div className="shrink-0 text-right text-xs text-muted-foreground">
