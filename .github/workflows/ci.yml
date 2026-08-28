@@ -14,10 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verificar:
-    name: Segurança + lint + typecheck + testes
+  quality:
+    name: Segurança + lint + typecheck
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 12
 
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
           cache: npm
 
       - name: Instalar dependências
-        run: npm ci --no-audit --no-fund
+        run: npm ci --no-audit --no-fund --prefer-offline
 
       - name: Auditar dependências de produção
         run: npm audit --omit=dev --audit-level=high
@@ -38,6 +38,22 @@ jobs:
 
       - name: Typecheck
         run: npx tsc --noEmit
+
+  tests:
+    name: Supabase efêmero + testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci --no-audit --no-fund --prefer-offline
 
       # Ambiente isolado e descartável no runner do GitHub. Não acessa nem
       # altera o projeto Supabase DEV hospedado.
