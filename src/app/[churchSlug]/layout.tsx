@@ -1,7 +1,6 @@
 import { LogOut } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
-import { signOut } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -67,7 +66,7 @@ export default async function TenantLayout({ children, params }: { children: Rea
             <div className="ml-auto flex min-w-0 items-center gap-1">
               {active && <SectorSwitcher churchSlug={churchSlug} activeId={active.id} options={options} />}
               <ThemeToggle />
-              <form action={signOut}>
+              <form action="/auth/logout" method="post">
                 <Button type="submit" variant="ghost" className="h-10 rounded-none px-3" aria-label="Sair" title="Sair"><LogOut className="size-4" /><span className="hidden lg:inline">Sair</span></Button>
               </form>
             </div>
