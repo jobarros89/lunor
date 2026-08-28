@@ -1,0 +1,55 @@
+name: Refresh secure dependencies
+
+on:
+  push:
+    branches: [hardening/pilot-readiness-v1]
+    paths:
+      - ".github/workflows/dependency-refresh.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hardening/pilot-readiness-v1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Atualizar Next e adaptador Cloudflare compatíveis
+        run: |
+          npm install --save-exact next@16.3.3 @opennextjs/cloudflare@1.20.4
+          npm install --save-dev --save-exact eslint-config-next@16.3.3
+          npm audit fix --package-lock-only
+
+      - name: Validar vulnerabilidades de produção
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Validar código com o novo lockfile
+        run: |
+          npm ci --no-audit --no-fund
+          npm run lint
+          npx tsc --noEmit
+
+      - name: Validar build OpenNext para Cloudflare
+        run: npx opennextjs-cloudflare build
+
+      - name: Persistir atualização validada
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração de dependência necessária."
+          else
+            git commit -m "security: update runtime dependencies"
+            git push origin HEAD:hardening/pilot-readiness-v1
+          fi

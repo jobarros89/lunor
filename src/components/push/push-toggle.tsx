@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,23 +15,29 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return arr;
 }
 
+const subscribeSupport = () => () => {};
+const getServerSupport = () => null;
+const getBrowserSupport = () =>
+  "serviceWorker" in navigator &&
+  "PushManager" in window &&
+  "Notification" in window;
+
 export function PushToggle({ churchId }: { churchId: string }) {
-  const [supported, setSupported] = useState<boolean | null>(null);
+  const supported = useSyncExternalStore(
+    subscribeSupport,
+    getBrowserSupport,
+    getServerSupport
+  );
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const ok =
-      "serviceWorker" in navigator &&
-      "PushManager" in window &&
-      "Notification" in window;
-    setSupported(ok);
-    if (!ok) return;
+    if (!supported) return;
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => setEnabled(!!sub))
       .catch(() => {});
-  }, []);
+  }, [supported]);
 
   async function enable() {
     setBusy(true);

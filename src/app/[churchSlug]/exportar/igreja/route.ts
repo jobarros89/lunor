@@ -9,6 +9,9 @@ import { createClient } from "@/lib/supabase/server";
  * Roda com a sessão do coordenador: a RLS garante que só sai o que ele já
  * enxerga, e nada de outra igreja. O arquivo pode conter dados sensíveis de
  * menores — a tela avisa isso antes de baixar.
+ *
+ * O código de convite não faz parte da exportação: ele é uma credencial de
+ * acesso, não um dado de negócio.
  */
 export async function GET(
   _req: Request,
@@ -43,7 +46,11 @@ export async function GET(
     autorizacoes,
     presencas,
   ] = await Promise.all([
-    supabase.from("churches").select("*").eq("id", cid).maybeSingle(),
+    supabase
+      .from("churches")
+      .select("id, name, slug, logo_url, settings, created_at, billing_status, paid_until")
+      .eq("id", cid)
+      .maybeSingle(),
     supabase.from("church_members").select("*, profiles!inner(full_name, phone, profession)").eq("church_id", cid),
     emIgreja("ministries"),
     emIgreja("ministry_members"),
@@ -90,7 +97,7 @@ export async function GET(
     },
   };
 
-  const nome = `acts-${churchSlug}-${new Date().toISOString().slice(0, 10)}.json`;
+  const nome = `lunor-${churchSlug}-${new Date().toISOString().slice(0, 10)}.json`;
   return new NextResponse(JSON.stringify(dados, null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",

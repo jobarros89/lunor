@@ -54,7 +54,7 @@ export async function GET(
     avaliacoes_recebidas: avaliacoes.data ?? [],
   };
 
-  const nome = `acts-meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
+  const nome = `lunor-meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
   return new NextResponse(JSON.stringify(dados, null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",

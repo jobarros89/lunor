@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Doc, H, P, UL, Nota } from "@/app/privacidade/page";
 import { DIAS_TRIAL, PRECO_ANUAL, PRECO_MENSAL } from "@/lib/billing";
 
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function TermosPage() {
   return (
-    <Doc titulo="Termos de Uso" atualizado="22 de julho de 2026">
+    <Doc titulo="Termos de Uso" atualizado="28 de agosto de 2026">
       <P>
         Estas são as regras de uso do LUNOR. Escrevemos em linguagem direta de
         propósito: você deve conseguir entender o que está aceitando sem
@@ -19,8 +20,8 @@ export default function TermosPage() {
       <H>O que o LUNOR é</H>
       <P>
         Um sistema de gestão para igrejas: escalas de culto, equipe,
-        ministérios, patrimônio e ministério infantil. É oferecido como serviço
-        pela internet, sem instalação.
+        ministérios, patrimônio e LUNOR Kids. É oferecido como serviço pela
+        internet, sem instalação.
       </P>
 
       <H>Quem pode usar</H>
@@ -45,19 +46,19 @@ export default function TermosPage() {
       <P>
         Existe um período de tolerância com avisos. Passado esse prazo,
         restringimos apenas ações administrativas (como criar novos eventos e
-        cadastros). <strong>Escalas e o check-in do ministério infantil
-        continuam funcionando</strong> — travar a igreja durante um culto seria
-        irresponsável, e no infantil teria consequência física.
+        cadastros). <strong>Escalas e o check-in do LUNOR Kids continuam
+        funcionando</strong> — travar a igreja durante um culto seria
+        irresponsável, e no Kids teria consequência física.
       </P>
 
       <H>De quem são os dados</H>
       <P>
         Da igreja. Não vendemos, não cedemos e não usamos os dados da sua
         igreja para outra finalidade que não seja operar o serviço. Você pode
-        pedir exportação ou exclusão a qualquer momento — ver a{" "}
-        <a href="/privacidade" className="underline underline-offset-4">
+        pedir exportação ou exclusão a qualquer momento — veja a{" "}
+        <Link href="/privacidade" className="underline underline-offset-4">
           Política de Privacidade
-        </a>
+        </Link>
         .
       </P>
 
@@ -73,12 +74,12 @@ export default function TermosPage() {
 
       <H>Nossas responsabilidades e limites</H>
       <P>
-        Trabalhamos para manter o serviço disponível, seguro e com backup, mas
-        ele é fornecido &quot;como está&quot;. Não garantimos funcionamento
-        ininterrupto — falhas de internet, de provedores de infraestrutura e
-        erros de software acontecem. O LUNOR é uma ferramenta de apoio: a
-        responsabilidade pela guarda das crianças e pela condução dos cultos
-        permanece integralmente da igreja.
+        Trabalhamos para manter o serviço disponível, seguro e com rotinas de
+        proteção de dados, mas ele é fornecido &quot;como está&quot;. Não garantimos
+        funcionamento ininterrupto — falhas de internet, de provedores de
+        infraestrutura e erros de software acontecem. O LUNOR é uma ferramenta
+        de apoio: a responsabilidade pela guarda das crianças e pela condução
+        dos cultos permanece integralmente da igreja.
       </P>
 
       <H>Encerramento</H>
@@ -87,13 +88,6 @@ export default function TermosPage() {
         que violem estes termos ou que coloquem em risco os dados de outras
         igrejas. Em qualquer caso, os dados podem ser exportados antes da
         exclusão.
-      </P>
-
-      <H>Código aberto</H>
-      <P>
-        O código do LUNOR é público sob licença MIT. Qualquer igreja pode
-        hospedar a própria instância — a cobrança aqui é pelo serviço
-        gerenciado, não pelo software.
       </P>
 
       <H>Mudanças</H>
@@ -110,4 +104,3 @@ export default function TermosPage() {
     </Doc>
   );
 }
-

@@ -75,9 +75,14 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const tenant = await getTenant(churchSlug);
   const isPlatformAdmin = await checkPlatformAdmin();
   const { options: meusSetores } = await getActiveMinistry(churchSlug);
-  const temInfantil = meusSetores.some((m) => m.slug === "infantil" || /infantil/i.test(m.name));
+  const temInfantil = meusSetores.some((m) =>
+    ["infantil", "kids", "criancas", "crianças"].includes(m.slug.toLocaleLowerCase("pt-BR"))
+    || /(infantil|kids|crian[cç]as)/i.test(m.name)
+  );
   const temLouvor = meusSetores.some((m) => m.slug === "louvor" || /louvor/i.test(m.name));
   const supabase = await createClient();
+  const isAdmin = tenant.role === "admin";
+
   const { data: myEscalas } = await supabase
     .from("assignments")
     .select("id, role_name, status, arrival_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, location)")
@@ -88,6 +93,9 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
     .order("starts_at", { ascending: true, referencedTable: "events" })
     .limit(8);
   const { data: anuncios } = await supabase.rpc("anuncios_infantil", { p_church: tenant.church.id });
+  const { data: inviteCode } = isAdmin
+    ? await supabase.rpc("get_church_invite_code", { p_church: tenant.church.id })
+    : { data: null };
 
   const escalas = (myEscalas ?? []) as unknown as HomeAssignment[];
   const nextAssignment = escalas[0];
@@ -104,7 +112,6 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const arrival = nextAssignment?.arrival_time
     ? new Date(nextAssignment.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
     : null;
-  const isAdmin = tenant.role === "admin";
   const canAdmin = tenant.isCoord;
   const showManage = canAdmin || tenant.isLeader || temInfantil;
 
@@ -116,7 +123,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
             <div key={`${a.code ?? "fim"}-${i}`} className="flex items-center gap-3">
               <Megaphone className="size-4 shrink-0" />
               <p className="text-sm font-medium">
-                {a.kind === "fim_sessao" ? "A escolinha terminou — responsáveis podem buscar as crianças no Infantil." : <>Infantil chama o código <span className="font-mono font-bold">{a.code}</span> — comparecer à sala.</>}
+                {a.kind === "fim_sessao" ? "O Kids terminou — responsáveis podem buscar as crianças." : <>Kids chama o código <span className="font-mono font-bold">{a.code}</span> — comparecer à recepção.</>}
               </p>
             </div>
           ))}
@@ -217,7 +224,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
             {temLouvor && <ActionRow href={`/${churchSlug}/louvor`} label="Repertório" description="Músicas, cifras e arranjos" icon={<Music className="size-4" />} />}
             {tenant.isLeader && <ActionRow href={`/${churchSlug}/pessoas`} label="Equipe" description="Pessoas, aptidões e ministérios" icon={<Users className="size-4" />} />}
             {tenant.isLeader && <ActionRow href={`/${churchSlug}/distribuicao`} label="Radar de carga" description="Cuide da frequência e do revezamento" icon={<BarChart3 className="size-4" />} />}
-            {temInfantil && <ActionRow href={`/${churchSlug}/infantil`} label="Infantil" description="Check-in e retirada segura" icon={<Baby className="size-4" />} />}
+            {temInfantil && <ActionRow href={`/${churchSlug}/infantil`} label="Kids" description="Check-in e retirada segura" icon={<Baby className="size-4" />} />}
           </div>
         </div>
       </section>
@@ -233,13 +240,13 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         </section>
       )}
 
-      {isAdmin && (
+      {isAdmin && inviteCode && (
         <section className="flex min-w-0 flex-col justify-between gap-5 overflow-hidden border border-zinc-200 border-l-4 border-l-[#6e5ce6] bg-white px-6 py-6 text-zinc-950 dark:border-white/15 dark:border-l-[#6e5ce6] dark:bg-[#151518] dark:text-white sm:flex-row sm:items-center">
           <div>
             <p className="font-medium">Convide sua equipe</p>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Envie um link. A pessoa cria a conta e entra na igreja automaticamente.</p>
           </div>
-          <InviteLink inviteCode={tenant.church.invite_code} />
+          <InviteLink inviteCode={inviteCode} />
         </section>
       )}
     </div>

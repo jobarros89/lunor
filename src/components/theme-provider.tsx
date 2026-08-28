@@ -66,7 +66,12 @@ export function ThemeProvider({
         ? stored
         : safeDefault;
 
+    // A leitura do localStorage só existe no browser. A sincronização após a
+    // hidratação é intencional para manter SSR determinístico e respeitar a
+    // preferência persistida sem acessar window durante o render do servidor.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setThemeState(initial);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setResolvedTheme(applyTheme(initial));
   }, [enableSystem, safeDefault]);
 

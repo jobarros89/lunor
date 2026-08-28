@@ -47,7 +47,7 @@ function matches(child: SessionChild, query: string) {
 }
 
 export function ReceptionSearch({
-  children,
+  sessionChildren,
   churchSlug,
   churchId,
   ministryId,
@@ -55,7 +55,7 @@ export function ReceptionSearch({
   eventTitle,
   podeLiberar,
 }: {
-  children: SessionChild[];
+  sessionChildren: SessionChild[];
   churchSlug: string;
   churchId: string;
   ministryId: string;
@@ -66,8 +66,8 @@ export function ReceptionSearch({
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(
-    () => children.filter((child) => matches(child, query)),
-    [children, query]
+    () => sessionChildren.filter((child) => matches(child, query)),
+    [sessionChildren, query]
   );
 
   const byClass = useMemo(() => {

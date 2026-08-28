@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   verificar:
-    name: Typecheck + testes (RLS e unitários)
+    name: Segurança + lint + typecheck + testes
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -29,6 +29,12 @@ jobs:
 
       - name: Instalar dependências
         run: npm ci --no-audit --no-fund
+
+      - name: Auditar dependências de produção
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Lint
+        run: npm run lint
 
       - name: Typecheck
         run: npx tsc --noEmit
