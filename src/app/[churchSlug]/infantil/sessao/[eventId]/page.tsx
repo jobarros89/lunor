@@ -178,7 +178,7 @@ export default async function SessaoInfantilPage({
 
       {sessionChildren.length > 0 ? (
         <ReceptionSearch
-          children={sessionChildren}
+          sessionChildren={sessionChildren}
           churchSlug={churchSlug}
           churchId={tenant.church.id}
           ministryId={ministry.id}
