@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PrintLabelButton } from "@/components/infantil/print-label-button";
-import { checkInChild, checkOutChild } from "@/lib/actions/infantil";
-import { chamarResponsavelComSms } from "@/lib/actions/infantil-sms";
+import { checkInChild, checkOutChild, chamarResponsavel } from "@/lib/actions/infantil";
 
 export type Guardian = {
   id: string;
@@ -93,7 +92,7 @@ export function SessionChildRow({
 
   function chamar() {
     startTransition(async () => {
-      const r = await chamarResponsavelComSms({
+      const r = await chamarResponsavel({
         churchSlug,
         churchId,
         ministryId,
@@ -101,30 +100,13 @@ export function SessionChildRow({
         checkinId: child.checkin!.id,
         reason: "",
       });
-      if (!r.ok) {
+      if (r.ok) {
+        toast.success(`Responsável chamado — código ${child.checkin!.code}`, {
+          description: "O Web Push é enviado quando o responsável tiver notificações ativadas.",
+        });
+      } else {
         toast.error(r.error);
-        return;
       }
-
-      if (r.data.sms === "sent") {
-        toast.success(`Responsável chamado por SMS — código ${child.checkin!.code}`);
-        return;
-      }
-      if (r.data.sms === "no_phone" || r.data.sms === "invalid_phone") {
-        toast.success(`Chamado registrado — código ${child.checkin!.code}`, {
-          description: "Sem telefone válido para SMS. O Web Push continua sendo tentado quando disponível.",
-        });
-        return;
-      }
-      if (r.data.sms === "unconfigured") {
-        toast.success(`Chamado registrado — código ${child.checkin!.code}`, {
-          description: "SMS ainda não configurado no ambiente; Web Push continua ativo.",
-        });
-        return;
-      }
-      toast.success(`Chamado registrado — código ${child.checkin!.code}`, {
-        description: "O SMS falhou, mas o chamado e o Web Push foram preservados.",
-      });
     });
   }
 
