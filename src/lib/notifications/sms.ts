@@ -1,37 +1,11 @@
 import "server-only";
+import { normalizePhoneE164 } from "@/lib/phone";
 
 export type SmsSendResult =
   | { status: "sent"; messageId: string | null }
   | { status: "unconfigured" }
   | { status: "invalid_phone" }
   | { status: "failed" };
-
-/**
- * Normaliza um telefone para E.164.
- * - aceita números já iniciados por +
- * - para números brasileiros locais (10/11 dígitos), aplica +55
- * - rejeita entradas curtas/longas demais
- *
- * O seletor internacional da UI será responsável por fornecer o código do
- * país nas próximas telas. Esta função continua servindo como barreira no
- * backend para nunca enviar texto arbitrário ao provedor de SMS.
- */
-export function normalizePhoneE164(value: string): string | null {
-  const raw = value.trim();
-  if (!raw) return null;
-
-  const hasPlus = raw.startsWith("+");
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length < 8 || digits.length > 15) return null;
-
-  if (hasPlus) return `+${digits}`;
-
-  // Compatibilidade com cadastros brasileiros atuais do LUNOR.
-  if (digits.length === 10 || digits.length === 11) return `+55${digits}`;
-
-  // Sem código de país explícito não tentamos adivinhar outros países.
-  return null;
-}
 
 export async function sendSms({
   to,
@@ -80,7 +54,10 @@ export async function sendSms({
     const data = (await response.json().catch(() => null)) as { sid?: string } | null;
     return { status: "sent", messageId: data?.sid ?? null };
   } catch (error) {
-    console.error("sendSms: falha de transporte", error instanceof Error ? error.message : "unknown");
+    console.error(
+      "sendSms: falha de transporte",
+      error instanceof Error ? error.message : "unknown"
+    );
     return { status: "failed" };
   }
 }
