@@ -2,11 +2,33 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Baby, BookOpen, Calendar, Home, Music2, PanelLeftClose, PanelLeftOpen, Settings, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLockup } from "@/components/brand-lockup";
 import { SIDEBAR_ATTRIBUTE, SIDEBAR_STORAGE_KEY } from "@/components/shell/sidebar-state";
+
+const SIDEBAR_EVENT = "lunor:sidebar-state";
+
+function getSidebarSnapshot() {
+  return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
+}
+
+function getSidebarServerSnapshot() {
+  return false;
+}
+
+function subscribeSidebar(callback: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === SIDEBAR_STORAGE_KEY) callback();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(SIDEBAR_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(SIDEBAR_EVENT, callback);
+  };
+}
 
 export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMinistryNavigation, hasKids = false, escalasPending = 0 }: {
   churchSlug: string;
@@ -18,20 +40,21 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
   escalasPending?: number;
 }) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = useSyncExternalStore(
+    subscribeSidebar,
+    getSidebarSnapshot,
+    getSidebarServerSnapshot
+  );
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
-    setCollapsed(saved);
-    document.documentElement.setAttribute(SIDEBAR_ATTRIBUTE, String(saved));
+    document.documentElement.setAttribute(SIDEBAR_ATTRIBUTE, String(collapsed));
     return () => document.documentElement.removeAttribute(SIDEBAR_ATTRIBUTE);
-  }, []);
+  }, [collapsed]);
 
   function toggleSidebar() {
     const next = !collapsed;
-    setCollapsed(next);
     window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
-    document.documentElement.setAttribute(SIDEBAR_ATTRIBUTE, String(next));
+    window.dispatchEvent(new Event(SIDEBAR_EVENT));
   }
 
   const ministryItem = activeMinistryNavigation ? {
