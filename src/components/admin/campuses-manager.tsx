@@ -27,10 +27,16 @@ export function CampusesManager({
 
   function add() {
     const trimmed = name.trim();
-    if (trimmed.length < 2) return toast.error("Informe o nome do campus");
+    if (trimmed.length < 2) {
+      toast.error("Informe o nome do campus");
+      return;
+    }
     startTransition(async () => {
       const result = await createCampus({ churchSlug, churchId, name: trimmed });
-      if (!result.ok) return toast.error(result.error);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       setName("");
       toast.success("Campus criado");
     });
@@ -44,7 +50,10 @@ export function CampusesManager({
         campusId: campus.id,
         active: !campus.active,
       });
-      if (!result.ok) return toast.error(result.error);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       toast.success(campus.active ? "Campus desativado" : "Campus reativado");
     });
   }
