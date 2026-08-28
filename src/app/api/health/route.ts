@@ -1,63 +1,42 @@
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Health check para monitor de uptime (UptimeRobot, Cloudflare Health
- * Checks etc.). Testa o app E o banco — um SELECT leve numa tabela real.
- * 200 = app e banco no ar · 503 = banco inacessível.
- * Não vaza dados nem secrets: informa apenas a disponibilidade dos serviços.
+ * Health check público para monitor de uptime.
+ *
+ * Expõe apenas disponibilidade do app/banco e latência. Detalhes de
+ * configuração, credenciais e integrações ficam fora desta rota para não
+ * oferecer informação de reconhecimento desnecessária a visitantes anônimos.
  */
 export const dynamic = "force-dynamic";
 
-function youtubeOAuthStatus() {
-  const credentials = Boolean(
-    process.env.YOUTUBE_OAUTH_CLIENT_ID &&
-      process.env.YOUTUBE_OAUTH_CLIENT_SECRET
-  );
-  const encryption = Boolean(process.env.INTEGRATIONS_ENCRYPTION_KEY);
-
-  return {
-    status: credentials && encryption ? "ok" : "missing",
-    credentials: credentials ? "ok" : "missing",
-    encryption: encryption ? "ok" : "missing",
-    redirect: process.env.YOUTUBE_OAUTH_REDIRECT_URI ? "configured" : "default",
-  } as const;
-}
+const HEALTH_HEADERS = {
+  "Cache-Control": "no-store, max-age=0",
+  "X-Robots-Tag": "noindex, nofollow",
+};
 
 export async function GET() {
   const started = Date.now();
   try {
     const supabase = await createClient();
-    // consulta barata que exercita a conexão sem depender de sessão
     const { error } = await supabase
       .from("churches")
       .select("id", { count: "exact", head: true });
 
     if (error) {
       return Response.json(
-        {
-          status: "degraded",
-          db: "erro",
-          integrations: { youtubeOAuth: youtubeOAuthStatus() },
-          ms: Date.now() - started,
-        },
-        { status: 503 }
+        { status: "degraded", db: "error", ms: Date.now() - started },
+        { status: 503, headers: HEALTH_HEADERS }
       );
     }
-    return Response.json({
-      status: "ok",
-      db: "ok",
-      integrations: { youtubeOAuth: youtubeOAuthStatus() },
-      features: { songTimeSignature: "enabled" },
-      ms: Date.now() - started,
-    });
+
+    return Response.json(
+      { status: "ok", db: "ok", ms: Date.now() - started },
+      { headers: HEALTH_HEADERS }
+    );
   } catch {
     return Response.json(
-      {
-        status: "down",
-        integrations: { youtubeOAuth: youtubeOAuthStatus() },
-        ms: Date.now() - started,
-      },
-      { status: 503 }
+      { status: "down", db: "unknown", ms: Date.now() - started },
+      { status: 503, headers: HEALTH_HEADERS }
     );
   }
 }
