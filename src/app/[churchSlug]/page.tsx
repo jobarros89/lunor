@@ -60,7 +60,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const showManage = canAdmin || tenant.isLeader || temInfantil;
 
   return (
-    <div className="lunor-home min-w-0 space-y-16 overflow-x-clip pb-8">
+    <div className="lunor-home min-w-0 space-y-12 overflow-x-clip pb-8">
       {(anuncios ?? []).length > 0 && (
         <section className="border-l-4 border-[#6e5ce6] bg-black px-5 py-4 text-white">
           {(anuncios as { code: string | null; kind: string }[]).map((a, i) => (
@@ -74,51 +74,57 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         </section>
       )}
 
-      <section className="lunor-prism relative overflow-hidden rounded-[24px] border border-foreground/10 px-6 py-10 shadow-sm md:min-h-[520px] md:px-12 md:py-14">
-        <div className="relative z-10 grid gap-12 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em]">{nextAssignment ? "Meu domingo" : "Próximo culto"}</p>
-              {nextAssignment && (
-                <Badge className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[nextAssignment.status] ?? ""}`}>
-                  {ASSIGNMENT_STATUS_LABELS[nextAssignment.status] ?? nextAssignment.status}
-                </Badge>
-              )}
-            </div>
-            <h1 className="mt-6 max-w-3xl font-editorial text-[clamp(3.6rem,8vw,7.7rem)] font-medium leading-[0.82] tracking-[-0.055em]">
-              {nextEvent?.title ?? "Prepare com propósito."}
-            </h1>
-            {nextAssignment ? (
-              <div className="mt-8 flex max-w-2xl flex-wrap gap-x-5 gap-y-2 text-sm">
-                <span><span className="text-muted-foreground">Você serve em</span> <strong>{nextAssignment.role_name}</strong></span>
-                {nextMinistry?.name && <span><span className="text-muted-foreground">Equipe</span> <strong>{nextMinistry.name}</strong></span>}
-                {arrival && <span><span className="text-muted-foreground">Chegada</span> <strong>{arrival}</strong></span>}
-                {nextEvent?.location && <span><span className="text-muted-foreground">Local</span> <strong>{nextEvent.location}</strong></span>}
-                {nextAssignment.items_to_bring && <span><span className="text-muted-foreground">Levar</span> <strong>{nextAssignment.items_to_bring}</strong></span>}
-              </div>
-            ) : (
-              <p className="mt-8 max-w-md text-sm leading-relaxed text-muted-foreground">Prepare o coração. Prepare o time. Prepare o ambiente.</p>
+      <section className="lunor-prism relative overflow-hidden rounded-[24px] border border-foreground/10 shadow-sm">
+        <div className="relative z-10 px-6 pt-8 md:px-10 md:pt-10 lg:px-12 lg:pt-12">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em]">{nextAssignment ? "Meu domingo" : "Próximo culto"}</p>
+            {nextAssignment && (
+              <Badge className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[nextAssignment.status] ?? ""}`}>
+                {ASSIGNMENT_STATUS_LABELS[nextAssignment.status] ?? nextAssignment.status}
+              </Badge>
             )}
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-[150px_1fr] lg:block">
-            <div className="flex items-end gap-3 lg:mb-10">
-              <span className="font-editorial text-8xl leading-none tracking-[-0.06em]">{day}</span>
-              <span className="pb-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">{month}<br />{weekday}</span>
-            </div>
-            <div>
-              <p className="text-sm font-medium">{nextEvent ? formatEventTime(nextEvent.starts_at) : "Tudo começa aqui"}</p>
-              {nextAssignment?.status === "convidado" && nextEvent && (
-                <div className="mt-4">
-                  <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={nextEvent.id} assignmentId={nextAssignment.id} />
-                </div>
-              )}
-              <Link href={nextEvent ? `/${churchSlug}/escalas/${nextEvent.id}` : `/${churchSlug}/escalas`} className="mt-5 flex min-h-14 w-full items-center justify-between rounded-md bg-[#6e5ce6] px-5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-                {nextEvent ? "Abrir meu preparo" : "Ver escalas"}
-                <ArrowRight className="size-5" />
-              </Link>
+          <div className="mt-7 max-w-4xl">
+            <h1 className="font-editorial text-[clamp(3.25rem,6vw,5.9rem)] font-medium leading-[0.9] tracking-[-0.05em]">
+              {nextEvent?.title ?? "Prepare com propósito."}
+            </h1>
+
+            <div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="font-editorial text-5xl leading-none tracking-[-0.05em]">{day}</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{month} · {weekday}</span>
+              <span className="text-sm font-medium">{nextEvent ? formatEventTime(nextEvent.starts_at) : "Tudo começa aqui"}</span>
             </div>
           </div>
+
+          {nextAssignment?.status === "convidado" && nextEvent && (
+            <div className="mt-6 max-w-sm">
+              <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={nextEvent.id} assignmentId={nextAssignment.id} />
+            </div>
+          )}
+
+          {!nextAssignment && (
+            <p className="mt-6 max-w-md text-sm leading-relaxed text-muted-foreground">Prepare o coração. Prepare o time. Prepare o ambiente.</p>
+          )}
+        </div>
+
+        <div className="relative z-10 mt-10 border-t border-foreground/10 bg-background/20 px-6 py-5 backdrop-blur-sm md:px-10 lg:flex lg:items-center lg:justify-between lg:gap-8 lg:px-12">
+          {nextAssignment ? (
+            <div className="flex min-w-0 flex-1 flex-wrap gap-x-5 gap-y-2 text-sm">
+              <span><span className="text-muted-foreground">Você serve em</span> <strong>{nextAssignment.role_name}</strong></span>
+              {nextMinistry?.name && <span><span className="text-muted-foreground">Equipe</span> <strong>{nextMinistry.name}</strong></span>}
+              {arrival && <span><span className="text-muted-foreground">Chegada</span> <strong>{arrival}</strong></span>}
+              {nextEvent?.location && <span><span className="text-muted-foreground">Local</span> <strong>{nextEvent.location}</strong></span>}
+              {nextAssignment.items_to_bring && <span><span className="text-muted-foreground">Levar</span> <strong>{nextAssignment.items_to_bring}</strong></span>}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Seu próximo compromisso vai aparecer aqui.</p>
+          )}
+
+          <Link href={nextEvent ? `/${churchSlug}/escalas/${nextEvent.id}` : `/${churchSlug}/escalas`} className="mt-4 flex min-h-12 w-full items-center justify-between rounded-md bg-[#6e5ce6] px-5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:mt-0 lg:w-[240px] lg:shrink-0">
+            {nextEvent ? "Abrir meu preparo" : "Ver escalas"}
+            <ArrowRight className="size-5" />
+          </Link>
         </div>
       </section>
 

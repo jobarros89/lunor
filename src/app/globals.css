@@ -155,15 +155,6 @@
 }
 .dark .lunor-prism .text-muted-foreground { color: rgb(212 212 216); }
 
-/* O conteúdo permanece independente da arte; as colunas podem encolher sem overflow. */
-.lunor-prism > .relative.z-10.grid > * { min-width: 0; }
-
-@media (min-width: 1024px) {
-  .lunor-prism > .relative.z-10.grid {
-    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
-  }
-}
-
 [data-slot="card"] { border-color: color-mix(in oklab, currentColor 15%, transparent); box-shadow: none; }
 
 @media (max-width: 767px) {
