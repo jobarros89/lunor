@@ -22,7 +22,13 @@ const getBrowserSupport = () =>
   "PushManager" in window &&
   "Notification" in window;
 
-export function PushToggle({ churchId }: { churchId: string }) {
+export function PushToggle({
+  churchId,
+  vapidPublicKey,
+}: {
+  churchId: string;
+  vapidPublicKey?: string;
+}) {
   const supported = useSyncExternalStore(
     subscribeSupport,
     getBrowserSupport,
@@ -48,14 +54,13 @@ export function PushToggle({ churchId }: { churchId: string }) {
         return;
       }
       const reg = await navigator.serviceWorker.ready;
-      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!key) {
+      if (!vapidPublicKey) {
         toast.error("Avisos indisponíveis no momento");
         return;
       }
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(key) as BufferSource,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
       });
       const json = sub.toJSON();
       const res = await savePushSubscription({

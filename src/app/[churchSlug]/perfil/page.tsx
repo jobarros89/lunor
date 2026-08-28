@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight, Download } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
+import { serverEnv } from "@/lib/env";
 import { signOut } from "@/lib/actions/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ export default async function PerfilPage({
 }) {
   const { churchSlug } = await params;
   const tenant = await getTenant(churchSlug);
+  const vapidPublicKey = serverEnv("NEXT_PUBLIC_VAPID_PUBLIC_KEY");
   const initials = tenant.profile.full_name
     .split(" ")
     .map((n) => n[0])
@@ -74,7 +76,10 @@ export default async function PerfilPage({
 
       <Card className="rounded-3xl">
         <CardContent className="py-4">
-          <PushToggle churchId={tenant.church.id} />
+          <PushToggle
+            churchId={tenant.church.id}
+            vapidPublicKey={vapidPublicKey}
+          />
         </CardContent>
       </Card>
 
