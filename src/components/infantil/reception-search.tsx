@@ -12,22 +12,38 @@ import {
 } from "@/components/ui/card";
 import { SessionChildRow, type SessionChild } from "@/components/infantil/session-child";
 
-function normalize(value: string) {
+function normalizeText(value: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\D/g, (char) => (char === " " ? " " : char));
+    .toLowerCase();
 }
 
-function searchableText(child: SessionChild) {
-  return normalize(
+function digitsOnly(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function matches(child: SessionChild, query: string) {
+  const term = normalizeText(query.trim());
+  const termDigits = digitsOnly(query);
+  if (!term) return true;
+
+  const text = normalizeText(
     [
       child.fullName,
       child.className ?? "",
-      ...child.guardians.flatMap((g) => [g.name, g.phone ?? ""]),
+      ...child.guardians.map((guardian) => guardian.name),
     ].join(" ")
   );
+  if (text.includes(term)) return true;
+
+  if (termDigits.length >= 3) {
+    return child.guardians.some((guardian) =>
+      digitsOnly(guardian.phone ?? "").includes(termDigits)
+    );
+  }
+
+  return false;
 }
 
 export function ReceptionSearch({
@@ -49,11 +65,10 @@ export function ReceptionSearch({
 }) {
   const [query, setQuery] = useState("");
 
-  const filtered = useMemo(() => {
-    const term = normalize(query.trim());
-    if (!term) return children;
-    return children.filter((child) => searchableText(child).includes(term));
-  }, [children, query]);
+  const filtered = useMemo(
+    () => children.filter((child) => matches(child, query)),
+    [children, query]
+  );
 
   const byClass = useMemo(() => {
     const groups = new Map<string, SessionChild[]>();
@@ -119,7 +134,7 @@ export function ReceptionSearch({
           <CardContent className="py-8 text-center">
             <p className="font-medium">Nenhum cadastro encontrado</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Tente outro nome ou apenas alguns números do telefone.
+              Tente outro nome ou alguns números do telefone.
             </p>
           </CardContent>
         </Card>
