@@ -29,11 +29,6 @@ export async function createChurch(formData: FormData): Promise<ActionResult> {
       p_slug: slug,
     });
     if (!error && data) {
-      const { data: church } = await supabase
-        .from("churches")
-        .select("slug")
-        .eq("id", data)
-        .single();
       redirect(`/onboarding?igreja=${data}`);
     }
     if (error && !error.message.includes("churches_slug_key")) {
@@ -62,7 +57,7 @@ export async function updateChurchName(raw: unknown): Promise<ActionResult> {
     .from("churches")
     .update({ name: name.trim() })
     .eq("id", churchId)
-    .select();
+    .select("id");
   if (error || !data || data.length === 0) {
     return { ok: false, error: "Sem permissão para editar o nome" };
   }
@@ -101,7 +96,7 @@ export async function deleteChurch(raw: unknown): Promise<ActionResult> {
     .from("churches")
     .delete()
     .eq("id", churchId)
-    .select();
+    .select("id");
   if (error || !data || data.length === 0) {
     return { ok: false, error: "Sem permissão para apagar esta igreja" };
   }
@@ -125,10 +120,5 @@ export async function joinChurch(formData: FormData): Promise<ActionResult> {
   if (error || !data) {
     return { ok: false, error: "Código de convite inválido" };
   }
-  const { data: church } = await supabase
-    .from("churches")
-    .select("slug")
-    .eq("id", data)
-    .single();
   redirect(`/onboarding?igreja=${data}`);
 }
