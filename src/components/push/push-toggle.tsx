@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { BellRing } from "lucide-react";
+import { BellRing, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { savePushSubscription, removePushSubscription } from "@/lib/actions/push";
 
@@ -66,13 +66,13 @@ export function PushToggle({ churchId }: { churchId: string }) {
       });
       if (res.ok) {
         setEnabled(true);
-        toast.success("Avisos ativados neste aparelho");
+        toast.success("Notificações ativadas neste aparelho");
       } else {
         await sub.unsubscribe().catch(() => {});
         toast.error(res.error);
       }
     } catch {
-      toast.error("Não foi possível ativar os avisos");
+      toast.error("Não foi possível ativar as notificações");
     } finally {
       setBusy(false);
     }
@@ -88,44 +88,82 @@ export function PushToggle({ churchId }: { churchId: string }) {
         await sub.unsubscribe();
       }
       setEnabled(false);
-      toast.success("Avisos desativados neste aparelho");
+      toast.success("Notificações desativadas neste aparelho");
     } catch {
-      toast.error("Não foi possível desativar os avisos");
+      toast.error("Não foi possível desativar as notificações");
     } finally {
       setBusy(false);
     }
   }
 
-  if (supported === null) return null;
+  if (supported === null) {
+    return (
+      <div className="min-h-36 animate-pulse rounded-2xl bg-muted/40" aria-hidden="true" />
+    );
+  }
 
   if (!supported) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Este navegador não suporta avisos. No iPhone, instale o app na tela
-        inicial (Compartilhar → Adicionar à Tela de Início) para receber.
-      </p>
+      <div className="space-y-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+        <div className="flex items-start gap-3">
+          <BellRing className="mt-0.5 size-5 shrink-0" />
+          <div>
+            <p className="font-semibold">Receba notificações do LUNOR</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Este navegador não suporta avisos neste modo. No iPhone, adicione o LUNOR à Tela de Início e abra por lá para permitir notificações.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (enabled) {
+    return (
+      <div className="space-y-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+        <div className="flex items-start gap-3">
+          <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+          <div>
+            <p className="font-semibold">Notificações ativadas neste aparelho</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Você pode receber avisos de escalas, alterações e chamados do Kids quando aplicável.
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={disable}
+          className="h-11 w-full rounded-full sm:w-auto"
+        >
+          {busy ? "Desativando…" : "Desativar notificações"}
+        </Button>
+      </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <BellRing className="size-5 shrink-0 text-muted-foreground" />
+    <div className="space-y-4 rounded-2xl border bg-muted/20 p-5">
+      <div className="flex items-start gap-3">
+        <BellRing className="mt-0.5 size-5 shrink-0" />
         <div>
-          <p className="font-medium">Avisos no celular</p>
-          <p className="text-sm text-muted-foreground">
-            Seja avisado quando for escalado ou algo mudar
+          <p className="text-base font-semibold">Ativar notificações</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Permita que o LUNOR avise sobre escalas, mudanças importantes e chamados do Kids mesmo quando a página não estiver aberta.
           </p>
         </div>
       </div>
       <Button
-        variant={enabled ? "outline" : "default"}
         disabled={busy}
-        onClick={enabled ? disable : enable}
-        className="shrink-0 rounded-full"
+        onClick={enable}
+        className="h-12 w-full rounded-full text-base sm:w-auto sm:px-6"
       >
-        {busy ? "…" : enabled ? "Desativar" : "Ativar"}
+        <BellRing className="size-4" />
+        {busy ? "Solicitando permissão…" : "Permitir notificações"}
       </Button>
+      <p className="text-xs text-muted-foreground">
+        O navegador sempre pede sua confirmação antes de ativar. Você pode desativar quando quiser.
+      </p>
     </div>
   );
 }
