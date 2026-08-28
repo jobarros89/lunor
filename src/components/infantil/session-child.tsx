@@ -9,7 +9,13 @@ import { Input } from "@/components/ui/input";
 import { PrintLabelButton } from "@/components/infantil/print-label-button";
 import { chamarResponsavel, checkInChild, checkOutChild } from "@/lib/actions/infantil";
 
-export type Guardian = { id: string; name: string; canPickup: boolean; relationship: string | null };
+export type Guardian = {
+  id: string;
+  name: string;
+  phone: string | null;
+  canPickup: boolean;
+  relationship: string | null;
+};
 export type SessionChild = {
   id: string;
   fullName: string;
@@ -113,6 +119,13 @@ export function SessionChildRow({
           </Button>
         )}
       </div>
+
+      {child.guardians.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Responsável: {child.guardians[0].name}
+          {child.guardians[0].phone ? ` · ${child.guardians[0].phone}` : ""}
+        </p>
+      )}
 
       {(child.allergies || child.specialNeeds) && (
         <div className="flex flex-wrap gap-2">

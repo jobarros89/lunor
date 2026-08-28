@@ -6,18 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getInfantilMinistry, formatAge, suggestClass, type ChildClass } from "@/lib/infantil";
 import { formatEventDate, formatEventTime } from "@/lib/escalas";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  SessionChildRow,
-  type Guardian,
-  type SessionChild,
-} from "@/components/infantil/session-child";
+import { Card, CardContent } from "@/components/ui/card";
+import type { Guardian, SessionChild } from "@/components/infantil/session-child";
+import { ReceptionSearch } from "@/components/infantil/reception-search";
 import { EndSessionButton } from "@/components/infantil/end-session-button";
 
 export default async function SessaoInfantilPage({
@@ -69,19 +60,33 @@ export default async function SessaoInfantilPage({
 
   if (!event) notFound();
 
-  const { data: vinculos } = await supabase
-    .from("child_guardians")
-    .select("child_id, can_pickup, relationship, guardians!inner(id, full_name)")
-    .in("child_id", (children ?? []).map((c) => c.id));
+  const childIds = (children ?? []).map((child) => child.id);
+  const { data: vinculos } = childIds.length
+    ? await supabase
+        .from("child_guardians")
+        .select("child_id, can_pickup, relationship, guardians!inner(id, full_name, phone)")
+        .in("child_id", childIds)
+    : { data: [] };
 
   const guardiansByChild = new Map<string, Guardian[]>();
   for (const v of vinculos ?? []) {
-    const g = v.guardians as unknown as { id: string; full_name: string };
+    const g = v.guardians as unknown as {
+      id: string;
+      full_name: string;
+      phone: string | null;
+    };
     guardiansByChild.set(v.child_id, [
       ...(guardiansByChild.get(v.child_id) ?? []),
-      { id: g.id, name: g.full_name, canPickup: v.can_pickup, relationship: v.relationship },
+      {
+        id: g.id,
+        name: g.full_name,
+        phone: g.phone,
+        canPickup: v.can_pickup,
+        relationship: v.relationship,
+      },
     ]);
   }
+
   const checkinByChild = new Map(
     (checkins ?? []).map((k) => [
       k.child_id,
@@ -90,23 +95,20 @@ export default async function SessaoInfantilPage({
   );
 
   const turmas = (classes ?? []) as ChildClass[];
-  const porTurma = new Map<string, SessionChild[]>();
-  for (const c of children ?? []) {
-    const turma = suggestClass(c.birth_date, turmas);
-    const chave = turma?.name ?? "Sem turma";
-    const item: SessionChild = {
-      id: c.id,
-      fullName: c.full_name,
-      age: formatAge(c.birth_date),
-      allergies: c.allergies,
-      specialNeeds: c.special_needs,
+  const sessionChildren: SessionChild[] = (children ?? []).map((child) => {
+    const turma = suggestClass(child.birth_date, turmas);
+    return {
+      id: child.id,
+      fullName: child.full_name,
+      age: formatAge(child.birth_date),
+      allergies: child.allergies,
+      specialNeeds: child.special_needs,
       classId: turma?.id ?? null,
       className: turma?.name ?? null,
-      checkin: checkinByChild.get(c.id) ?? null,
-      guardians: guardiansByChild.get(c.id) ?? [],
+      checkin: checkinByChild.get(child.id) ?? null,
+      guardians: guardiansByChild.get(child.id) ?? [],
     };
-    porTurma.set(chave, [...(porTurma.get(chave) ?? []), item]);
-  }
+  });
 
   const presentes = (checkins ?? []).filter((k) => !k.checked_out_at).length;
   const entradas = checkins?.length ?? 0;
@@ -141,7 +143,7 @@ export default async function SessaoInfantilPage({
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{event.title}</h1>
         <p className="text-muted-foreground">
-          Operação de entrada, retirada e chamada de responsáveis.
+          Busque a família e faça entrada, retirada ou chamada em poucos toques.
         </p>
       </div>
 
@@ -174,37 +176,17 @@ export default async function SessaoInfantilPage({
         presentes={presentes}
       />
 
-      {[...porTurma.entries()].map(([turma, itens]) => {
-        const presentesTurma = itens.filter(
-          (item) => item.checkin && !item.checkin.checkedOut
-        ).length;
-        return (
-          <Card key={turma} className="rounded-3xl">
-            <CardHeader>
-              <CardTitle className="text-base">{turma}</CardTitle>
-              <CardDescription>
-                {presentesTurma} presentes · {itens.length} cadastradas
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {itens.map((c) => (
-                <SessionChildRow
-                  key={c.id}
-                  child={c}
-                  churchSlug={churchSlug}
-                  churchId={tenant.church.id}
-                  ministryId={ministry.id}
-                  eventId={eventId}
-                  eventTitle={event.title}
-                  podeLiberar={podeLiberar}
-                />
-              ))}
-            </CardContent>
-          </Card>
-        );
-      })}
-
-      {(children ?? []).length === 0 && (
+      {sessionChildren.length > 0 ? (
+        <ReceptionSearch
+          children={sessionChildren}
+          churchSlug={churchSlug}
+          churchId={tenant.church.id}
+          ministryId={ministry.id}
+          eventId={eventId}
+          eventTitle={event.title}
+          podeLiberar={podeLiberar}
+        />
+      ) : (
         <Card className="rounded-3xl">
           <CardContent className="py-6">
             <p className="text-sm text-muted-foreground">
