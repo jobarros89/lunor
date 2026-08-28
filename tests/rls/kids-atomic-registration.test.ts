@@ -35,6 +35,7 @@ const uid = async (client: SupabaseClient) =>
 describe("Kids — cadastro atômico e autorização", () => {
   let leader: SupabaseClient;
   let volunteer: SupabaseClient;
+  let churchMemberOutsideKids: SupabaseClient;
   let churchId: string;
   let kidsId: string;
   const run = Date.now();
@@ -42,6 +43,7 @@ describe("Kids — cadastro atômico e autorização", () => {
   beforeAll(async () => {
     leader = await newUser(`kids-atomic-leader-${run}@teste.dev`);
     volunteer = await newUser(`kids-atomic-vol-${run}@teste.dev`);
+    churchMemberOutsideKids = await newUser(`kids-atomic-outside-${run}@teste.dev`);
 
     churchId = (
       await leader.rpc("create_church", {
@@ -62,6 +64,7 @@ describe("Kids — cadastro atômico e autorização", () => {
       await admin.from("churches").select("invite_code").eq("id", churchId).single()
     ).data!.invite_code;
     await volunteer.rpc("join_church", { p_invite_code: invite });
+    await churchMemberOutsideKids.rpc("join_church", { p_invite_code: invite });
 
     await admin.from("ministry_members").insert([
       {
@@ -113,19 +116,47 @@ describe("Kids — cadastro atômico e autorização", () => {
     expect(link.data).toMatchObject({ can_pickup: true, is_primary: true });
   });
 
-  it("voluntário comum não consegue cadastrar ficha de criança", async () => {
+  it("voluntário ativo do Kids consegue cadastrar uma nova família", async () => {
+    const { data: childId, error } = await volunteer.rpc(
+      "create_child_with_primary_guardian",
+      {
+        p_church: churchId,
+        p_ministry: kidsId,
+        p_full_name: "Levi Visitante",
+        p_birth_date: "2022-01-01",
+        p_guardian_name: "Responsável Levi",
+        p_guardian_phone: "21988887777",
+        p_guardian_relationship: "pai",
+      }
+    );
+
+    expect(error).toBeNull();
+    expect(childId).toBeTruthy();
+
+    const child = await admin
+      .from("children")
+      .select("consent_guardian_id")
+      .eq("id", childId)
+      .single();
+    expect(child.data?.consent_guardian_id).toBeTruthy();
+  });
+
+  it("membro da igreja que não pertence ao Kids não pode cadastrar criança", async () => {
     const before = await admin
       .from("children")
       .select("id", { count: "exact", head: true })
       .eq("church_id", churchId);
 
-    const { error } = await volunteer.rpc("create_child_with_primary_guardian", {
-      p_church: churchId,
-      p_ministry: kidsId,
-      p_full_name: "Cadastro Indevido",
-      p_birth_date: "2021-01-01",
-      p_guardian_name: "Responsável Indevido",
-    });
+    const { error } = await churchMemberOutsideKids.rpc(
+      "create_child_with_primary_guardian",
+      {
+        p_church: churchId,
+        p_ministry: kidsId,
+        p_full_name: "Cadastro Indevido",
+        p_birth_date: "2021-01-01",
+        p_guardian_name: "Responsável Indevido",
+      }
+    );
     expect(error).not.toBeNull();
 
     const after = await admin
