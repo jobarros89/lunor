@@ -6,6 +6,7 @@ import { BellRing, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PrintLabelButton } from "@/components/infantil/print-label-button";
 import { chamarResponsavel, checkInChild, checkOutChild } from "@/lib/actions/infantil";
 
 export type Guardian = { id: string; name: string; canPickup: boolean; relationship: string | null };
@@ -16,6 +17,7 @@ export type SessionChild = {
   allergies: string | null;
   specialNeeds: string | null;
   classId: string | null;
+  className: string | null;
   checkin: { id: string; code: string; checkedOut: boolean } | null;
   guardians: Guardian[];
 };
@@ -26,6 +28,7 @@ export function SessionChildRow({
   churchId,
   ministryId,
   eventId,
+  eventTitle,
   podeLiberar,
 }: {
   child: SessionChild;
@@ -33,6 +36,7 @@ export function SessionChildRow({
   churchId: string;
   ministryId: string;
   eventId: string;
+  eventTitle: string;
   podeLiberar: boolean;
 }) {
   const [pending, startTransition] = useTransition();
@@ -85,7 +89,9 @@ export function SessionChildRow({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-medium">{child.fullName}</p>
-          <p className="text-xs text-muted-foreground">{child.age}</p>
+          <p className="text-xs text-muted-foreground">
+            {child.age}{child.className ? ` · ${child.className}` : ""}
+          </p>
         </div>
         {child.checkin ? (
           child.checkin.checkedOut ? (
@@ -127,7 +133,13 @@ export function SessionChildRow({
       {child.checkin && !child.checkin.checkedOut && (
         <div className="space-y-2">
           {!retirando ? (
-            <div className="flex gap-2">
+            <div className="grid gap-2 sm:grid-cols-3">
+              <PrintLabelButton
+                childName={child.fullName}
+                className={child.className}
+                code={child.checkin.code}
+                eventTitle={eventTitle}
+              />
               <Button
                 variant="outline"
                 disabled={pending}
@@ -148,7 +160,7 @@ export function SessionChildRow({
                     else toast.error(r.error);
                   })
                 }
-                className="h-10 flex-1 rounded-full"
+                className="h-10 rounded-full"
               >
                 <BellRing className="size-4" />
                 Chamar
@@ -157,7 +169,7 @@ export function SessionChildRow({
                 variant="outline"
                 disabled={pending}
                 onClick={() => setRetirando(true)}
-                className="h-10 flex-1 rounded-full"
+                className="h-10 rounded-full"
               >
                 Registrar retirada
               </Button>

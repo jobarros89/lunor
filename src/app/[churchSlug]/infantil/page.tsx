@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Baby, ChevronRight, TriangleAlert } from "lucide-react";
+import {
+  Baby,
+  BellRing,
+  ChevronRight,
+  DoorOpen,
+  LogIn,
+  LogOut,
+  TriangleAlert,
+  Users,
+} from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { getInfantilMinistry, formatAge, suggestClass, type ChildClass } from "@/lib/infantil";
@@ -28,13 +37,17 @@ export default async function InfantilPage({
   if (!ministry) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Infantil</h1>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            LUNOR Kids
+          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Kids</h1>
+        </div>
         <Card className="rounded-3xl">
           <CardHeader>
-            <CardTitle className="text-base">Setor Infantil ainda não existe</CardTitle>
+            <CardTitle className="text-base">Kids ainda não está ativo</CardTitle>
             <CardDescription>
-              Crie um ministério chamado &quot;Infantil&quot; na Administração para
-              ativar o módulo. Os dados das crianças ficam isolados nesse setor.
+              Crie um ministério Infantil/Kids na Administração para ativar o módulo.
             </CardDescription>
           </CardHeader>
           {tenant.isCoord && (
@@ -54,7 +67,6 @@ export default async function InfantilPage({
   }
 
   const supabase = await createClient();
-  // acesso: quem serve no Infantil, ou a coordenação da igreja
   const { data: vinculo } = await supabase
     .from("ministry_members")
     .select("role")
@@ -63,6 +75,7 @@ export default async function InfantilPage({
     .eq("active", true)
     .maybeSingle();
   if (!vinculo && !tenant.isCoord) redirect(`/${churchSlug}`);
+
   const podeGerir =
     tenant.isCoord || vinculo?.role === "gerente" || vinculo?.role === "lider";
 
@@ -87,16 +100,63 @@ export default async function InfantilPage({
       .limit(3),
   ]);
 
+  const eventoAtual = eventos?.[0] ?? null;
+  let checkins: Array<{ class_id: string | null; checked_out_at: string | null }> = [];
+  let chamadasPendentes = 0;
+
+  if (eventoAtual) {
+    const [{ data: checkinsData }, { count: pagesCount }] = await Promise.all([
+      supabase
+        .from("child_checkins")
+        .select("class_id, checked_out_at")
+        .eq("event_id", eventoAtual.id),
+      supabase
+        .from("child_pages")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventoAtual.id)
+        .is("resolved_at", null),
+    ]);
+    checkins = checkinsData ?? [];
+    chamadasPendentes = pagesCount ?? 0;
+  }
+
   const turmas = (classes ?? []) as ChildClass[];
+  const presentes = checkins.filter((item) => !item.checked_out_at).length;
+  const entradas = checkins.length;
+  const saidas = checkins.filter((item) => !!item.checked_out_at).length;
+
+  const presentesPorTurma = new Map<string, number>();
+  for (const item of checkins) {
+    if (!item.checked_out_at && item.class_id) {
+      presentesPorTurma.set(
+        item.class_id,
+        (presentesPorTurma.get(item.class_id) ?? 0) + 1
+      );
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Infantil</h1>
-        <p className="text-muted-foreground">
-          {children?.length ?? 0}{" "}
-          {(children?.length ?? 0) === 1 ? "criança cadastrada" : "crianças cadastradas"}
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            LUNOR Kids
+          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard Kids</h1>
+          <p className="text-muted-foreground">
+            Veja a operação do Kids e entre rapidamente na recepção.
+          </p>
+        </div>
+        {eventoAtual && (
+          <Button
+            nativeButton={false}
+            className="h-11 rounded-full px-5"
+            render={<Link href={`/${churchSlug}/infantil/sessao/${eventoAtual.id}`} />}
+          >
+            <DoorOpen className="size-4" />
+            Abrir recepção
+          </Button>
+        )}
       </div>
 
       {turmas.length === 0 && podeGerir && (
@@ -104,8 +164,7 @@ export default async function InfantilPage({
           <CardHeader>
             <CardTitle className="text-base">Criar as turmas</CardTitle>
             <CardDescription>
-              Comece com as faixas etárias padrão (Berçário, Maternal, Jardim,
-              Primários, Juniores). Você pode ajustar depois.
+              Comece com Berçário, Maternal, Jardim, Primários e Juniores.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -114,10 +173,112 @@ export default async function InfantilPage({
         </Card>
       )}
 
+      {eventoAtual ? (
+        <Card className="rounded-3xl">
+          <CardHeader>
+            <CardTitle className="text-base">Operação atual</CardTitle>
+            <CardDescription>
+              {eventoAtual.title} · {formatEventDate(eventoAtual.starts_at)} · {formatEventTime(eventoAtual.starts_at)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Metric icon={Users} value={presentes} label="Presentes agora" />
+            <Metric icon={LogIn} value={entradas} label="Check-ins" />
+            <Metric icon={LogOut} value={saidas} label="Check-outs" />
+            <Metric icon={BellRing} value={chamadasPendentes} label="Chamadas pendentes" />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="rounded-3xl">
+          <CardContent className="py-6">
+            <p className="text-sm text-muted-foreground">
+              Nenhum culto próximo. Crie um evento em Escalas para iniciar a operação do Kids.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="rounded-3xl">
         <CardHeader>
-          <CardTitle className="text-base">Sessões</CardTitle>
-          <CardDescription>Faça o check-in das crianças no culto</CardDescription>
+          <CardTitle className="text-base">Turmas</CardTitle>
+          <CardDescription>Presença atual por faixa etária</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {turmas.map((turma) => {
+            const qtd = presentesPorTurma.get(turma.id) ?? 0;
+            return (
+              <div
+                key={turma.id}
+                className="flex items-center justify-between rounded-2xl border px-4 py-3"
+              >
+                <div>
+                  <p className="font-medium">{turma.name}</p>
+                  <p className="text-xs text-muted-foreground">{qtd} presentes agora</p>
+                </div>
+                <Badge variant="secondary" className="rounded-full">
+                  {qtd}
+                </Badge>
+              </div>
+            );
+          })}
+          {turmas.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhuma turma configurada.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl">
+        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle className="text-base">Crianças</CardTitle>
+            <CardDescription>{children?.length ?? 0} cadastradas no Kids</CardDescription>
+          </div>
+          {podeGerir && (
+            <Button
+              nativeButton={false}
+              className="h-10 shrink-0 rounded-full px-4"
+              render={<Link href={`/${churchSlug}/infantil/nova`} />}
+            >
+              + Cadastrar
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {(children ?? []).slice(0, 8).map((c) => {
+            const turma = suggestClass(c.birth_date, turmas);
+            return (
+              <div
+                key={c.id}
+                className="flex items-center gap-3 rounded-2xl border px-4 py-3"
+              >
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
+                  <Baby className="size-4 text-muted-foreground" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{c.full_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatAge(c.birth_date)}{turma ? ` · ${turma.name}` : ""}
+                  </p>
+                </div>
+                {c.allergies && (
+                  <Badge className="shrink-0 rounded-full border-0 bg-amber-100 text-amber-800">
+                    <TriangleAlert className="mr-1 size-3" />
+                    Alergia
+                  </Badge>
+                )}
+              </div>
+            );
+          })}
+          {(children ?? []).length === 0 && (
+            <p className="text-sm text-muted-foreground">Nenhuma criança cadastrada ainda.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl">
+        <CardHeader>
+          <CardTitle className="text-base">Próximas sessões</CardTitle>
+          <CardDescription>Abra a recepção diretamente no culto desejado</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           {(eventos ?? []).map((e) => (
@@ -135,69 +296,32 @@ export default async function InfantilPage({
               <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
             </Link>
           ))}
-          {(eventos ?? []).length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Nenhum culto próximo. Crie um evento em Escalas.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="rounded-3xl">
-        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-          <div>
-            <CardTitle className="text-base">Crianças</CardTitle>
-            <CardDescription>Fichas do setor</CardDescription>
-          </div>
-          {podeGerir && (
-            <Button
-              nativeButton={false}
-              className="h-10 shrink-0 rounded-full px-4"
-              render={<Link href={`/${churchSlug}/infantil/nova`} />}
-            >
-              + Cadastrar
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {(children ?? []).map((c) => {
-            const turma = suggestClass(c.birth_date, turmas);
-            return (
-              <div
-                key={c.id}
-                className="flex items-center gap-3 rounded-2xl border px-4 py-3"
-              >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
-                  <Baby className="size-4 text-muted-foreground" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{c.full_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatAge(c.birth_date)}
-                    {turma ? ` · ${turma.name}` : ""}
-                  </p>
-                </div>
-                {c.allergies && (
-                  <Badge className="shrink-0 rounded-full border-0 bg-amber-100 text-amber-800">
-                    <TriangleAlert className="mr-1 size-3" />
-                    Alergia
-                  </Badge>
-                )}
-              </div>
-            );
-          })}
-          {(children ?? []).length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Nenhuma criança cadastrada ainda.
-            </p>
-          )}
         </CardContent>
       </Card>
 
       <p className="px-1 text-xs text-muted-foreground">
-        Dados de menores: visíveis apenas a quem serve no Infantil e à
-        coordenação da igreja.
+        Dados de menores permanecem restritos a quem serve no Kids e à coordenação da igreja.
       </p>
+    </div>
+  );
+}
+
+function Metric({
+  icon: Icon,
+  value,
+  label,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  value: number;
+  label: string;
+}) {
+  return (
+    <div className="rounded-2xl border p-4">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="size-4" />
+        <span className="text-xs">{label}</span>
+      </div>
+      <p className="mt-2 text-2xl font-semibold">{value}</p>
     </div>
   );
 }
