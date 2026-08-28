@@ -49,7 +49,9 @@ export default async function PainelPage() {
       .limit(15),
   ]);
 
-  // quem avisou que pagou nos últimos 45 dias (Pix é conferido à mão)
+  // Janela relativa ao momento desta renderização no servidor. O uso de
+  // Date.now() aqui é intencional: não participa de render client/hidratação.
+  // eslint-disable-next-line react-hooks/purity
   const desde = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString();
   const { data: claims } = await supabase
     .from("billing_claims")
@@ -57,7 +59,7 @@ export default async function PainelPage() {
     .gte("created_at", desde);
   const avisaram = new Set((claims ?? []).map((c) => c.church_id));
 
-  // saúde: erros de produção das últimas 48h (o resto fica no Cloudflare)
+  // eslint-disable-next-line react-hooks/purity -- janela de observabilidade calculada no servidor
   const desde48h = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
   const { data: erros } = await supabase
     .from("error_logs")
