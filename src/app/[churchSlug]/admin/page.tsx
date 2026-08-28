@@ -15,6 +15,7 @@ import { CreateMinistryForm } from "@/components/admin/create-ministry-form";
 import { DeleteChurchZone } from "@/components/admin/delete-church";
 import { EditChurchName } from "@/components/admin/edit-church-name";
 import { DepartmentsManager } from "@/components/admin/departments-manager";
+import { CampusesManager } from "@/components/admin/campuses-manager";
 import { InviteLink } from "@/components/invite-link";
 
 export default async function AdminPage({
@@ -35,6 +36,7 @@ export default async function AdminPage({
     { data: departments },
     { data: interesses },
     { data: aptas },
+    { data: campuses },
   ] = await Promise.all([
     supabase
       .from("ministries")
@@ -60,6 +62,12 @@ export default async function AdminPage({
       .select("user_id, skill_id")
       .eq("church_id", cid)
       .not("approved_by", "is", null),
+    supabase
+      .from("campuses")
+      .select("id, name, active")
+      .eq("church_id", cid)
+      .order("sort_order")
+      .order("name"),
   ]);
   const { data: inviteCode } = isAdmin
     ? await supabase.rpc("get_church_invite_code", { p_church: cid })
@@ -111,6 +119,22 @@ export default async function AdminPage({
           </CardContent>
         </Card>
       )}
+
+      <Card className="rounded-3xl">
+        <CardHeader>
+          <CardTitle className="text-base">Campi</CardTitle>
+          <CardDescription>
+            Cadastre todos os locais fixos da igreja. Eventos, escalas e Kids passam a carregar esse contexto sem assumir que a igreja tem apenas um campus.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CampusesManager
+            churchSlug={churchSlug}
+            churchId={tenant.church.id}
+            campuses={campuses ?? []}
+          />
+        </CardContent>
+      </Card>
 
       {isAdmin && inviteCode && (
         <Card className="rounded-3xl">
