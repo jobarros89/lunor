@@ -1,0 +1,78 @@
+name: Fix CI invite fixtures
+
+on:
+  push:
+    branches: [fix/ci-invite-test-fixtures]
+    paths:
+      - ".github/workflows/fix-ci-invite-fixtures.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/ci-invite-test-fixtures
+          fetch-depth: 0
+
+      - name: Migrar fixtures para leitura service-role
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('tests/rls')
+          excluded = {'invite-code-security.test.ts'}
+          # O hardening revogou SELECT direto de invite_code para authenticated.
+          # Nos fixtures, a leitura do segredo é bootstrap de teste e deve usar
+          # o cliente service-role `admin`, nunca um usuário autenticado.
+          pattern = re.compile(
+              r'\b([A-Za-z_]\w*)(\s*\.from\(["\']churches["\']\)\s*\.select\(["\']invite_code["\']\))',
+              re.MULTILINE,
+          )
+
+          changed = []
+          total = 0
+          for path in sorted(root.glob('*.test.ts')):
+              if path.name in excluded:
+                  continue
+              text = path.read_text()
+              if 'invite_code' not in text:
+                  continue
+              if 'const admin = createClient' not in text:
+                  raise SystemExit(f'{path}: usa invite_code mas não possui cliente service-role admin')
+
+              def repl(match):
+                  nonlocal_total[0] += 1
+                  return 'admin' + match.group(2)
+
+              nonlocal_total = [0]
+              new_text = pattern.sub(repl, text)
+              # Não contabiliza admin -> admin como mudança real.
+              if new_text != text:
+                  path.write_text(new_text)
+                  changed.append((str(path), nonlocal_total[0]))
+                  total += nonlocal_total[0]
+
+          if not changed:
+              raise SystemExit('Nenhum fixture precisou de correção')
+
+          print(f'Fixtures corrigidos: {len(changed)} arquivos / {total} ocorrências')
+          for path, count in changed:
+              print(f' - {path}: {count}')
+          PY
+          git diff --check
+
+      - name: Remover workflow temporário e persistir correção
+        run: |
+          git rm .github/workflows/fix-ci-invite-fixtures.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/rls
+          git commit -m "test: atualizar fixtures para convite protegido"
+          git push origin HEAD:fix/ci-invite-test-fixtures
