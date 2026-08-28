@@ -59,7 +59,7 @@ describe("Kids — cadastro atômico e autorização", () => {
     ).data!.id;
 
     const invite = (
-      await leader.from("churches").select("invite_code").eq("id", churchId).single()
+      await admin.from("churches").select("invite_code").eq("id", churchId).single()
     ).data!.invite_code;
     await volunteer.rpc("join_church", { p_invite_code: invite });
 

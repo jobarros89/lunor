@@ -132,7 +132,7 @@ describe("IDOR cross-tenant em evaluations/tickets/vínculos (migration 12)", ()
     ).data;
 
     // volB entra na igreja B
-    const { data: chB } = await ligaB
+    const { data: chB } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchB)

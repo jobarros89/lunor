@@ -97,7 +97,7 @@ describe("isolamento multi-tenant (RLS)", () => {
 
   it("join_church com invite code adiciona como member (não admin)", async () => {
     const carol = await newUser(`carol-${run}@teste.dev`);
-    const { data: church } = await alice
+    const { data: church } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchA)
@@ -118,7 +118,7 @@ describe("isolamento multi-tenant (RLS)", () => {
 
   it("member comum não altera church_members", async () => {
     const carol = await newUser(`carol2-${run}@teste.dev`);
-    const { data: church } = await alice
+    const { data: church } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchA)

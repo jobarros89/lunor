@@ -59,7 +59,7 @@ describe("Fase 4 — manutenções e avaliações (RLS + ciclo de vida)", () => 
       p_slug: `igreja-f4-out-${run}`,
     });
 
-    const { data: church } = await lider
+    const { data: church } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchId)
@@ -221,7 +221,7 @@ describe("Fase 4 — manutenções e avaliações (RLS + ciclo de vida)", () => 
 
   it("membro comum não lê avaliação de outro; outsider também não", async () => {
     const carol = await newUser(`f4-carol-${run}@teste.dev`);
-    const { data: church } = await lider
+    const { data: church } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchId)

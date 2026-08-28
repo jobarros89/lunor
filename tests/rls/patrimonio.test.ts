@@ -54,7 +54,7 @@ describe("Fase 2 — patrimônio (RLS + histórico imutável)", () => {
       p_slug: `igreja-fora-${run}`,
     });
 
-    const { data: church } = await gestor
+    const { data: church } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchId)

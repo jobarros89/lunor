@@ -49,7 +49,7 @@ describe("Papel Coordenador de igreja (RLS)", () => {
     ).data;
 
     // coord entra em A e é promovido a coordenador pelo dono
-    const { data: chA } = await dono
+    const { data: chA } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchA)
@@ -117,7 +117,7 @@ describe("Papel Coordenador de igreja (RLS)", () => {
 
   it("coordenador NÃO promove ninguém a admin (nem a coordenador)", async () => {
     const alvo = await newUser(`co-alvo-${run}@teste.dev`);
-    const { data: chA } = await dono
+    const { data: chA } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchA)

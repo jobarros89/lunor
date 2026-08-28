@@ -58,7 +58,7 @@ describe("Fase 1 — skills, briefing e aptidões (RLS)", () => {
       p_slug: `igreja-outra-${run}`,
     });
 
-    const { data: church } = await gestor
+    const { data: church } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchId)

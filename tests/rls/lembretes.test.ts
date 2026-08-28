@@ -68,7 +68,7 @@ describe("Lembretes agendados (migration 28)", () => {
         .select("id").single()
     ).data!.id;
     const invite = (
-      await lider.from("churches").select("invite_code").eq("id", churchId).single()
+      await admin.from("churches").select("invite_code").eq("id", churchId).single()
     ).data!.invite_code;
     await voluntario.rpc("join_church", { p_invite_code: invite });
     await admin.from("ministry_members").insert([
@@ -206,7 +206,7 @@ describe("Lembretes agendados (migration 28)", () => {
     const semPush = await newUser(`lem-sempush-${run}@teste.dev`);
     const spId = await uid(semPush);
     const invite = (
-      await lider.from("churches").select("invite_code").eq("id", churchId).single()
+      await admin.from("churches").select("invite_code").eq("id", churchId).single()
     ).data!.invite_code;
     await semPush.rpc("join_church", { p_invite_code: invite });
     await admin.from("assignments").insert({

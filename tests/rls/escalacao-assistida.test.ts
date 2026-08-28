@@ -41,7 +41,7 @@ describe("Indisponibilidade e interesses (RLS)", () => {
       await lider.rpc("create_church", { p_name: "EA", p_slug: `ea-${run}` })
     ).data;
     await outro.rpc("create_church", { p_name: "EB", p_slug: `eb-${run}` });
-    const { data: ch } = await lider
+    const { data: ch } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchA)
@@ -79,7 +79,7 @@ describe("Indisponibilidade e interesses (RLS)", () => {
 
   it("outro membro NÃO marca indisponibilidade no nome do voluntário", async () => {
     const carol = await newUser(`ea-carol-${run}@teste.dev`);
-    const { data: ch } = await lider
+    const { data: ch } = await admin
       .from("churches")
       .select("invite_code")
       .eq("id", churchA)

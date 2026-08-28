@@ -63,7 +63,7 @@ describe("Repertório de louvor — quem lê a sequência (migration 27)", () =>
     ).data!.id;
 
     const invite = (
-      await coord.from("churches").select("invite_code").eq("id", churchId).single()
+      await admin.from("churches").select("invite_code").eq("id", churchId).single()
     ).data!.invite_code;
     for (const c of [louvorLider, louvorVol, midiaVol, deFora]) {
       await c.rpc("join_church", { p_invite_code: invite });
