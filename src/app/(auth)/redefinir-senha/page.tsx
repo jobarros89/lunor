@@ -30,23 +30,25 @@ function RedefinirSenhaContent() {
 
   useEffect(() => {
     const supabase = createClient();
-    const code = searchParams.get("code");
     let ativo = true;
 
-    async function prepararSessao() {
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
-          if (ativo) setEstado("invalido");
-          return;
-        }
+    async function validarSessaoDeRecovery() {
+      if (searchParams.get("erro") === "link") {
+        if (ativo) setEstado("invalido");
+        return;
       }
 
-      const { data } = await supabase.auth.getSession();
-      if (ativo) setEstado(data.session ? "pronto" : "invalido");
+      // O token de recovery é consumido exclusivamente no servidor em
+      // /auth/recovery. Aqui apenas confirmamos que a sessão resultante é válida.
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (ativo) setEstado(!error && user ? "pronto" : "invalido");
     }
 
-    void prepararSessao();
+    void validarSessaoDeRecovery();
 
     return () => {
       ativo = false;
