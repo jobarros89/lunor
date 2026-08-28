@@ -1,8 +1,11 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ArrowLeft, LayoutDashboard } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { getInfantilMinistry, formatAge, suggestClass, type ChildClass } from "@/lib/infantil";
 import { formatEventDate, formatEventTime } from "@/lib/escalas";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -66,7 +69,6 @@ export default async function SessaoInfantilPage({
 
   if (!event) notFound();
 
-  // autorizações de retirada de todas as crianças do setor
   const { data: vinculos } = await supabase
     .from("child_guardians")
     .select("child_id, can_pickup, relationship, guardians!inner(id, full_name)")
@@ -99,6 +101,7 @@ export default async function SessaoInfantilPage({
       allergies: c.allergies,
       specialNeeds: c.special_needs,
       classId: turma?.id ?? null,
+      className: turma?.name ?? null,
       checkin: checkinByChild.get(c.id) ?? null,
       guardians: guardiansByChild.get(c.id) ?? [],
     };
@@ -106,18 +109,61 @@ export default async function SessaoInfantilPage({
   }
 
   const presentes = (checkins ?? []).filter((k) => !k.checked_out_at).length;
+  const entradas = checkins?.length ?? 0;
+  const saidas = (checkins ?? []).filter((k) => !!k.checked_out_at).length;
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button
+          nativeButton={false}
+          variant="ghost"
+          className="h-10 rounded-full px-3"
+          render={<Link href={`/${churchSlug}/infantil`} />}
+        >
+          <ArrowLeft className="size-4" />
+          Dashboard
+        </Button>
+        <Button
+          nativeButton={false}
+          variant="outline"
+          className="h-10 rounded-full px-4"
+          render={<Link href={`/${churchSlug}/infantil`} />}
+        >
+          <LayoutDashboard className="size-4" />
+          LUNOR Kids
+        </Button>
+      </div>
+
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Infantil · {formatEventDate(event.starts_at)} ·{" "}
-          {formatEventTime(event.starts_at)}
+          Kids · Recepção · {formatEventDate(event.starts_at)} · {formatEventTime(event.starts_at)}
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{event.title}</h1>
         <p className="text-muted-foreground">
-          {presentes} {presentes === 1 ? "criança presente" : "crianças presentes"}
+          Operação de entrada, retirada e chamada de responsáveis.
         </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="rounded-3xl">
+          <CardContent className="px-4 py-5">
+            <p className="text-2xl font-semibold">{presentes}</p>
+            <p className="text-xs text-muted-foreground">Presentes agora</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-3xl">
+          <CardContent className="px-4 py-5">
+            <p className="text-2xl font-semibold">{entradas}</p>
+            <p className="text-xs text-muted-foreground">Check-ins</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-3xl">
+          <CardContent className="px-4 py-5">
+            <p className="text-2xl font-semibold">{saidas}</p>
+            <p className="text-xs text-muted-foreground">Check-outs</p>
+          </CardContent>
+        </Card>
       </div>
 
       <EndSessionButton
@@ -128,35 +174,41 @@ export default async function SessaoInfantilPage({
         presentes={presentes}
       />
 
-      {[...porTurma.entries()].map(([turma, itens]) => (
-        <Card key={turma} className="rounded-3xl">
-          <CardHeader>
-            <CardTitle className="text-base">{turma}</CardTitle>
-            <CardDescription>
-              {itens.length} {itens.length === 1 ? "criança" : "crianças"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {itens.map((c) => (
-              <SessionChildRow
-                key={c.id}
-                child={c}
-                churchSlug={churchSlug}
-                churchId={tenant.church.id}
-                ministryId={ministry.id}
-                eventId={eventId}
-                podeLiberar={podeLiberar}
-              />
-            ))}
-          </CardContent>
-        </Card>
-      ))}
+      {[...porTurma.entries()].map(([turma, itens]) => {
+        const presentesTurma = itens.filter(
+          (item) => item.checkin && !item.checkin.checkedOut
+        ).length;
+        return (
+          <Card key={turma} className="rounded-3xl">
+            <CardHeader>
+              <CardTitle className="text-base">{turma}</CardTitle>
+              <CardDescription>
+                {presentesTurma} presentes · {itens.length} cadastradas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {itens.map((c) => (
+                <SessionChildRow
+                  key={c.id}
+                  child={c}
+                  churchSlug={churchSlug}
+                  churchId={tenant.church.id}
+                  ministryId={ministry.id}
+                  eventId={eventId}
+                  eventTitle={event.title}
+                  podeLiberar={podeLiberar}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        );
+      })}
 
       {(children ?? []).length === 0 && (
         <Card className="rounded-3xl">
           <CardContent className="py-6">
             <p className="text-sm text-muted-foreground">
-              Nenhuma criança cadastrada. Cadastre na tela do Infantil.
+              Nenhuma criança cadastrada. Cadastre na tela do Kids.
             </p>
           </CardContent>
         </Card>
