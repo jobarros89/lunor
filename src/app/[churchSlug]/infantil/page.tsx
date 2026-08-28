@@ -24,6 +24,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SeedClassesButton } from "@/components/infantil/seed-classes-button";
+import { GuardianAccountLink } from "@/components/infantil/guardian-account-link";
 
 const DEFAULT_EVENT_DURATION_MS = 4 * 60 * 60 * 1000;
 
@@ -87,7 +88,13 @@ export default async function InfantilPage({
   const requestNowMs = Date.now();
   const sessionWindowStart = new Date(requestNowMs - 6 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: classes }, { data: children }, { data: eventos }] = await Promise.all([
+  const [
+    { data: classes },
+    { data: children },
+    { data: eventos },
+    { data: guardians },
+    { data: members },
+  ] = await Promise.all([
     supabase
       .from("child_classes")
       .select("id, name, min_age_months, max_age_months")
@@ -106,7 +113,29 @@ export default async function InfantilPage({
       .gte("starts_at", sessionWindowStart)
       .order("starts_at")
       .limit(6),
+    supabase
+      .from("guardians")
+      .select("id, full_name, user_id")
+      .eq("ministry_id", ministry.id)
+      .order("full_name"),
+    supabase
+      .from("church_members")
+      .select("user_id, profiles!inner(full_name)")
+      .eq("church_id", tenant.church.id)
+      .eq("status", "active"),
   ]);
+
+  const guardianRows = (guardians ?? []).map((guardian) => ({
+    id: guardian.id,
+    fullName: guardian.full_name,
+    userId: guardian.user_id,
+  }));
+  const accountRows = (members ?? [])
+    .map((member) => ({
+      id: member.user_id,
+      fullName: (member.profiles as unknown as { full_name: string }).full_name,
+    }))
+    .sort((a, b) => a.fullName.localeCompare(b.fullName, "pt-BR"));
 
   const eventoAtual =
     eventos?.find((event) => {
@@ -290,6 +319,26 @@ export default async function InfantilPage({
           )}
         </CardContent>
       </Card>
+
+      {podeGerir && (
+        <Card className="rounded-3xl">
+          <CardHeader>
+            <CardTitle className="text-base">Responsáveis e conta LUNOR</CardTitle>
+            <CardDescription>
+              Vincule o responsável a uma conta ativa da igreja para que os chamados do Kids cheguem ao aparelho correto.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <GuardianAccountLink
+              churchSlug={churchSlug}
+              churchId={tenant.church.id}
+              ministryId={ministry.id}
+              guardians={guardianRows}
+              accounts={accountRows}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="rounded-3xl">
         <CardHeader>
