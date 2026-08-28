@@ -43,5 +43,7 @@ jobs:
             echo "Dependências já estavam atualizadas."
           else
             git commit -m "chore(mobile): install Capacitor dependencies"
+            git fetch origin mobile/capacitor
+            git rebase origin/mobile/capacitor
             git push origin HEAD:mobile/capacitor
           fi
