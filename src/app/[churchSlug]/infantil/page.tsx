@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/card";
 import { SeedClassesButton } from "@/components/infantil/seed-classes-button";
 
+const DEFAULT_EVENT_DURATION_MS = 4 * 60 * 60 * 1000;
+
 export default async function InfantilPage({
   params,
 }: {
@@ -79,6 +81,12 @@ export default async function InfantilPage({
   const podeGerir =
     tenant.isCoord || vinculo?.role === "gerente" || vinculo?.role === "lider";
 
+  // Momento desta renderização no servidor; usado apenas para escolher a
+  // sessão operacional atual/próxima, sem participar de hidratação client-side.
+  // eslint-disable-next-line react-hooks/purity
+  const requestNowMs = Date.now();
+  const sessionWindowStart = new Date(requestNowMs - 6 * 60 * 60 * 1000).toISOString();
+
   const [{ data: classes }, { data: children }, { data: eventos }] = await Promise.all([
     supabase
       .from("child_classes")
@@ -93,14 +101,22 @@ export default async function InfantilPage({
       .order("full_name"),
     supabase
       .from("events")
-      .select("id, title, starts_at")
+      .select("id, title, starts_at, ends_at")
       .eq("church_id", tenant.church.id)
-      .gte("starts_at", new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
+      .gte("starts_at", sessionWindowStart)
       .order("starts_at")
-      .limit(3),
+      .limit(6),
   ]);
 
-  const eventoAtual = eventos?.[0] ?? null;
+  const eventoAtual =
+    eventos?.find((event) => {
+      const startMs = new Date(event.starts_at).getTime();
+      const endMs = event.ends_at
+        ? new Date(event.ends_at).getTime()
+        : startMs + DEFAULT_EVENT_DURATION_MS;
+      return endMs >= requestNowMs;
+    }) ?? null;
+
   let checkins: Array<{ class_id: string | null; checked_out_at: string | null }> = [];
   let chamadasPendentes = 0;
 
@@ -281,21 +297,30 @@ export default async function InfantilPage({
           <CardDescription>Abra a recepção diretamente no culto desejado</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {(eventos ?? []).map((e) => (
-            <Link
-              key={e.id}
-              href={`/${churchSlug}/infantil/sessao/${e.id}`}
-              className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors hover:bg-accent/40"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium">{e.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatEventDate(e.starts_at)} · {formatEventTime(e.starts_at)}
-                </p>
-              </div>
-              <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-            </Link>
-          ))}
+          {(eventos ?? [])
+            .filter((event) => {
+              const startMs = new Date(event.starts_at).getTime();
+              const endMs = event.ends_at
+                ? new Date(event.ends_at).getTime()
+                : startMs + DEFAULT_EVENT_DURATION_MS;
+              return endMs >= requestNowMs;
+            })
+            .slice(0, 3)
+            .map((e) => (
+              <Link
+                key={e.id}
+                href={`/${churchSlug}/infantil/sessao/${e.id}`}
+                className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors hover:bg-accent/40"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{e.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatEventDate(e.starts_at)} · {formatEventTime(e.starts_at)}
+                  </p>
+                </div>
+                <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+              </Link>
+            ))}
         </CardContent>
       </Card>
 
