@@ -25,55 +25,33 @@ const childSchema = z.object({
   guardianRelationship: z.string().max(40).default(""),
 });
 
-/** Cadastra a criança + o responsável principal (já autorizado a retirar). */
+/**
+ * Cadastra criança + responsável principal + autorização em uma única
+ * transação no banco. Se qualquer etapa falhar, nada fica parcialmente salvo.
+ */
 export async function createChild(raw: unknown): Promise<ActionResult> {
   const parsed = childSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const d = parsed.data;
   const supabase = await createClient();
 
-  const { data: guardian, error: gErr } = await supabase
-    .from("guardians")
-    .insert({
-      church_id: d.churchId,
-      ministry_id: d.ministryId,
-      full_name: d.guardianName,
-      phone: d.guardianPhone || null,
-    })
-    .select("id")
-    .single();
-  if (gErr || !guardian) return { ok: false, error: "Sem permissão para cadastrar" };
-
-  const { data: child, error: cErr } = await supabase
-    .from("children")
-    .insert({
-      church_id: d.churchId,
-      ministry_id: d.ministryId,
-      full_name: d.fullName,
-      birth_date: d.birthDate,
-      allergies: d.allergies || null,
-      health_notes: d.healthNotes || null,
-      special_needs: d.specialNeeds || null,
-      emergency_contact_name: d.emergencyName || null,
-      emergency_contact_phone: d.emergencyPhone || null,
-      consent_guardian_id: guardian.id,
-      photo_consent: d.photoConsent,
-      photo_consent_at: d.photoConsent ? new Date().toISOString() : null,
-    })
-    .select("id")
-    .single();
-  if (cErr || !child) return { ok: false, error: "Não foi possível cadastrar a criança" };
-
-  // responsável principal já entra autorizado a retirar
-  const { error: linkErr } = await supabase.from("child_guardians").insert({
-    child_id: child.id,
-    guardian_id: guardian.id,
-    church_id: d.churchId,
-    relationship: d.guardianRelationship || null,
-    can_pickup: true,
-    is_primary: true,
+  const { error } = await supabase.rpc("create_child_with_primary_guardian", {
+    p_church: d.churchId,
+    p_ministry: d.ministryId,
+    p_full_name: d.fullName,
+    p_birth_date: d.birthDate,
+    p_allergies: d.allergies || null,
+    p_health_notes: d.healthNotes || null,
+    p_special_needs: d.specialNeeds || null,
+    p_emergency_name: d.emergencyName || null,
+    p_emergency_phone: d.emergencyPhone || null,
+    p_photo_consent: d.photoConsent,
+    p_guardian_name: d.guardianName,
+    p_guardian_phone: d.guardianPhone || null,
+    p_guardian_relationship: d.guardianRelationship || null,
   });
-  if (linkErr) return { ok: false, error: "Criança criada, mas o responsável não vinculou" };
+
+  if (error) return { ok: false, error: "Sem permissão ou não foi possível cadastrar" };
 
   revalidatePath(`/${d.churchSlug}/infantil`);
   return { ok: true, data: undefined };
