@@ -33,10 +33,10 @@ jobs:
       - name: Instalar dependências do projeto
         run: npm ci --no-audit --no-fund
 
-      - name: Instalar e persistir Capacitor
+      - name: Garantir dependências Capacitor
         run: |
-          npm install --save-exact @capacitor/core@latest @capacitor/android@latest @capacitor/ios@latest
-          npm install --save-dev --save-exact @capacitor/cli@latest
+          npm install --save-exact @capacitor/core@8.5.0 @capacitor/android@8.5.0 @capacitor/ios@8.5.0
+          npm install --save-dev --save-exact @capacitor/cli@8.5.0
 
       - name: Validar aplicação
         run: |
@@ -55,7 +55,13 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug
 
-      - name: Salvar dependências e projeto Android na branch
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lunor-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Salvar projeto Android na branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -64,11 +70,7 @@ jobs:
             echo "Nada novo para persistir."
           else
             git commit -m "chore(mobile): generate Capacitor Android shell"
+            git fetch origin mobile/capacitor
+            git rebase origin/mobile/capacitor
             git push origin HEAD:mobile/capacitor
           fi
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: lunor-android-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
