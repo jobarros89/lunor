@@ -101,7 +101,10 @@ export function SessionChildRow({
         checkinId: child.checkin!.id,
         reason: "",
       });
-      if (!r.ok) return toast.error(r.error);
+      if (!r.ok) {
+        toast.error(r.error);
+        return;
+      }
 
       if (r.data.sms === "sent") {
         toast.success(`Responsável chamado por SMS — código ${child.checkin!.code}`);
