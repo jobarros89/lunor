@@ -140,8 +140,8 @@ describe("Kids V1 hardening", () => {
     ).data!.id;
   });
 
-  it("cadastro atômico exige liderança e não roda como definer aberto", async () => {
-    const denied = await volunteer.rpc("create_child_with_primary_guardian", {
+  it("cadastro atômico permite voluntário ativo, mas bloqueia conta de outra igreja", async () => {
+    const denied = await coordOther.rpc("create_child_with_primary_guardian", {
       p_church: churchId,
       p_ministry: kidsId,
       p_full_name: "Criança Negada",
@@ -150,7 +150,7 @@ describe("Kids V1 hardening", () => {
     });
     expect(denied.error).not.toBeNull();
 
-    const allowed = await leader.rpc("create_child_with_primary_guardian", {
+    const allowed = await volunteer.rpc("create_child_with_primary_guardian", {
       p_church: churchId,
       p_ministry: kidsId,
       p_full_name: "Criança Permitida",
