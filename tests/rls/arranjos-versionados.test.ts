@@ -909,8 +909,8 @@ describe("Arranjos, versões e imports — migration 31", () => {
     expect(imports.data).toHaveLength(0);
   });
 
-  it("policies anteriores de songs e setlist_items continuam ativas", async () => {
-    const visibleSong = await memberA.from("songs").select("id").eq("id", songA);
+  it("policies de songs e setlist_items refletem o acesso V1", async () => {
+    const hiddenSong = await memberA.from("songs").select("id").eq("id", songA);
     const deniedSong = await memberA.from("songs").insert({
       church_id: churchA,
       title: "Cadastro indevido",
@@ -925,7 +925,7 @@ describe("Arranjos, versões e imports — migration 31", () => {
       song_id: songA,
       position: 99,
     });
-    expect(visibleSong.data).toHaveLength(1);
+    expect(hiddenSong.data).toHaveLength(0);
     expect(deniedSong.error).not.toBeNull();
     expect(hiddenDraftSetlist.data).toHaveLength(0);
     expect(deniedSetlist.error).not.toBeNull();

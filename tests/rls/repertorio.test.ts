@@ -155,10 +155,10 @@ describe("Repertório de louvor — quem lê a sequência (migration 27)", () =>
     expect(data).toHaveLength(0);
   });
 
-  it("o acervo é da igreja: qualquer membro consulta para ensaiar em casa", async () => {
-    const { data } = await deFora.from("songs").select("id, title, lyrics").eq("id", songId);
-    expect(data).toHaveLength(1);
-    expect(data![0].lyrics).toContain("Eu te amo");
+  it("membro fora do Louvor e não escalado não lê o acervo", async () => {
+    const { data, error } = await deFora.from("songs").select("id, title, lyrics").eq("id", songId);
+    expect(error).toBeNull();
+    expect(data).toHaveLength(0);
   });
 
   it("quem não é do louvor não cadastra música no acervo", async () => {
