@@ -25,11 +25,14 @@ export async function updateKidsChild(raw: unknown): Promise<ActionResult> {
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const d = parsed.data;
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Faça login novamente" };
 
   const { data: membership } = await supabase
     .from("ministry_members")
     .select("role")
     .eq("ministry_id", d.ministryId)
+    .eq("user_id", user.id)
     .eq("active", true)
     .maybeSingle();
 
