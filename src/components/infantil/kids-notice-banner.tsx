@@ -15,37 +15,29 @@ export type KidsPersonalNotice = {
   created_at: string;
 };
 
-function isVisible(notice: KidsPersonalNotice, now = Date.now()) {
+function isVisible(notice: KidsPersonalNotice, now: number) {
   if (notice.kind !== "fim_sessao") return true;
   return new Date(notice.created_at).getTime() + SESSION_END_TTL_MS > now;
 }
 
-function pruneExpired(notices: KidsPersonalNotice[], now: number) {
-  const filtered = notices.filter((notice) => isVisible(notice, now));
-  return filtered.length === notices.length ? notices : filtered;
-}
-
 export function KidsNoticeBanner({
   churchSlug,
-  notices: initialNotices,
+  notices: serverNotices,
 }: {
   churchSlug: string;
   notices: KidsPersonalNotice[];
 }) {
-  const [notices, setNotices] = useState(initialNotices);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => new Set());
+  const [now, setNow] = useState(() => Date.now());
   const [pending, startTransition] = useTransition();
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  // O layout pode permanecer montado entre navegações no PWA. Sincroniza o
-  // estado local quando o servidor trouxer novos avisos para que o botão OK
-  // apareça imediatamente após abrir/tocar numa notificação.
-  useEffect(() => {
-    setNotices(pruneExpired(initialNotices, Date.now()));
-  }, [initialNotices]);
+  const notices = serverNotices.filter(
+    (notice) => !dismissedIds.has(notice.page_id) && isVisible(notice, now)
+  );
 
   useEffect(() => {
-    const now = Date.now();
-    const nextExpiry = notices
+    const nextExpiry = serverNotices
       .filter((notice) => notice.kind === "fim_sessao")
       .map((notice) => new Date(notice.created_at).getTime() + SESSION_END_TTL_MS)
       .filter((expiresAt) => expiresAt > now)
@@ -54,11 +46,11 @@ export function KidsNoticeBanner({
     if (!nextExpiry) return;
 
     const timer = window.setTimeout(() => {
-      setNotices((current) => pruneExpired(current, Date.now()));
+      setNow(Date.now());
     }, Math.max(0, nextExpiry - now) + 50);
 
     return () => window.clearTimeout(timer);
-  }, [notices]);
+  }, [serverNotices, now]);
 
   if (notices.length === 0) return null;
 
@@ -67,7 +59,11 @@ export function KidsNoticeBanner({
     startTransition(async () => {
       const result = await acknowledgeKidsNotice({ churchSlug, pageId });
       if (result.ok) {
-        setNotices((current) => current.filter((notice) => notice.page_id !== pageId));
+        setDismissedIds((current) => {
+          const next = new Set(current);
+          next.add(pageId);
+          return next;
+        });
         toast.success("Aviso confirmado para a equipe Kids");
       } else {
         toast.error(result.error);
