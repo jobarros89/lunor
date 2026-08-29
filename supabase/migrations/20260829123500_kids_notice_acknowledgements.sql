@@ -18,7 +18,7 @@ alter table public.child_page_recipients enable row level security;
 revoke all on table public.child_page_recipients from anon, authenticated;
 
 -- Atualiza o snapshot de destinatários de um aviso. Só o time do próprio
--- ministério (ou coordenação da igreja) pode executar.
+-- ministério (ou coordenação da igreja) pode executar manualmente.
 create or replace function public.refresh_child_page_recipients(p_page_id uuid)
 returns integer
 language plpgsql security definer set search_path = public as $$
@@ -75,6 +75,42 @@ $$;
 
 revoke all on function public.refresh_child_page_recipients(uuid) from public;
 grant execute on function public.refresh_child_page_recipients(uuid) to authenticated;
+
+-- Sincronização automática: toda nova chamada recebe destinatários e uma
+-- renovação do mesmo chamado (que atualiza created_at) zera a confirmação.
+create or replace function public.sync_child_page_recipients()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.child_page_recipients where page_id = new.id;
+
+  if new.kind = 'chamar' then
+    insert into public.child_page_recipients (page_id, user_id, notified_at)
+    select distinct new.id, g.user_id, new.created_at
+    from public.child_checkins c
+    join public.child_guardians cg on cg.child_id = c.child_id
+    join public.guardians g on g.id = cg.guardian_id
+    where c.id = new.checkin_id
+      and g.user_id is not null;
+  else
+    insert into public.child_page_recipients (page_id, user_id, notified_at)
+    select distinct new.id, g.user_id, new.created_at
+    from public.child_checkins c
+    join public.child_guardians cg on cg.child_id = c.child_id
+    join public.guardians g on g.id = cg.guardian_id
+    where c.event_id = new.event_id
+      and c.checked_out_at is null
+      and g.user_id is not null;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists child_pages_sync_recipients on public.child_pages;
+create trigger child_pages_sync_recipients
+after insert or update of created_at on public.child_pages
+for each row execute function public.sync_child_page_recipients();
 
 -- Avisos pessoais pendentes para o responsável logado.
 create or replace function public.meus_anuncios_infantil(p_church uuid)
