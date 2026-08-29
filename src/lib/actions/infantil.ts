@@ -262,7 +262,7 @@ const fimSchema = z.object({
   eventId: z.string().uuid(),
 });
 
-/** Fim da escolinha: avisa os responsáveis de TODAS as crianças presentes. */
+/** Encerramento do culto Kids: avisa os responsáveis de TODAS as crianças presentes. */
 export async function encerrarSessao(raw: unknown): Promise<ActionResult> {
   const parsed = fimSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Dados inválidos" };
@@ -299,8 +299,8 @@ export async function encerrarSessao(raw: unknown): Promise<ActionResult> {
     .map((v) => (v.guardians as unknown as { user_id: string | null }).user_id)
     .filter((id): id is string => !!id);
   await notifyUsers(alvos, {
-    title: "A escolinha terminou 🙌",
-    body: "Os responsáveis já podem buscar as crianças no Infantil.",
+    title: "Encerramento do culto Kids",
+    body: "Aguardamos você na recepção para retirada.",
     url: `/${d.churchSlug}`,
     tag: `infantil-fim-${d.eventId}`,
   });
