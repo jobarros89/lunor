@@ -5,6 +5,7 @@ import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { getInfantilMinistry, formatAge, suggestClass, type ChildClass } from "@/lib/infantil";
 import { formatEventDate, formatEventTime } from "@/lib/escalas";
+import { eventContextLabel } from "@/lib/event-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Guardian, SessionChild } from "@/components/infantil/session-child";
@@ -37,7 +38,7 @@ export default async function SessaoInfantilPage({
     await Promise.all([
       supabase
         .from("events")
-        .select("id, title, starts_at")
+        .select("id, title, starts_at, location, service_period, campuses(name)")
         .eq("id", eventId)
         .eq("church_id", tenant.church.id)
         .maybeSingle(),
@@ -59,6 +60,13 @@ export default async function SessaoInfantilPage({
     ]);
 
   if (!event) notFound();
+
+  const campus = event.campuses as unknown as { name: string } | null;
+  const eventContext = eventContextLabel({
+    campusName: campus?.name,
+    servicePeriod: event.service_period,
+    fallbackLocation: event.location,
+  });
 
   const childIds = (children ?? []).map((child) => child.id);
   const { data: vinculos } = childIds.length
@@ -140,6 +148,7 @@ export default async function SessaoInfantilPage({
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Kids · Recepção · {formatEventDate(event.starts_at)} · {formatEventTime(event.starts_at)}
+          {eventContext ? ` · ${eventContext}` : ""}
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{event.title}</h1>
         <p className="text-muted-foreground">
@@ -184,6 +193,7 @@ export default async function SessaoInfantilPage({
           ministryId={ministry.id}
           eventId={eventId}
           eventTitle={event.title}
+          eventContext={eventContext}
           podeLiberar={podeLiberar}
         />
       ) : (

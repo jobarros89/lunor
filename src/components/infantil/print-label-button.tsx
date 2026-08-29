@@ -8,11 +8,13 @@ export function PrintLabelButton({
   className,
   code,
   eventTitle,
+  eventContext,
 }: {
   childName: string;
   className: string | null;
   code: string;
   eventTitle: string;
+  eventContext: string;
 }) {
   function printLabel() {
     const popup = window.open("", "_blank", "width=520,height=420");
@@ -30,7 +32,8 @@ export function PrintLabelButton({
     .brand { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
     .name { font-size: 20px; font-weight: 700; margin-top: 8px; }
     .meta { font-size: 12px; margin-top: 4px; }
-    .code { font-size: 30px; font-weight: 800; letter-spacing: .14em; margin-top: 12px; }
+    .context { font-size: 13px; font-weight: 700; margin-top: 4px; }
+    .code { font-size: 30px; font-weight: 800; letter-spacing: .14em; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -39,6 +42,7 @@ export function PrintLabelButton({
     <div class="name">${escapeHtml(childName)}</div>
     <div class="meta">${escapeHtml(className ?? "Turma não definida")}</div>
     <div class="meta">${escapeHtml(eventTitle)}</div>
+    ${eventContext ? `<div class="context">${escapeHtml(eventContext)}</div>` : ""}
     <div class="code">${escapeHtml(code)}</div>
   </div>
   <script>window.onload = () => { window.print(); window.close(); };</script>

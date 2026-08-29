@@ -35,6 +35,7 @@ export function SessionChildRow({
   ministryId,
   eventId,
   eventTitle,
+  eventContext,
   podeLiberar,
 }: {
   child: SessionChild;
@@ -43,6 +44,7 @@ export function SessionChildRow({
   ministryId: string;
   eventId: string;
   eventTitle: string;
+  eventContext: string;
   podeLiberar: boolean;
 }) {
   const [pending, startTransition] = useTransition();
@@ -172,6 +174,7 @@ export function SessionChildRow({
                 className={child.className}
                 code={child.checkin.code}
                 eventTitle={eventTitle}
+                eventContext={eventContext}
               />
               <Button
                 variant="outline"

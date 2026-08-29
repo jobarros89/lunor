@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { createEvent } from "@/lib/actions/escalas";
+import { createEventWithContext } from "@/lib/actions/event-create";
+import { inferServicePeriod } from "@/lib/event-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,16 +16,20 @@ export function EventForm({
   churchId,
   eventTypes,
   ministries,
+  campuses,
 }: {
   churchSlug: string;
   churchId: string;
   eventTypes: Option[];
   ministries: Option[];
+  campuses: Option[];
 }) {
   const [pending, startTransition] = useTransition();
   const [v, setV] = useState<{
     typeId: string | null;
     ministryId: string | null;
+    campusId: string | null;
+    servicePeriod: "manha" | "tarde" | "noite" | null;
     title: string;
     description: string;
     location: string;
@@ -35,6 +40,8 @@ export function EventForm({
   }>({
     typeId: eventTypes[0]?.id ?? null,
     ministryId: null,
+    campusId: campuses[0]?.id ?? null,
+    servicePeriod: null,
     title: "",
     description: "",
     location: "",
@@ -48,7 +55,7 @@ export function EventForm({
     if (v.title.length < 2) return toast.error("Dê um título ao evento");
     if (!v.startsAt) return toast.error("Escolha a data e hora de início");
     startTransition(async () => {
-      const result = await createEvent({ churchSlug, churchId, ...v });
+      const result = await createEventWithContext({ churchSlug, churchId, ...v });
       if (result && !result.ok) toast.error(result.error);
     });
   }
@@ -85,9 +92,7 @@ export function EventForm({
           <Field label="Ministério">
             <select
               value={v.ministryId ?? ""}
-              onChange={(e) =>
-                setV({ ...v, ministryId: e.target.value || null })
-              }
+              onChange={(e) => setV({ ...v, ministryId: e.target.value || null })}
               className={selectCls}
             >
               <option value="">Toda a igreja</option>
@@ -98,11 +103,50 @@ export function EventForm({
               ))}
             </select>
           </Field>
+          <Field label="Campus">
+            <select
+              value={v.campusId ?? ""}
+              onChange={(e) => setV({ ...v, campusId: e.target.value || null })}
+              className={selectCls}
+            >
+              <option value="">Sem campus definido</option>
+              {campuses.map((campus) => (
+                <option key={campus.id} value={campus.id}>
+                  {campus.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Período do culto">
+            <select
+              value={v.servicePeriod ?? ""}
+              onChange={(e) =>
+                setV({
+                  ...v,
+                  servicePeriod:
+                    (e.target.value as "manha" | "tarde" | "noite") || null,
+                })
+              }
+              className={selectCls}
+            >
+              <option value="">Não definido</option>
+              <option value="manha">Manhã</option>
+              <option value="tarde">Tarde</option>
+              <option value="noite">Noite</option>
+            </select>
+          </Field>
           <Field label="Início" required>
             <Input
               type="datetime-local"
               value={v.startsAt}
-              onChange={(e) => setV({ ...v, startsAt: e.target.value })}
+              onChange={(e) => {
+                const startsAt = e.target.value;
+                setV({
+                  ...v,
+                  startsAt,
+                  servicePeriod: v.servicePeriod ?? inferServicePeriod(startsAt),
+                });
+              }}
               className={inputCls}
             />
           </Field>
@@ -116,11 +160,11 @@ export function EventForm({
           </Field>
         </div>
 
-        <Field label="Local">
+        <Field label="Local complementar">
           <Input
             value={v.location}
             onChange={(e) => setV({ ...v, location: e.target.value })}
-            placeholder="Ex.: Templo principal"
+            placeholder="Ex.: Auditório 2 (opcional)"
             className={inputCls}
           />
         </Field>

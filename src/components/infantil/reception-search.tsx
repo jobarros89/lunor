@@ -53,6 +53,7 @@ export function ReceptionSearch({
   ministryId,
   eventId,
   eventTitle,
+  eventContext,
   podeLiberar,
 }: {
   sessionChildren: SessionChild[];
@@ -61,6 +62,7 @@ export function ReceptionSearch({
   ministryId: string;
   eventId: string;
   eventTitle: string;
+  eventContext: string;
   podeLiberar: boolean;
 }) {
   const [query, setQuery] = useState("");
@@ -121,6 +123,7 @@ export function ReceptionSearch({
                   ministryId={ministryId}
                   eventId={eventId}
                   eventTitle={eventTitle}
+                  eventContext={eventContext}
                   podeLiberar={podeLiberar}
                 />
               ))}
