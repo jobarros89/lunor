@@ -69,8 +69,9 @@ export default async function SessaoInfantilPage({
       .order("full_name"),
     supabase
       .from("child_checkins")
-      .select("id, child_id, code, checked_out_at")
-      .eq("event_id", eventId),
+      .select("id, child_id, code, checked_out_at, checked_in_at")
+      .eq("event_id", eventId)
+      .order("checked_in_at", { ascending: true }),
     supabase.rpc("child_page_delivery_status", { p_event: eventId }),
   ]);
 
@@ -110,6 +111,9 @@ export default async function SessaoInfantilPage({
     ]);
   }
 
+  // A consulta vem em ordem cronológica; o Map sobrescreve o registro antigo
+  // e mantém a entrada mais recente de cada criança para a operação atual.
+  // As linhas anteriores continuam no banco para métricas e auditoria.
   const checkinByChild = new Map(
     (checkins ?? []).map((k) => [
       k.child_id,
