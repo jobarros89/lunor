@@ -1,12 +1,12 @@
 -- LUNOR Kids V1 hardening
--- 1) alinha o cadastro atomico ao codigo versionado (SECURITY INVOKER + lideranca)
--- 2) restringe privilegios brutos de child_checkins / child_pages
--- 3) separa policies de leitura/escrita e remove DELETE/TRUNCATE do papel authenticated
--- 4) protege coerencia church/ministry/event/child/class/checkin no banco
--- 5) protege seed de turmas para lideranca/coord apenas
+-- Mantem o fluxo operacional ja adotado pelo produto: voluntario ativo do Kids
+-- pode cadastrar uma NOVA familia pela RPC atomica, mas nao pode editar fichas.
+-- Endurece seed, privilegios, integridade de tenant e chamadas sem quebrar esse fluxo.
 
 -- ---------------------------------------------------------------------------
--- Cadastro atomico: volta a ser SECURITY INVOKER e exige lideranca do Kids.
+-- Cadastro atomico: SECURITY DEFINER continua intencional para a recepcao,
+-- mas a funcao valida autenticacao, igreja, ministerio e membership ativo.
+-- As tabelas seguem com escrita de ficha restrita a lideranca pelas policies.
 -- ---------------------------------------------------------------------------
 create or replace function public.create_child_with_primary_guardian(
   p_church uuid,
@@ -25,7 +25,7 @@ create or replace function public.create_child_with_primary_guardian(
 )
 returns uuid
 language plpgsql
-security invoker
+security definer
 set search_path = public
 as $$
 declare
@@ -47,12 +47,17 @@ begin
 
   if not (
     public.is_church_coord(p_church)
-    or public.has_ministry_role(
-      p_ministry,
-      array['gerente', 'lider']::public.ministry_role[]
-    )
+    or public.is_ministry_member(p_ministry)
   ) then
-    raise exception 'kids_registration_requires_leader';
+    raise exception 'kids_registration_requires_membership';
+  end if;
+
+  if p_full_name is null or char_length(trim(p_full_name)) < 2 then
+    raise exception 'child_name_required';
+  end if;
+
+  if p_birth_date is null or p_birth_date > current_date then
+    raise exception 'invalid_birth_date';
   end if;
 
   if p_guardian_name is null or char_length(trim(p_guardian_name)) < 2 then
@@ -286,9 +291,72 @@ on public.child_pages
 for each row execute function public.guard_child_page_tenant();
 
 -- ---------------------------------------------------------------------------
+-- O dedupe de chamadas existentes precisa atualizar internamente a linha ativa.
+-- Fazemos essa renovacao em SECURITY DEFINER, mas validando todo o escopo antes
+-- do UPDATE. Assim o cliente nao precisa de UPDATE direto em child_pages.
+-- ---------------------------------------------------------------------------
+create or replace function public.dedupe_active_child_call_before_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existing_id uuid;
+begin
+  if new.kind <> 'chamar' or new.checkin_id is null then
+    return new;
+  end if;
+
+  if auth.uid() is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  if not (
+    public.is_ministry_member(new.ministry_id)
+    or public.is_church_coord(new.church_id)
+  ) then
+    raise exception 'not_authorized';
+  end if;
+
+  if not exists (
+    select 1
+    from public.child_checkins c
+    where c.id = new.checkin_id
+      and c.church_id = new.church_id
+      and c.ministry_id = new.ministry_id
+      and c.event_id = new.event_id
+      and c.checked_out_at is null
+  ) then
+    raise exception 'kids_page_checkin_mismatch';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(new.checkin_id::text, 0));
+
+  update public.child_pages
+  set
+    reason = new.reason,
+    created_by = new.created_by,
+    created_at = coalesce(new.created_at, now())
+  where church_id = new.church_id
+    and ministry_id = new.ministry_id
+    and event_id = new.event_id
+    and checkin_id = new.checkin_id
+    and kind = 'chamar'
+    and resolved_at is null
+  returning id into v_existing_id;
+
+  if v_existing_id is not null then
+    return null;
+  end if;
+
+  return new;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- Menor privilegio para child_checkins.
--- Voluntario opera entrada/retirada, mas nao pode DELETE/TRUNCATE nem criar
--- trigger/constraint via privilegios herdados da tabela.
+-- Voluntario opera entrada/retirada, mas nao pode DELETE/TRUNCATE.
 -- ---------------------------------------------------------------------------
 drop policy if exists child_checkins_manage on public.child_checkins;
 drop policy if exists child_checkins_insert on public.child_checkins;
@@ -318,7 +386,7 @@ grant select, insert, update on table public.child_checkins to authenticated;
 -- ---------------------------------------------------------------------------
 -- Menor privilegio para child_pages.
 -- Chamada individual pode ser criada pelo time Kids; encerramento geral exige
--- lideranca/coord. Resolucao acontece apenas pelas rotinas SECURITY DEFINER.
+-- lideranca/coord. Resolucao/renovacao acontece apenas por funcoes protegidas.
 -- ---------------------------------------------------------------------------
 drop policy if exists child_pages_manage on public.child_pages;
 drop policy if exists child_pages_insert on public.child_pages;
