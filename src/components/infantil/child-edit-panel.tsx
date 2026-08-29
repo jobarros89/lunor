@@ -55,7 +55,10 @@ export function ChildEditPanel({
         emergencyPhone: String(fd.get("emergencyPhone") ?? ""),
         photoConsent,
       });
-      if (!result.ok) return toast.error(result.error);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       toast.success("Cadastro atualizado");
       router.refresh();
     });
@@ -73,7 +76,10 @@ export function ChildEditPanel({
         relationship: String(fd.get("relationship") ?? ""),
         canPickup,
       });
-      if (!result.ok) return toast.error(result.error);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       toast.success("Responsável adicionado");
       const form = document.getElementById("add-kids-guardian") as HTMLFormElement | null;
       form?.reset();
