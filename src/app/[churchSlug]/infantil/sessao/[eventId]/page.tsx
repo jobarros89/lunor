@@ -8,6 +8,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { Guardian, SessionChild } from "@/components/infantil/session-child";
 import { ReceptionSearch } from "@/components/infantil/reception-search";
 import { EndSessionButton } from "@/components/infantil/end-session-button";
+import { KidsDeliveryOverview, type KidsDeliveryItem } from "@/components/infantil/kids-delivery-overview";
+
+type DeliveryStatusRow = {
+  page_id: string;
+  checkin_id: string | null;
+  kind: "chamar" | "fim_sessao";
+  recipient_count: number | string;
+  acknowledged_count: number | string;
+  last_acknowledged_at: string | null;
+  created_at: string;
+  resolved_at: string | null;
+};
 
 export default async function SessaoInfantilPage({
   params,
@@ -31,30 +43,36 @@ export default async function SessaoInfantilPage({
   const podeLiberar =
     tenant.isCoord || vinculo?.role === "gerente" || vinculo?.role === "lider";
 
-  const [{ data: event }, { data: classes }, { data: children }, { data: checkins }] =
-    await Promise.all([
-      supabase
-        .from("events")
-        .select("id, title, starts_at, location, service_period, campuses(name)")
-        .eq("id", eventId)
-        .eq("church_id", tenant.church.id)
-        .maybeSingle(),
-      supabase
-        .from("child_classes")
-        .select("id, name, min_age_months, max_age_months")
-        .eq("ministry_id", ministry.id)
-        .order("sort_order"),
-      supabase
-        .from("children")
-        .select("id, full_name, birth_date, allergies, special_needs")
-        .eq("ministry_id", ministry.id)
-        .eq("active", true)
-        .order("full_name"),
-      supabase
-        .from("child_checkins")
-        .select("id, child_id, code, checked_out_at")
-        .eq("event_id", eventId),
-    ]);
+  const [
+    { data: event },
+    { data: classes },
+    { data: children },
+    { data: checkins },
+    { data: deliveryRows },
+  ] = await Promise.all([
+    supabase
+      .from("events")
+      .select("id, title, starts_at, location, service_period, campuses(name)")
+      .eq("id", eventId)
+      .eq("church_id", tenant.church.id)
+      .maybeSingle(),
+    supabase
+      .from("child_classes")
+      .select("id, name, min_age_months, max_age_months")
+      .eq("ministry_id", ministry.id)
+      .order("sort_order"),
+    supabase
+      .from("children")
+      .select("id, full_name, birth_date, allergies, special_needs")
+      .eq("ministry_id", ministry.id)
+      .eq("active", true)
+      .order("full_name"),
+    supabase
+      .from("child_checkins")
+      .select("id, child_id, code, checked_out_at")
+      .eq("event_id", eventId),
+    supabase.rpc("child_page_delivery_status", { p_event: eventId }),
+  ]);
 
   if (!event) notFound();
 
@@ -115,6 +133,27 @@ export default async function SessaoInfantilPage({
     };
   });
 
+  const codeByCheckin = new Map((checkins ?? []).map((k) => [k.id, k.code]));
+  const deliveryItems: KidsDeliveryItem[] = [];
+  const seenDelivery = new Set<string>();
+  for (const row of (deliveryRows ?? []) as DeliveryStatusRow[]) {
+    const key = row.kind === "fim_sessao" ? "fim_sessao" : `chamar:${row.checkin_id ?? row.page_id}`;
+    if (seenDelivery.has(key)) continue;
+    seenDelivery.add(key);
+    deliveryItems.push({
+      pageId: row.page_id,
+      kind: row.kind,
+      code: row.checkin_id ? codeByCheckin.get(row.checkin_id) ?? null : null,
+      status: {
+        recipientCount: Number(row.recipient_count),
+        acknowledgedCount: Number(row.acknowledged_count),
+        lastAcknowledgedAt: row.last_acknowledged_at,
+        createdAt: row.created_at,
+        resolvedAt: row.resolved_at,
+      },
+    });
+  }
+
   const presentes = (checkins ?? []).filter((k) => !k.checked_out_at).length;
   const entradas = checkins?.length ?? 0;
   const saidas = (checkins ?? []).filter((k) => !!k.checked_out_at).length;
@@ -160,6 +199,8 @@ export default async function SessaoInfantilPage({
         eventId={eventId}
         presentes={presentes}
       />
+
+      <KidsDeliveryOverview items={deliveryItems} />
 
       {sessionChildren.length > 0 ? (
         <ReceptionSearch
