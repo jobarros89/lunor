@@ -1,0 +1,3 @@
+-- Production-history marker.
+-- Production used this one-time preparation step while importing the ACTS/LUNOR baseline over RezFlow.
+-- Fresh databases start from the canonical baseline and need no preparation, so this file is intentionally a no-op.
