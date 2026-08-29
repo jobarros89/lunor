@@ -311,6 +311,17 @@ export default async function InfantilPage({
                     Alergia
                   </Badge>
                 )}
+                {podeGerir && (
+                  <Button
+                    nativeButton={false}
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 rounded-full"
+                    render={<Link href={`/${churchSlug}/infantil/crianca/${c.id}`} />}
+                  >
+                    Editar
+                  </Button>
+                )}
               </div>
             );
           })}
