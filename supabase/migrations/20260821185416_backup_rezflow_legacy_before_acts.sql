@@ -1,0 +1,3 @@
+-- Production-history marker.
+-- The production project executed a one-time backup of the legacy RezFlow schema before the ACTS/LUNOR import.
+-- Fresh databases have no legacy schema to back up, so this migration is intentionally a no-op.
