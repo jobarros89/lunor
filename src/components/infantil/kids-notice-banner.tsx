@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Check, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { acknowledgeKidsNotice } from "@/lib/actions/kids-notice";
+
+const SESSION_END_TTL_MS = 20 * 60 * 1000;
 
 export type KidsPersonalNotice = {
   page_id: string;
@@ -12,6 +14,16 @@ export type KidsPersonalNotice = {
   kind: "chamar" | "fim_sessao";
   created_at: string;
 };
+
+function isVisible(notice: KidsPersonalNotice, now = Date.now()) {
+  if (notice.kind !== "fim_sessao") return true;
+  return new Date(notice.created_at).getTime() + SESSION_END_TTL_MS > now;
+}
+
+function pruneExpired(notices: KidsPersonalNotice[], now: number) {
+  const filtered = notices.filter((notice) => isVisible(notice, now));
+  return filtered.length === notices.length ? notices : filtered;
+}
 
 export function KidsNoticeBanner({
   churchSlug,
@@ -23,6 +35,23 @@ export function KidsNoticeBanner({
   const [notices, setNotices] = useState(initialNotices);
   const [pending, startTransition] = useTransition();
   const [pendingId, setPendingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const now = Date.now();
+    const nextExpiry = notices
+      .filter((notice) => notice.kind === "fim_sessao")
+      .map((notice) => new Date(notice.created_at).getTime() + SESSION_END_TTL_MS)
+      .filter((expiresAt) => expiresAt > now)
+      .sort((a, b) => a - b)[0];
+
+    if (!nextExpiry) return;
+
+    const timer = window.setTimeout(() => {
+      setNotices((current) => pruneExpired(current, Date.now()));
+    }, Math.max(0, nextExpiry - now) + 50);
+
+    return () => window.clearTimeout(timer);
+  }, [notices]);
 
   if (notices.length === 0) return null;
 
