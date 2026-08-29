@@ -2,26 +2,28 @@ import "server-only";
 import { buildPushPayload } from "@block65/webcrypto-web-push";
 import { serverEnv } from "@/lib/env";
 
-export type PushTarget = { endpoint: string; p256dh: string; auth: string };
+export type PushTarget = { id: string; endpoint: string; p256dh: string; auth: string };
 export type PushMessage = { title: string; body: string; url?: string; tag?: string };
 
 /**
  * Envia uma notificação Web Push para os alvos (best-effort).
  * Roda no runtime do Worker via WebCrypto (o `web-push` do Node não funciona lá).
  * Assina com a chave privada VAPID (secret de runtime).
+ * Retorna somente ids de inscrições que o provedor confirmou como expiradas
+ * (HTTP 404/410), para limpeza posterior no banco.
  */
-export async function sendWebPush(targets: PushTarget[], message: PushMessage): Promise<void> {
-  if (targets.length === 0) return;
+export async function sendWebPush(targets: PushTarget[], message: PushMessage): Promise<string[]> {
+  if (targets.length === 0) return [];
   const publicKey = serverEnv("NEXT_PUBLIC_VAPID_PUBLIC_KEY");
   const privateKey = serverEnv("VAPID_PRIVATE_KEY");
-  const subject = serverEnv("VAPID_SUBJECT") ?? "mailto:contato@acts.app";
+  const subject = serverEnv("VAPID_SUBJECT") ?? "mailto:contato@lunorservice.com";
   if (!publicKey || !privateKey) {
     console.warn("sendWebPush: chaves VAPID ausentes — notificação ignorada");
-    return;
+    return [];
   }
   const vapid = { subject, publicKey, privateKey };
 
-  await Promise.allSettled(
+  const results = await Promise.all(
     targets.map(async (t) => {
       const subscription = {
         endpoint: t.endpoint,
@@ -42,13 +44,18 @@ export async function sendWebPush(targets: PushTarget[], message: PushMessage): 
           headers: payload.headers,
           body: payload.body as BodyInit,
         });
+        if (res.status === 404 || res.status === 410) {
+          return t.id;
+        }
         if (!res.ok) {
-          // 404/410 = inscrição expirada/removida (limpeza fica p/ Fase B)
-          console.warn("sendWebPush:", res.status, subscription.endpoint.slice(0, 48));
+          console.warn("sendWebPush: provedor recusou notificação", res.status);
         }
       } catch (err) {
         console.error("sendWebPush: falha ao enviar", err);
       }
+      return null;
     })
   );
+
+  return results.filter((id): id is string => !!id);
 }
