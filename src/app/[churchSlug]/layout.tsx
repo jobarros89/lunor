@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/shell/sidebar";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { SessionKeeper } from "@/components/shell/session-keeper";
 import { BrandLockup } from "@/components/brand-lockup";
+import { KidsNoticeBanner, type KidsPersonalNotice } from "@/components/infantil/kids-notice-banner";
 
 function isKidsMinistry(ministry: { name: string; slug: string }) {
   const slug = ministry.slug.toLocaleLowerCase("pt-BR");
@@ -36,13 +37,16 @@ export default async function TenantLayout({ children, params }: { children: Rea
   const activeMinistryNavigation = ministryNavigation(active);
   const hasKids = options.some(isKidsMinistry);
   const supabase = await createClient();
-  const { count: escalasPending } = await supabase
-    .from("assignments")
-    .select("id, events!inner(starts_at)", { count: "exact", head: true })
-    .eq("user_id", tenant.userId)
-    .eq("church_id", tenant.church.id)
-    .eq("status", "convidado")
-    .gte("events.starts_at", new Date().toISOString());
+  const [{ count: escalasPending }, { data: kidsNotices }] = await Promise.all([
+    supabase
+      .from("assignments")
+      .select("id, events!inner(starts_at)", { count: "exact", head: true })
+      .eq("user_id", tenant.userId)
+      .eq("church_id", tenant.church.id)
+      .eq("status", "convidado")
+      .gte("events.starts_at", new Date().toISOString()),
+    supabase.rpc("meus_anuncios_infantil", { p_church: tenant.church.id }),
+  ]);
   const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
   const initials = tenant.profile.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
 
@@ -71,6 +75,10 @@ export default async function TenantLayout({ children, params }: { children: Rea
           </div>
         </header>
         <main className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-4 md:px-8 md:pb-12">
+          <KidsNoticeBanner
+            churchSlug={churchSlug}
+            notices={(kidsNotices ?? []) as KidsPersonalNotice[]}
+          />
           {children}
         </main>
       </div>
