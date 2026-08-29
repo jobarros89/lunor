@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PrintLabelButton } from "@/components/infantil/print-label-button";
-import { checkOutChild, chamarResponsavel } from "@/lib/actions/infantil";
+import { checkOutChild } from "@/lib/actions/infantil";
+import { chamarResponsavelSeguro } from "@/lib/actions/infantil-call";
 import { checkInOrReenterChild } from "@/lib/actions/infantil-checkin";
 
 export type Guardian = {
@@ -102,20 +103,31 @@ export function SessionChildRow({
 
   function chamar() {
     startTransition(async () => {
-      const r = await chamarResponsavel({
-        churchSlug,
-        churchId,
-        ministryId,
-        eventId,
-        checkinId: child.checkin!.id,
-        reason: "",
-      });
-      if (r.ok) {
-        toast.success(`Responsável chamado — código ${child.checkin!.code}`, {
-          description: "O Web Push é enviado quando o responsável tiver notificações ativadas.",
+      try {
+        const r = await chamarResponsavelSeguro({
+          churchSlug,
+          churchId,
+          ministryId,
+          eventId,
+          checkinId: child.checkin!.id,
+          reason: "",
         });
-      } else {
-        toast.error(r.error);
+        if (r.ok) {
+          if (r.data.linkedAccountCount > 0) {
+            toast.success(`Responsável chamado — código ${child.checkin!.code}`, {
+              description: "O chamado foi registrado e enviado às contas LUNOR vinculadas.",
+            });
+          } else {
+            toast.warning(`Chamado registrado — código ${child.checkin!.code}`, {
+              description: "Nenhum responsável desta criança possui conta LUNOR vinculada para receber Push.",
+            });
+          }
+        } else {
+          toast.error(r.error);
+        }
+      } catch {
+        toast.error("O LUNOR foi atualizado. Recarregando para usar a versão mais recente…");
+        window.setTimeout(() => window.location.reload(), 800);
       }
     });
   }
