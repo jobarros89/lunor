@@ -1,8 +1,8 @@
-/* MEDIA CHURCH — service worker mínimo.
+/* LUNOR — service worker mínimo.
    Durante o desenvolvimento ativo, NÃO cacheamos HTML/CSS/JS: o app sempre
    busca do servidor (evita PWA travado em versão antiga no iPhone).
    Mantém apenas instalabilidade (PWA) + limpeza de caches antigos. */
-const CACHE = "acts-v4";
+const CACHE = "lunor-v1";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -26,13 +26,13 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data ? event.data.json() : {};
   } catch {
-    payload = { title: "Acts", body: event.data ? event.data.text() : "" };
+    payload = { title: "LUNOR", body: event.data ? event.data.text() : "" };
   }
-  const title = payload.title || "Acts";
+  const title = payload.title || "LUNOR";
   const options = {
     body: payload.body || "",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    icon: "/icons/lunor-icon-192-v2.png",
+    badge: "/icons/lunor-icon-192-v2.png",
     tag: payload.tag || undefined,
     renotify: Boolean(payload.tag),
     data: { url: payload.url || "/" },
