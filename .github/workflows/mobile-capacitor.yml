@@ -3,22 +3,26 @@ name: Mobile Capacitor
 on:
   pull_request:
     branches: [main]
+    paths:
+      - "capacitor.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/generate-mobile-icons.mjs"
+      - "public/icons/**"
+      - "android/**"
+      - ".github/workflows/mobile-capacitor.yml"
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   android:
-    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'mobile/capacitor'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref || 'mobile/capacitor' }}
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -33,23 +37,20 @@ jobs:
       - name: Instalar dependências do projeto
         run: npm ci --no-audit --no-fund
 
-      - name: Garantir dependências Capacitor
-        run: |
-          npm install --save-exact @capacitor/core@8.5.0 @capacitor/android@8.5.0 @capacitor/ios@8.5.0
-          npm install --save-dev --save-exact @capacitor/cli@8.5.0
-
       - name: Validar aplicação
         run: |
           npm run lint
           npx tsc --noEmit
+          node --check scripts/generate-mobile-icons.mjs
 
-      - name: Gerar projeto Android
+      - name: Gerar projeto Android com branding LUNOR
         run: |
           mkdir -p out
           printf '<!doctype html><html><body>LUNOR</body></html>' > out/index.html
           rm -rf android
           npx cap add android
           npx cap sync android
+          npm run mobile:icons
 
       - name: Gerar APK de validação
         working-directory: android
@@ -60,17 +61,3 @@ jobs:
           name: lunor-android-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-
-      - name: Salvar projeto Android na branch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json android
-          if git diff --cached --quiet; then
-            echo "Nada novo para persistir."
-          else
-            git commit -m "chore(mobile): generate Capacitor Android shell"
-            git fetch origin mobile/capacitor
-            git rebase origin/mobile/capacitor
-            git push origin HEAD:mobile/capacitor
-          fi
