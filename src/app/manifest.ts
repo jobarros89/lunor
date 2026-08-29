@@ -10,8 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#000000",
     theme_color: "#000000",
     icons: [
-      { src: "/icons/lunor-icon-192-v2.png", sizes: "192x192", type: "image/png" },
-      { src: "/icons/lunor-icon-512-v2.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+      { src: "/icons/lunor-mark-v2.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" },
     ],
   };
 }
