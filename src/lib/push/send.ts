@@ -2,15 +2,15 @@ import "server-only";
 import { buildPushPayload } from "@block65/webcrypto-web-push";
 import { serverEnv } from "@/lib/env";
 
-export type PushTarget = { id: string; endpoint: string; p256dh: string; auth: string };
+export type PushTarget = { id?: string; endpoint: string; p256dh: string; auth: string };
 export type PushMessage = { title: string; body: string; url?: string; tag?: string };
 
 /**
  * Envia uma notificação Web Push para os alvos (best-effort).
  * Roda no runtime do Worker via WebCrypto (o `web-push` do Node não funciona lá).
  * Assina com a chave privada VAPID (secret de runtime).
- * Retorna somente ids de inscrições que o provedor confirmou como expiradas
- * (HTTP 404/410), para limpeza posterior no banco.
+ * Retorna somente ids conhecidos de inscrições que o provedor confirmou como
+ * expiradas (HTTP 404/410), para limpeza posterior no banco.
  */
 export async function sendWebPush(targets: PushTarget[], message: PushMessage): Promise<string[]> {
   if (targets.length === 0) return [];
@@ -44,7 +44,7 @@ export async function sendWebPush(targets: PushTarget[], message: PushMessage): 
           headers: payload.headers,
           body: payload.body as BodyInit,
         });
-        if (res.status === 404 || res.status === 410) {
+        if ((res.status === 404 || res.status === 410) && t.id) {
           return t.id;
         }
         if (!res.ok) {
