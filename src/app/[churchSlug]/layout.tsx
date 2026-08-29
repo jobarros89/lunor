@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { Sidebar } from "@/components/shell/sidebar";
-import { SectorSwitcher } from "@/components/shell/sector-switcher";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { SessionKeeper } from "@/components/shell/session-keeper";
 import { BrandLockup } from "@/components/brand-lockup";
@@ -64,7 +63,6 @@ export default async function TenantLayout({ children, params }: { children: Rea
               <p className="text-[10px] capitalize tracking-wide text-muted-foreground">{today}</p>
             </div>
             <div className="ml-auto flex min-w-0 items-center gap-1">
-              {active && <SectorSwitcher churchSlug={churchSlug} activeId={active.id} options={options} />}
               <ThemeToggle />
               <form action="/auth/logout" method="post">
                 <Button type="submit" variant="ghost" className="h-10 rounded-none px-3" aria-label="Sair" title="Sair"><LogOut className="size-4" /><span className="hidden lg:inline">Sair</span></Button>
