@@ -291,6 +291,13 @@ on public.child_pages
 for each row execute function public.guard_child_page_tenant();
 
 -- ---------------------------------------------------------------------------
+-- Remove o dedupe legado, que ainda executava UPDATE como o chamador.
+-- A partir daqui existe um unico caminho de renovacao, protegido e auditavel.
+-- ---------------------------------------------------------------------------
+drop trigger if exists dedupe_active_child_call on public.child_pages;
+drop function if exists public.dedupe_active_child_call();
+
+-- ---------------------------------------------------------------------------
 -- O dedupe de chamadas existentes precisa atualizar internamente a linha ativa.
 -- Fazemos essa renovacao em SECURITY DEFINER, mas validando todo o escopo antes
 -- do UPDATE. Assim o cliente nao precisa de UPDATE direto em child_pages.
@@ -353,6 +360,11 @@ begin
   return new;
 end;
 $$;
+
+drop trigger if exists trg_child_pages_dedupe_active on public.child_pages;
+create trigger trg_child_pages_dedupe_active
+before insert on public.child_pages
+for each row execute function public.dedupe_active_child_call_before_insert();
 
 -- ---------------------------------------------------------------------------
 -- Menor privilegio para child_checkins.
