@@ -48,7 +48,7 @@ function matches(child: SessionChild, query: string) {
 
 function childStatus(child: SessionChild) {
   if (!child.checkin) return "Aguardando check-in";
-  if (child.checkin.checkedOut) return "Retirado";
+  if (child.checkin.checkedOut) return "Retirado · pode entrar novamente";
   return `Presente · ${child.checkin.code}`;
 }
 
@@ -79,10 +79,14 @@ export function ReceptionSearch({
     [sessionChildren, query]
   );
 
-  const selectedChild = useMemo(
-    () => filtered.find((child) => child.id === selectedChildId) ?? null,
-    [filtered, selectedChildId]
-  );
+  const searching = query.trim().length > 0;
+
+  const selectedChild = useMemo(() => {
+    const explicit = filtered.find((child) => child.id === selectedChildId) ?? null;
+    if (explicit) return explicit;
+    if (searching && filtered.length === 1) return filtered[0];
+    return null;
+  }, [filtered, searching, selectedChildId]);
 
   const byClass = useMemo(() => {
     const groups = new Map<string, SessionChild[]>();
@@ -92,8 +96,6 @@ export function ReceptionSearch({
     }
     return [...groups.entries()];
   }, [filtered]);
-
-  const searching = query.trim().length > 0;
 
   return (
     <div className="space-y-4">
@@ -115,12 +117,12 @@ export function ReceptionSearch({
         </div>
         <p className="mt-2 px-1 text-xs text-muted-foreground">
           {searching
-            ? `${filtered.length} resultado${filtered.length === 1 ? "" : "s"} · toque para selecionar`
+            ? `${filtered.length} resultado${filtered.length === 1 ? "" : "s"}${filtered.length > 1 ? " · toque para selecionar" : ""}`
             : "Digite o nome da criança, responsável ou telefone. Irmãos aparecem juntos quando compartilham o mesmo responsável."}
         </p>
       </div>
 
-      {searching && filtered.length > 0 && (
+      {searching && filtered.length > 1 && (
         <Card className="rounded-3xl">
           <CardContent className="space-y-2 py-3">
             {filtered.map((child) => {
@@ -156,7 +158,7 @@ export function ReceptionSearch({
       {searching && selectedChild && (
         <div className="space-y-2">
           <p className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Criança selecionada
+            Criança encontrada
           </p>
           <SessionChildRow
             child={selectedChild}
@@ -204,7 +206,7 @@ export function ReceptionSearch({
           );
         })}
 
-      {filtered.length === 0 && (
+      {searching && filtered.length === 0 && (
         <Card className="rounded-3xl">
           <CardContent className="py-8 text-center">
             <p className="font-medium">Nenhum cadastro encontrado</p>

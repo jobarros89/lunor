@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, LayoutDashboard } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { getInfantilMinistry, formatAge, suggestClass, type ChildClass } from "@/lib/infantil";
@@ -124,16 +124,7 @@ export default async function SessaoInfantilPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button
-          nativeButton={false}
-          variant="ghost"
-          className="h-10 rounded-full px-3"
-          render={<Link href={`/${churchSlug}/infantil`} />}
-        >
-          <ArrowLeft className="size-4" />
-          Dashboard
-        </Button>
+      <div className="flex justify-end">
         <Button
           nativeButton={false}
           variant="outline"
