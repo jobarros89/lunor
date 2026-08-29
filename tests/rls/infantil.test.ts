@@ -234,11 +234,35 @@ describe("Infantil — parede e retirada autorizada (migration 23)", () => {
   // Fase B — o anúncio precisa ATRAVESSAR a parede (a igreja toda vê o
   // chamado) levando só o código; nunca o nome da criança.
   it("anúncio mostra o código à igreja inteira, sem vazar a criança", async () => {
+    // O check-in inicial já foi encerrado no teste de exceção acima. O hardening
+    // bloqueia corretamente novos chamados para uma criança que já saiu, então
+    // este cenário usa uma sessão ativa independente.
+    const pageEventId = (
+      await coord
+        .from("events")
+        .insert({ church_id: churchId, title: "Culto anúncio", starts_at: new Date().toISOString() })
+        .select("id")
+        .single()
+    ).data!.id;
+    const pageCheckinId = (
+      await infVol
+        .from("child_checkins")
+        .insert({
+          church_id: churchId,
+          ministry_id: infantilId,
+          event_id: pageEventId,
+          child_id: childId,
+          code: "042",
+        })
+        .select("id")
+        .single()
+    ).data!.id;
+
     const { error: pErr } = await infLider.from("child_pages").insert({
       church_id: churchId,
       ministry_id: infantilId,
-      event_id: eventId,
-      checkin_id: checkinId,
+      event_id: pageEventId,
+      checkin_id: pageCheckinId,
       kind: "chamar",
     });
     expect(pErr).toBeNull();
@@ -284,18 +308,20 @@ describe("Infantil — parede e retirada autorizada (migration 23)", () => {
         .select("id")
         .single()
     ).data!.id;
-    await infLider.from("child_pages").insert({
+    const { error: pageError } = await infLider.from("child_pages").insert({
       church_id: churchId,
       ministry_id: infantilId,
       event_id: ev3,
       checkin_id: ci,
       kind: "chamar",
     });
+    expect(pageError).toBeNull();
 
-    await infVol
+    const { error: checkoutError } = await infVol
       .from("child_checkins")
       .update({ picked_up_by: maeId, checked_out_at: new Date().toISOString() })
       .eq("id", ci);
+    expect(checkoutError).toBeNull();
 
     const { data } = await admin
       .from("child_pages")
