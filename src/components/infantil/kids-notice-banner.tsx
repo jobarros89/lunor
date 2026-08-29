@@ -36,6 +36,13 @@ export function KidsNoticeBanner({
   const [pending, startTransition] = useTransition();
   const [pendingId, setPendingId] = useState<string | null>(null);
 
+  // O layout pode permanecer montado entre navegações no PWA. Sincroniza o
+  // estado local quando o servidor trouxer novos avisos para que o botão OK
+  // apareça imediatamente após abrir/tocar numa notificação.
+  useEffect(() => {
+    setNotices(pruneExpired(initialNotices, Date.now()));
+  }, [initialNotices]);
+
   useEffect(() => {
     const now = Date.now();
     const nextExpiry = notices
@@ -79,7 +86,7 @@ export function KidsNoticeBanner({
           <Megaphone className="size-4 shrink-0" />
           <p className="min-w-0 flex-1 text-sm font-medium">
             {notice.kind === "fim_sessao" ? (
-              "O Kids terminou — você já pode buscar a criança."
+              "Encerramento do culto Kids. Aguardamos você na recepção para retirada."
             ) : (
               <>
                 Kids chama o código <span className="font-mono font-bold">{notice.code}</span> — compareça à recepção.
