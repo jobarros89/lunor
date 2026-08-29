@@ -34,7 +34,7 @@ function PublicEntry() {
       <section className="flex flex-1 items-center justify-center px-6 pb-10 pt-[max(2rem,env(safe-area-inset-top))]">
         <div className="flex -translate-y-4 flex-col items-center sm:-translate-y-2">
           <Image
-            src="/icons/lunor-icon-512-v2.png"
+            src="/icons/lunor-mark-v2.svg"
             alt="LUNOR"
             width={220}
             height={220}
