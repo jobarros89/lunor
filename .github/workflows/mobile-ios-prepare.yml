@@ -13,8 +13,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: mobile/capacitor
 
       - uses: actions/setup-node@v4
         with:
@@ -24,16 +22,20 @@ jobs:
       - name: Instalar dependências
         run: npm ci --no-audit --no-fund
 
+      - name: Validar gerador de ícones
+        run: node --check scripts/generate-mobile-icons.mjs
+
       - name: Preparar webDir mínimo
         run: |
           mkdir -p out
           printf '<!doctype html><html><body>LUNOR</body></html>' > out/index.html
 
-      - name: Gerar shell iOS
+      - name: Gerar shell iOS com branding LUNOR
         run: |
           rm -rf ios
           npx cap add ios
           npx cap sync ios
+          npm run mobile:icons
 
       - name: Validar projeto Xcode sem assinatura
         run: xcodebuild -project ios/App/App.xcodeproj -list
