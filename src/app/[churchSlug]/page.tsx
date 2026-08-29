@@ -7,11 +7,19 @@ import { checkPlatformAdmin } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
 import { InviteLink } from "@/components/invite-link";
 import { ASSIGNMENT_STATUS_BADGE, ASSIGNMENT_STATUS_LABELS, formatEventDate, formatEventTime } from "@/lib/escalas";
+import { eventContextLabel } from "@/lib/event-context";
 import { Badge } from "@/components/ui/badge";
 import { QuickConfirm } from "@/components/escalas/quick-confirm";
 
-type AssignmentEvent = { id: string; title: string; starts_at: string; location: string | null };
 type RelatedName = { name: string } | { name: string }[] | null;
+type AssignmentEvent = {
+  id: string;
+  title: string;
+  starts_at: string;
+  location: string | null;
+  service_period: string | null;
+  campuses: RelatedName;
+};
 type HomeAssignment = {
   id: string;
   role_name: string;
@@ -70,6 +78,15 @@ function describeService(assignments: HomeAssignment[]) {
   return `Você serve ${joinPtBr(roles.map(roleWithArticle))}`;
 }
 
+function homeEventContext(event: AssignmentEvent | null) {
+  if (!event) return null;
+  return eventContextLabel({
+    campusName: firstRelated(event.campuses)?.name,
+    servicePeriod: event.service_period,
+    fallbackLocation: event.location,
+  }) || null;
+}
+
 export default async function HomePage({ params }: { params: Promise<{ churchSlug: string }> }) {
   const { churchSlug } = await params;
   const tenant = await getTenant(churchSlug);
@@ -85,7 +102,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
 
   const { data: myEscalas } = await supabase
     .from("assignments")
-    .select("id, role_name, status, arrival_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, location)")
+    .select("id, role_name, status, arrival_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, location, service_period, campuses(name))")
     .eq("church_id", tenant.church.id)
     .eq("user_id", tenant.userId)
     .neq("status", "substituido")
@@ -105,6 +122,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
     : [];
   const nextMinistries = uniqueNames(nextEventAssignments.map((assignment) => firstRelated(assignment.ministries)?.name));
   const serviceSummary = describeService(nextEventAssignments);
+  const nextContext = homeEventContext(nextEvent);
   const nextDate = nextEvent ? new Date(nextEvent.starts_at) : null;
   const day = nextDate ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit" }).format(nextDate) : "—";
   const month = nextDate ? new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(nextDate).replace(".", "") : "sem data";
@@ -170,7 +188,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
               <span className="font-medium">{serviceSummary}</span>
               {nextMinistries.length > 0 && <span><span className="text-muted-foreground">Equipe</span> <strong>{joinPtBr(nextMinistries)}</strong></span>}
               {arrival && <span><span className="text-muted-foreground">Chegada</span> <strong>{arrival}</strong></span>}
-              {nextEvent?.location && <span><span className="text-muted-foreground">Local</span> <strong>{nextEvent.location}</strong></span>}
+              {nextContext && <span><span className="text-muted-foreground">Local</span> <strong>{nextContext}</strong></span>}
               {nextAssignment.items_to_bring && <span><span className="text-muted-foreground">Levar</span> <strong>{nextAssignment.items_to_bring}</strong></span>}
             </div>
           ) : (
@@ -198,12 +216,13 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
               const ev = firstRelated(a.events);
               if (!ev) return null;
               const pendente = a.status === "convidado";
+              const context = homeEventContext(ev);
               return (
                 <div key={a.id} className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 py-5">
                   <span className="font-editorial text-3xl text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
                   <Link href={`/${churchSlug}/escalas/${ev.id}`} className="min-w-0 hover:opacity-65">
                     <p className="truncate font-medium">{ev.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{formatEventDate(ev.starts_at)} · {formatEventTime(ev.starts_at)} · {a.role_name}{a.arrival_time ? ` · chegada ${new Date(a.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{formatEventDate(ev.starts_at)} · {formatEventTime(ev.starts_at)}{context ? ` · ${context}` : ""} · {a.role_name}{a.arrival_time ? ` · chegada ${new Date(a.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</p>
                   </Link>
                   {pendente ? <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={ev.id} assignmentId={a.id} /> : (
                     <Badge className={`shrink-0 rounded-none border-0 ${ASSIGNMENT_STATUS_BADGE[a.status] ?? ""}`}>{ASSIGNMENT_STATUS_LABELS[a.status] ?? a.status}</Badge>
