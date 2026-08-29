@@ -1,12 +1,9 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { LayoutDashboard } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { getInfantilMinistry, formatAge, suggestClass, type ChildClass } from "@/lib/infantil";
 import { formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Guardian, SessionChild } from "@/components/infantil/session-child";
 import { ReceptionSearch } from "@/components/infantil/reception-search";
@@ -124,18 +121,6 @@ export default async function SessaoInfantilPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <Button
-          nativeButton={false}
-          variant="outline"
-          className="h-10 rounded-full px-4"
-          render={<Link href={`/${churchSlug}/infantil`} />}
-        >
-          <LayoutDashboard className="size-4" />
-          LUNOR Kids
-        </Button>
-      </div>
-
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Kids · Recepção · {formatEventDate(event.starts_at)} · {formatEventTime(event.starts_at)}
