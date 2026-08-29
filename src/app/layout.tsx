@@ -16,14 +16,18 @@ const editorial = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: { default: "LUNOR", template: "%s · LUNOR" },
   description: "Prepare o culto, cuide do time e conduza com propósito.",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "LUNOR" },
+  icons: {
+    icon: [
+      { url: "/icons/lunor-icon-192-v2.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/lunor-icon-512-v2.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon-v2.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "LUNOR" },
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8f8f5" },
-    { media: "(prefers-color-scheme: dark)", color: "#111111" },
-  ],
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
