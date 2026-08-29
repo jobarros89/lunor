@@ -20,6 +20,11 @@ function isVisible(notice: KidsPersonalNotice, now = Date.now()) {
   return new Date(notice.created_at).getTime() + SESSION_END_TTL_MS > now;
 }
 
+function pruneExpired(notices: KidsPersonalNotice[], now: number) {
+  const filtered = notices.filter((notice) => isVisible(notice, now));
+  return filtered.length === notices.length ? notices : filtered;
+}
+
 export function KidsNoticeBanner({
   churchSlug,
   notices: initialNotices,
@@ -33,7 +38,7 @@ export function KidsNoticeBanner({
 
   useEffect(() => {
     const now = Date.now();
-    setNotices((current) => current.filter((notice) => isVisible(notice, now)));
+    setNotices((current) => pruneExpired(current, now));
 
     const nextExpiry = notices
       .filter((notice) => notice.kind === "fim_sessao")
@@ -44,8 +49,7 @@ export function KidsNoticeBanner({
     if (!nextExpiry) return;
 
     const timer = window.setTimeout(() => {
-      const currentTime = Date.now();
-      setNotices((current) => current.filter((notice) => isVisible(notice, currentTime)));
+      setNotices((current) => pruneExpired(current, Date.now()));
     }, Math.max(0, nextExpiry - now) + 50);
 
     return () => window.clearTimeout(timer);
