@@ -1,0 +1,4 @@
+-- Production-history marker.
+-- This migration belonged to the legacy RezFlow database before the ACTS/LUNOR baseline import.
+-- Clean databases already receive the idempotent join behavior from the canonical baseline migrations.
+-- Intentionally no-op so local migration versions match the production Supabase history.
