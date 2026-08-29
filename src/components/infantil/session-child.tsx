@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PrintLabelButton } from "@/components/infantil/print-label-button";
-import { checkInChild, checkOutChild, chamarResponsavel } from "@/lib/actions/infantil";
+import { checkOutChild, chamarResponsavel } from "@/lib/actions/infantil";
+import { checkInOrReenterChild } from "@/lib/actions/infantil-checkin";
 
 export type Guardian = {
   id: string;
@@ -58,7 +59,7 @@ export function SessionChildRow({
 
   function entrar() {
     startTransition(async () => {
-      const r = await checkInChild({
+      const r = await checkInOrReenterChild({
         churchSlug,
         churchId,
         ministryId,
@@ -66,8 +67,15 @@ export function SessionChildRow({
         childId: child.id,
         classId: child.classId,
       });
-      if (r.ok) toast.success(`${child.fullName} entrou`);
-      else toast.error(r.error);
+      if (r.ok) {
+        toast.success(
+          child.checkin?.checkedOut
+            ? `${child.fullName} entrou novamente`
+            : `${child.fullName} entrou`
+        );
+      } else {
+        toast.error(r.error);
+      }
     });
   }
 
@@ -123,9 +131,13 @@ export function SessionChildRow({
         </div>
         {child.checkin ? (
           child.checkin.checkedOut ? (
-            <Badge variant="secondary" className="shrink-0 rounded-full">
-              Retirado
-            </Badge>
+            <Button
+              disabled={pending}
+              onClick={entrar}
+              className="h-9 shrink-0 rounded-full px-4"
+            >
+              {pending ? "…" : "Check-in novamente"}
+            </Button>
           ) : (
             <Badge className="shrink-0 rounded-full border-0 bg-emerald-100 text-emerald-800">
               Presente · {child.checkin.code}
@@ -141,6 +153,12 @@ export function SessionChildRow({
           </Button>
         )}
       </div>
+
+      {child.checkin?.checkedOut && (
+        <p className="text-xs text-muted-foreground">
+          Esta criança já saiu deste culto. Você pode fazer um novo check-in e gerar um novo código.
+        </p>
+      )}
 
       {child.guardians.length > 0 && (
         <p className="text-xs text-muted-foreground">
