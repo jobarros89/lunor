@@ -25,7 +25,7 @@ export function KidsDeliveryOverview({ items }: { items: KidsDeliveryItem[] }) {
             <div key={item.pageId} className="space-y-1.5 py-3 first:pt-1 last:pb-1">
               <p className="text-xs font-medium">
                 {item.kind === "fim_sessao" ? (
-                  "Fim do Kids"
+                  "Encerramento do culto Kids"
                 ) : (
                   <>
                     Chamado · código <span className="font-mono font-bold">{item.code ?? "—"}</span>
