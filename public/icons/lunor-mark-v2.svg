@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="LUNOR">
+  <rect width="512" height="512" rx="96" fill="#050506"/>
+  <rect x="18" y="18" width="476" height="476" rx="82" fill="none" stroke="#262629" stroke-width="4"/>
+  <defs>
+    <mask id="crescent">
+      <rect width="512" height="512" fill="black"/>
+      <circle cx="202" cy="246" r="124" fill="white"/>
+      <circle cx="240" cy="220" r="121" fill="black"/>
+    </mask>
+  </defs>
+  <rect width="512" height="512" fill="#f8f8f8" mask="url(#crescent)"/>
+  <polygon points="226,286 232,282 401,188 411,207" fill="#7c48b4"/>
+  <polygon points="228,287 233,284 410,251 414,270" fill="#b53691"/>
+  <polygon points="228,288 233,287 405,312 402,331" fill="#ff4b1c"/>
+  <polygon points="227,289 232,290 365,386 354,405" fill="#ffb31a"/>
+</svg>
