@@ -15,7 +15,16 @@ export async function notifyUsers(userIds: (string | null | undefined)[], messag
     const supabase = await createClient();
     const { data, error } = await supabase.rpc("get_push_subscriptions", { p_user_ids: ids });
     if (error || !data) return;
-    await sendWebPush(data as PushTarget[], message);
+
+    const staleIds = await sendWebPush(data as PushTarget[], message);
+    if (staleIds.length > 0) {
+      const { error: cleanupError } = await supabase.rpc("delete_stale_push_subscriptions", {
+        p_subscription_ids: staleIds,
+      });
+      if (cleanupError) {
+        console.warn("notifyUsers: não foi possível limpar inscrições expiradas");
+      }
+    }
   } catch (err) {
     console.error("notifyUsers: falha", err);
   }
