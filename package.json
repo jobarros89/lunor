@@ -11,9 +11,10 @@
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
-    "mobile:sync": "cap sync",
-    "mobile:android": "cap sync android",
-    "mobile:ios": "cap sync ios"
+    "mobile:icons": "node scripts/generate-mobile-icons.mjs",
+    "mobile:sync": "cap sync && npm run mobile:icons",
+    "mobile:android": "cap sync android && npm run mobile:icons",
+    "mobile:ios": "cap sync ios && npm run mobile:icons"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
