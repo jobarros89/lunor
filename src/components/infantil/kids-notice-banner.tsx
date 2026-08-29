@@ -38,8 +38,6 @@ export function KidsNoticeBanner({
 
   useEffect(() => {
     const now = Date.now();
-    setNotices((current) => pruneExpired(current, now));
-
     const nextExpiry = notices
       .filter((notice) => notice.kind === "fim_sessao")
       .map((notice) => new Date(notice.created_at).getTime() + SESSION_END_TTL_MS)
