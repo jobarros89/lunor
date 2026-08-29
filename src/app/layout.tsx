@@ -17,11 +17,8 @@ export const metadata: Metadata = {
   title: { default: "LUNOR", template: "%s · LUNOR" },
   description: "Prepare o culto, cuide do time e conduza com propósito.",
   icons: {
-    icon: [
-      { url: "/icons/lunor-icon-192-v2.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/lunor-icon-512-v2.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: [{ url: "/icons/apple-touch-icon-v2.png", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/icons/lunor-mark-v2.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icons/lunor-mark-v2.svg", type: "image/svg+xml" }],
   },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "LUNOR" },
 };
