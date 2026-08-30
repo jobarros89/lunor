@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, useTransition } from "react";
+import { Suspense, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { signIn, signInWithGoogle } from "@/lib/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -27,15 +27,11 @@ function LoginForm() {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const shouldConfirmEmail = searchParams.get("cadastro") === "confirme-email";
-  const googleError = searchParams.get("erro") === "google";
-
-  useEffect(() => {
-    if (googleError) {
-      const message = "Não foi possível concluir o login com Google";
-      setError(message);
-      toast.error(message);
-    }
-  }, [googleError]);
+  const googleErrorMessage =
+    searchParams.get("erro") === "google"
+      ? "Não foi possível concluir o login com Google"
+      : null;
+  const visibleError = error ?? googleErrorMessage;
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -91,7 +87,7 @@ function LoginForm() {
           )}
           <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" name="email" type="email" autoComplete="email" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-[#6e5ce6] focus-visible:ring-[#6e5ce6]/25" /></div>
           <div className="space-y-2"><Label htmlFor="password">Senha</Label><Input id="password" name="password" type="password" autoComplete="current-password" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-[#6e5ce6] focus-visible:ring-[#6e5ce6]/25" /></div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {visibleError && <p className="text-sm text-destructive">{visibleError}</p>}
           <Button type="submit" disabled={pending} className="h-12 w-full rounded-lg bg-[#6e5ce6] text-base font-semibold text-white hover:bg-[#5f4fd1]">{pending ? "Entrando…" : "Entrar"}</Button>
           <p className="text-center text-sm"><Link href="/esqueci-senha" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Esqueci minha senha</Link></p>
           <p className="text-center text-sm text-muted-foreground">Não tem conta?{" "}<Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">Criar conta</Link></p>
