@@ -291,11 +291,8 @@ export default async function InfantilPage({
         <CardContent className="space-y-2">
           {(children ?? []).slice(0, 8).map((c) => {
             const turma = suggestClass(c.birth_date, turmas);
-            return (
-              <div
-                key={c.id}
-                className="flex items-center gap-3 rounded-2xl border px-4 py-3"
-              >
+            const content = (
+              <>
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
                   <Baby className="size-4 text-muted-foreground" />
                 </span>
@@ -311,6 +308,23 @@ export default async function InfantilPage({
                     Alergia
                   </Badge>
                 )}
+                {podeGerir && (
+                  <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+                )}
+              </>
+            );
+
+            return podeGerir ? (
+              <Link
+                key={c.id}
+                href={`/${churchSlug}/infantil/crianca/${c.id}`}
+                className="flex items-center gap-3 rounded-2xl border px-4 py-3 transition-colors hover:bg-accent/40"
+              >
+                {content}
+              </Link>
+            ) : (
+              <div key={c.id} className="flex items-center gap-3 rounded-2xl border px-4 py-3">
+                {content}
               </div>
             );
           })}
