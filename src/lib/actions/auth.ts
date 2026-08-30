@@ -3,6 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { resolveAuthenticatedDestination } from "@/lib/auth/post-login";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "./types";
 
@@ -25,33 +26,16 @@ const signUpSchema = credentialsSchema.extend({
   intent: z.enum(["criar", "entrar", "convite", "direto"]).default("direto"),
 });
 
-const INVITE_COOKIE = "lunor_invite";
 const SIGNUP_INTENT_COOKIE = "lunor_signup_intent";
 
-async function acceptPendingInvite(
-  supabase: Awaited<ReturnType<typeof createClient>>
-): Promise<string | null> {
-  const cookieStore = await cookies();
-  const inviteCode = cookieStore.get(INVITE_COOKIE)?.value;
-  if (!inviteCode) return null;
-
-  const { data, error } = await supabase.rpc("join_church", {
-    p_invite_code: inviteCode.toLowerCase(),
-  });
-  if (error || !data) return null;
-  cookieStore.delete(INVITE_COOKIE);
-  cookieStore.delete(SIGNUP_INTENT_COOKIE);
-  return data;
-}
-
-async function redirectToPendingStart(): Promise<never> {
-  const cookieStore = await cookies();
-  const intent = cookieStore.get(SIGNUP_INTENT_COOKIE)?.value;
-  cookieStore.delete(SIGNUP_INTENT_COOKIE);
-
-  if (intent === "criar") redirect("/comecar?intencao=criar");
-  if (intent === "entrar" || intent === "convite") redirect("/comecar?intencao=entrar");
-  redirect("/comecar");
+async function requestOrigin(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const protocol = h.get("x-forwarded-proto") ?? "https";
+  const origin = h.get("origin");
+  if (origin) return origin;
+  if (host) return `${protocol}://${host}`;
+  throw new Error("Não foi possível determinar a origem da aplicação");
 }
 
 export async function signIn(formData: FormData): Promise<ActionResult> {
@@ -68,14 +52,27 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
   if (error) {
     return { ok: false, error: "E-mail ou senha incorretos" };
   }
-  const invitedChurchId = await acceptPendingInvite(supabase);
-  if (invitedChurchId) redirect(`/onboarding?igreja=${invitedChurchId}`);
 
-  const cookieStore = await cookies();
-  if (cookieStore.has(SIGNUP_INTENT_COOKIE)) {
-    return redirectToPendingStart();
+  const destination = await resolveAuthenticatedDestination(supabase, "/");
+  redirect(destination);
+}
+
+export async function signInWithGoogle(): Promise<ActionResult> {
+  const supabase = await createClient();
+  const origin = await requestOrigin();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+    },
+  });
+
+  if (error || !data.url) {
+    console.error("signInWithGoogle:", error);
+    return { ok: false, error: "Não foi possível iniciar o login com Google" };
   }
-  redirect("/");
+
+  redirect(data.url);
 }
 
 export async function signUp(formData: FormData): Promise<ActionResult> {
@@ -119,9 +116,8 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
     redirect("/login?cadastro=confirme-email");
   }
 
-  const invitedChurchId = await acceptPendingInvite(supabase);
-  if (invitedChurchId) redirect(`/onboarding?igreja=${invitedChurchId}`);
-  return redirectToPendingStart();
+  const destination = await resolveAuthenticatedDestination(supabase, "/comecar");
+  redirect(destination);
 }
 
 export async function signOut(): Promise<void> {
@@ -147,11 +143,7 @@ export async function requestPasswordReset(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const h = await headers();
-  const host = h.get("host");
-  const protocol = h.get("x-forwarded-proto") ?? "https";
-  const origin = h.get("origin") ?? (host ? `${protocol}://${host}` : "");
-
+  const origin = await requestOrigin();
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(
     parsed.data.email,
