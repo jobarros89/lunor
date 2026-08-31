@@ -32,6 +32,7 @@ export type SessionChild = {
 
 export function SessionChildRow({
   child,
+  churchName,
   churchSlug,
   churchId,
   ministryId,
@@ -41,6 +42,7 @@ export function SessionChildRow({
   podeLiberar,
 }: {
   child: SessionChild;
+  churchName: string;
   churchSlug: string;
   churchId: string;
   ministryId: string;
@@ -57,6 +59,8 @@ export function SessionChildRow({
   const autorizados = child.guardians.filter((g) => g.canPickup);
   const escolhido = child.guardians.find((g) => g.id === guardianId);
   const precisaJustificar = !!escolhido && !escolhido.canPickup;
+  const responsavelPrincipal = child.guardians[0] ?? null;
+  const restritos = child.guardians.filter((g) => !g.canPickup).map((g) => g.name);
 
   function entrar() {
     startTransition(async () => {
@@ -200,8 +204,14 @@ export function SessionChildRow({
           {!retirando ? (
             <div className="grid gap-2 sm:grid-cols-3">
               <PrintLabelButton
+                churchName={churchName}
                 childName={child.fullName}
+                childAge={child.age}
                 className={child.className}
+                guardianName={responsavelPrincipal?.name ?? null}
+                restrictedPickupNames={restritos}
+                allergies={child.allergies}
+                specialNeeds={child.specialNeeds}
                 code={child.checkin.code}
                 eventTitle={eventTitle}
                 eventContext={eventContext}
