@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Layers3, Music, Plus, Video } from "lucide-react";
+import { CalendarDays, Layers3, Music, Plus, Video } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { type Song } from "@/lib/louvor";
 import { getLouvorMinistry } from "@/lib/louvor-server";
@@ -10,7 +10,6 @@ import { SongForm } from "@/components/louvor/song-form";
 import { Button } from "@/components/ui/button";
 import { YouTubeSongImporter } from "@/components/louvor/youtube-song-importer";
 import { SongLibrary } from "@/components/louvor/song-library";
-import { LouvorSectionNav } from "@/components/louvor/louvor-section-nav";
 
 const youtubeStatusMessage: Record<string, { text: string; success?: boolean }> = {
   connected: { text: "Conta do YouTube conectada com sucesso.", success: true },
@@ -149,11 +148,9 @@ export default async function LouvorPage({
         )}
       </header>
 
-      <LouvorSectionNav churchSlug={churchSlug} active="visao" />
-
       <nav className="flex gap-1 overflow-x-auto border-b" aria-label="Conteúdo do Louvor">
         <TabLink churchSlug={churchSlug} tab="acervo" active={tab === "acervo"} icon={<Music className="size-4" />} label="Acervo" />
-        <TabLink churchSlug={churchSlug} tab="repertorios" active={tab === "repertorios"} icon={<span className="text-xs font-semibold">R</span>} label="Repertórios" />
+        <TabLink churchSlug={churchSlug} tab="repertorios" active={tab === "repertorios"} icon={<CalendarDays className="size-4" />} label="Repertórios" />
         <TabLink churchSlug={churchSlug} tab="arranjos" active={tab === "arranjos"} icon={<Layers3 className="size-4" />} label="Arranjos" />
       </nav>
 
