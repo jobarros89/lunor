@@ -159,12 +159,12 @@ export default async function LouvorPage({
           <CardHeader className="flex-row items-start justify-between gap-4">
             <div>
               <CardTitle className="text-base">Adicionar música</CardTitle>
-              <CardDescription>Importe pelo YouTube ou cadastre manualmente.</CardDescription>
+              <CardDescription>Pesquise no YouTube e cadastre em poucos passos.</CardDescription>
             </div>
             <Link href={`/${churchSlug}/louvor?aba=${tab}`} className="text-sm text-muted-foreground underline underline-offset-4">Fechar</Link>
           </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="flex flex-col gap-3 rounded-2xl bg-muted/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <CardContent className="space-y-4">
+            <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="flex items-center gap-2 text-sm font-medium"><Video className="size-4" /> Conta oficial no YouTube</p>
                 <p className="truncate text-xs text-muted-foreground">
@@ -173,8 +173,8 @@ export default async function LouvorPage({
               </div>
               <Button
                 nativeButton={false}
-                variant="outline"
-                className="h-10 shrink-0 rounded-full"
+                variant="ghost"
+                className="h-9 shrink-0 rounded-full px-3"
                 render={<a href={`/api/integrations/youtube/connect?churchId=${tenant.church.id}&returnTo=${encodeURIComponent(`/${churchSlug}/louvor?aba=${tab}&novo=1`)}`} />}
               >
                 {youtubeIntegration ? "Reconectar" : "Conectar YouTube"}
@@ -186,9 +186,6 @@ export default async function LouvorPage({
               </p>
             )}
             <YouTubeSongImporter churchSlug={churchSlug} churchId={tenant.church.id} />
-            <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-muted-foreground">
-              <span className="h-px flex-1 bg-border" /> ou cadastre manualmente <span className="h-px flex-1 bg-border" />
-            </div>
             <SongForm churchSlug={churchSlug} churchId={tenant.church.id} />
           </CardContent>
         </Card>
