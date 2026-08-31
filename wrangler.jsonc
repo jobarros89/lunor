@@ -13,12 +13,8 @@
   "ai": {
     "binding": "AI"
   },
-  // Workers Builds usa `wrangler versions upload` nos previews. Antes de o
-  // Wrangler empacotar o Worker, precisamos gerar `.open-next/worker.js` e
-  // `.open-next/assets` com o adaptador oficial do OpenNext.
-  "build": {
-    "command": "npx opennextjs-cloudflare build"
-  },
+  // O build OpenNext é executado uma única vez pelo Workers Builds
+  // antes do comando de deploy configurado no painel do Cloudflare.
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
