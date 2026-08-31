@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { makeQrMatrix } from "@/lib/qr";
 
 const PROD_ORIGIN = "https://lunorservice.com";
@@ -12,13 +12,24 @@ function pickupUrl(origin: string, token: string) {
     : `${PROD_ORIGIN}/q/${token}`;
 }
 
+function subscribeOrigin() {
+  return () => {};
+}
+
+function getOriginSnapshot() {
+  return window.location.origin;
+}
+
+function getOriginServerSnapshot() {
+  return PROD_ORIGIN;
+}
+
 export function PickupQr({ token, compact = false }: { token: string; compact?: boolean }) {
-  const [origin, setOrigin] = useState(PROD_ORIGIN);
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
-
+  const origin = useSyncExternalStore(
+    subscribeOrigin,
+    getOriginSnapshot,
+    getOriginServerSnapshot
+  );
   const value = useMemo(() => pickupUrl(origin, token), [origin, token]);
   const matrix = useMemo(() => makeQrMatrix(value), [value]);
   const quiet = 4;
