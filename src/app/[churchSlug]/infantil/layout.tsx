@@ -1,10 +1,9 @@
-import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
-import { getLouvorMinistry } from "@/lib/louvor-server";
+import { getInfantilMinistry } from "@/lib/infantil";
 import { createClient } from "@/lib/supabase/server";
-import { LouvorSectionNav } from "@/components/louvor/louvor-section-nav";
+import { KidsSectionNav } from "@/components/infantil/kids-section-nav";
 
-export default async function LouvorLayout({
+export default async function InfantilLayout({
   children,
   params,
 }: {
@@ -13,9 +12,9 @@ export default async function LouvorLayout({
 }) {
   const { churchSlug } = await params;
   const tenant = await getTenant(churchSlug);
-  const louvor = await getLouvorMinistry(tenant.church.id);
+  const kids = await getInfantilMinistry(tenant.church.id);
 
-  if (!louvor) redirect(`/${churchSlug}`);
+  if (!kids) return children;
 
   if (!tenant.isCoord) {
     const supabase = await createClient();
@@ -23,17 +22,17 @@ export default async function LouvorLayout({
       .from("ministry_members")
       .select("id")
       .eq("church_id", tenant.church.id)
-      .eq("ministry_id", louvor.id)
+      .eq("ministry_id", kids.id)
       .eq("user_id", tenant.userId)
       .eq("active", true)
       .maybeSingle();
 
-    if (!membership) redirect(`/${churchSlug}`);
+    if (!membership) return children;
   }
 
   return (
     <div className="space-y-6">
-      <LouvorSectionNav churchSlug={churchSlug} />
+      <KidsSectionNav churchSlug={churchSlug} />
       {children}
     </div>
   );

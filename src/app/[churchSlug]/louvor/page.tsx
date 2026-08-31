@@ -134,7 +134,7 @@ export default async function LouvorPage({
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Ministério de música</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Louvor</h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Acervo, repertórios e arranjos da igreja em um só lugar.
+            Música, repertórios, arranjos e operação do time em um só módulo.
           </p>
         </div>
         {podeEditar && (
@@ -148,7 +148,7 @@ export default async function LouvorPage({
         )}
       </header>
 
-      <nav className="flex gap-1 overflow-x-auto border-b" aria-label="Seções do Louvor">
+      <nav className="flex gap-1 overflow-x-auto border-b" aria-label="Conteúdo do Louvor">
         <TabLink churchSlug={churchSlug} tab="acervo" active={tab === "acervo"} icon={<Music className="size-4" />} label="Acervo" />
         <TabLink churchSlug={churchSlug} tab="repertorios" active={tab === "repertorios"} icon={<CalendarDays className="size-4" />} label="Repertórios" />
         <TabLink churchSlug={churchSlug} tab="arranjos" active={tab === "arranjos"} icon={<Layers3 className="size-4" />} label="Arranjos" />

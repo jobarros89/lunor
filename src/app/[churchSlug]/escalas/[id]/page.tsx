@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, Clock3, MapPin, Users } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Clock3, MapPin, Users } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { type SetlistItem, type Song } from "@/lib/louvor";
 import { getLouvorMinistry } from "@/lib/louvor-server";
+import { getInfantilMinistry } from "@/lib/infantil";
 import { SetlistCard } from "@/components/louvor/setlist-card";
 import { AddToSetlist } from "@/components/louvor/add-to-setlist";
 import { getActiveMinistry } from "@/lib/ministry";
@@ -32,6 +34,37 @@ import {
   type ServiceItem,
 } from "@/components/escalas/service-order-card";
 
+type EventAssignment = {
+  id: string;
+  ministry_id: string;
+  user_id: string;
+  role_name: string;
+  status: string;
+  arrival_time: string | null;
+  items_to_bring: string | null;
+  ministries: { id: string; name: string } | { id: string; name: string }[];
+  profiles: { full_name: string } | { full_name: string }[] | null;
+  leader: { full_name: string } | { full_name: string }[] | null;
+};
+
+type TeamGroup = {
+  ministryId: string;
+  ministryName: string;
+  rows: EventAssignment[];
+};
+
+function firstRelated<T>(value: T | T[] | null | undefined): T | null {
+  return Array.isArray(value) ? value[0] ?? null : value ?? null;
+}
+
+function assignmentStatusClass(status: string) {
+  return ASSIGNMENT_STATUS_BADGE[status] ?? "bg-muted text-muted-foreground";
+}
+
+function assignmentStatusLabel(status: string) {
+  return ASSIGNMENT_STATUS_LABELS[status] ?? status;
+}
+
 export default async function EventoDetailPage({
   params,
 }: {
@@ -40,15 +73,16 @@ export default async function EventoDetailPage({
   const { churchSlug, id } = await params;
   const tenant = await getTenant(churchSlug);
   const { active } = await getActiveMinistry(churchSlug);
-  const canManage = active?.canManage ?? false;
-  // sem setor ativo (caso raro): não escala nada
-  const activeMinistryId = active?.id ?? "00000000-0000-0000-0000-000000000000";
+  const canManageActive = active?.canManage ?? false;
+  const activeMinistryId = active?.id ?? null;
 
   const supabase = await createClient();
   const [
     { data: event, error: eventError },
     { data: assignments, error: assignmentsError },
     { data: serviceItems, error: serviceItemsError },
+    louvor,
+    kids,
   ] = await Promise.all([
     supabase
       .from("events")
@@ -56,15 +90,13 @@ export default async function EventoDetailPage({
       .eq("id", id)
       .eq("church_id", tenant.church.id)
       .maybeSingle(),
-    // escala do SETOR ativo neste evento (a RLS já isola; filtramos p/ consistência)
     supabase
       .from("assignments")
       .select(
-        "id, user_id, role_name, status, arrival_time, items_to_bring, profiles!assignments_user_id_fkey(full_name), leader:profiles!assignments_leader_id_fkey(full_name)"
+        "id, ministry_id, user_id, role_name, status, arrival_time, items_to_bring, ministries!inner(id, name), profiles!assignments_user_id_fkey(full_name), leader:profiles!assignments_leader_id_fkey(full_name)"
       )
       .eq("church_id", tenant.church.id)
       .eq("event_id", id)
-      .eq("ministry_id", activeMinistryId)
       .order("created_at"),
     supabase
       .from("service_items")
@@ -72,14 +104,22 @@ export default async function EventoDetailPage({
       .eq("church_id", tenant.church.id)
       .eq("event_id", id)
       .order("position"),
+    getLouvorMinistry(tenant.church.id),
+    getInfantilMinistry(tenant.church.id),
   ]);
 
   if (eventError) console.error("evento:", eventError);
   if (!event) notFound();
 
+  const allAssignments = (assignments ?? []) as unknown as EventAssignment[];
+  const isDedicatedMinistry =
+    !!activeMinistryId &&
+    (activeMinistryId === louvor?.id || activeMinistryId === kids?.id);
+  const canManageGeneric =
+    !!activeMinistryId && canManageActive && !isDedicatedMinistry;
+
   // Repertório: a RLS decide o que aparece. Em rascunho volta vazio para quem
   // não é do louvor, então não é preciso checar o status aqui.
-  const louvor = await getLouvorMinistry(tenant.church.id);
   const podeEditarRepertorio =
     !!louvor &&
     (tenant.isCoord ||
@@ -117,7 +157,6 @@ export default async function EventoDetailPage({
         .eq("church_id", tenant.church.id)
         .eq("active", true)
         .order("title"),
-      // "cantada há quanto tempo": derivado dos repertórios passados
       supabase
         .from("setlist_items")
         .select("song_id, events!inner(starts_at)")
@@ -139,38 +178,40 @@ export default async function EventoDetailPage({
     }));
   }
 
-  // vínculos de equipamento SÓ deste evento (antes puxava todos da igreja)
-  const assignmentIds = (assignments ?? []).map((a) => a.id);
-  const { data: links } = assignmentIds.length
+  const mineAssignments = allAssignments.filter((a) => a.user_id === tenant.userId);
+  const activeAssignments = activeMinistryId
+    ? allAssignments.filter((a) => a.ministry_id === activeMinistryId)
+    : [];
+  const equipmentAssignmentIds = [
+    ...new Set(
+      [...mineAssignments, ...(canManageGeneric ? activeAssignments : [])].map((a) => a.id)
+    ),
+  ];
+  const { data: links } = equipmentAssignmentIds.length
     ? await supabase
         .from("assignment_equipments")
         .select("assignment_id, equipments!inner(id, name)")
         .eq("church_id", tenant.church.id)
-        .in("assignment_id", assignmentIds)
+        .in("assignment_id", equipmentAssignmentIds)
     : { data: [] as { assignment_id: string; equipments: unknown }[] };
-  const type = event.event_types as unknown as { name: string } | null;
-  const dept = event.departments as unknown as { name: string } | null;
 
   const equipByAssignment = new Map<string, { id: string; name: string }[]>();
-  for (const l of links ?? []) {
-    const eq = l.equipments as unknown as { id: string; name: string };
-    equipByAssignment.set(l.assignment_id, [
-      ...(equipByAssignment.get(l.assignment_id) ?? []),
+  for (const link of links ?? []) {
+    const eq = link.equipments as unknown as { id: string; name: string };
+    equipByAssignment.set(link.assignment_id, [
+      ...(equipByAssignment.get(link.assignment_id) ?? []),
       eq,
     ]);
   }
 
-  const rows: AssignmentRow[] = (assignments ?? []).map((a) => ({
+  const activeRows: AssignmentRow[] = activeAssignments.map((a) => ({
     id: a.id,
     user_id: a.user_id,
-    full_name:
-      (a.profiles as unknown as { full_name: string })?.full_name ?? "—",
+    full_name: firstRelated(a.profiles)?.full_name ?? "—",
     role_name: a.role_name,
     status: a.status,
     equipments: equipByAssignment.get(a.id) ?? [],
   }));
-
-  const mine = (assignments ?? []).find((a) => a.user_id === tenant.userId);
 
   let members: {
     user_id: string;
@@ -181,8 +222,10 @@ export default async function EventoDetailPage({
     interesses: string[];
   }[] = [];
   let equipments: { id: string; name: string }[] = [];
-  if (canManage) {
-    // janela do mês do evento (para a "carga do mês") e o dia do evento
+
+  // Enquanto os demais ministérios ainda não têm módulo próprio, preservamos
+  // a gestão do ministério ativo aqui. Louvor e Kids são geridos nos módulos dedicados.
+  if (canManageGeneric && activeMinistryId) {
     const dt = new Date(event.starts_at);
     const mesIni = new Date(dt.getFullYear(), dt.getMonth(), 1).toISOString();
     const mesFim = new Date(dt.getFullYear(), dt.getMonth() + 1, 1).toISOString();
@@ -203,7 +246,6 @@ export default async function EventoDetailPage({
         .eq("church_id", cid)
         .eq("ministry_id", activeMinistryId)
         .eq("active", true),
-      // equipamentos do setor ativo + os compartilhados da igreja (ministry_id nulo)
       supabase
         .from("equipments")
         .select("id, name")
@@ -215,6 +257,7 @@ export default async function EventoDetailPage({
         .from("assignments")
         .select("user_id, events!inner(starts_at)")
         .eq("church_id", cid)
+        .eq("ministry_id", activeMinistryId)
         .gte("events.starts_at", mesIni)
         .lt("events.starts_at", mesFim),
       supabase
@@ -235,65 +278,60 @@ export default async function EventoDetailPage({
     ]);
 
     const cargaBy = new Map<string, number>();
-    for (const a of cargas ?? [])
+    for (const a of cargas ?? []) {
       cargaBy.set(a.user_id, (cargaBy.get(a.user_id) ?? 0) + 1);
+    }
     const indispSet = new Set((indisp ?? []).map((u) => u.user_id));
     const skillsBy = new Map<string, string[]>();
-    for (const s of apts ?? []) {
-      const nome = (s.skills as unknown as { name: string }).name;
-      skillsBy.set(s.user_id, [...(skillsBy.get(s.user_id) ?? []), nome]);
+    for (const skill of apts ?? []) {
+      const nome = (skill.skills as unknown as { name: string }).name;
+      skillsBy.set(skill.user_id, [...(skillsBy.get(skill.user_id) ?? []), nome]);
     }
     const intBy = new Map<string, string[]>();
-    for (const i of ints ?? []) {
-      const nome = (i.skills as unknown as { name: string }).name;
-      intBy.set(i.user_id, [...(intBy.get(i.user_id) ?? []), nome]);
+    for (const interest of ints ?? []) {
+      const nome = (interest.skills as unknown as { name: string }).name;
+      intBy.set(interest.user_id, [...(intBy.get(interest.user_id) ?? []), nome]);
     }
 
-    members = (m ?? []).map((x) => ({
-      user_id: x.user_id,
-      full_name: (x.profiles as unknown as { full_name: string }).full_name,
-      cargaMes: cargaBy.get(x.user_id) ?? 0,
-      indisponivel: indispSet.has(x.user_id),
-      aptidoes: skillsBy.get(x.user_id) ?? [],
-      interesses: intBy.get(x.user_id) ?? [],
+    members = (m ?? []).map((member) => ({
+      user_id: member.user_id,
+      full_name: (member.profiles as unknown as { full_name: string }).full_name,
+      cargaMes: cargaBy.get(member.user_id) ?? 0,
+      indisponivel: indispSet.has(member.user_id),
+      aptidoes: skillsBy.get(member.user_id) ?? [],
+      interesses: intBy.get(member.user_id) ?? [],
     }));
     equipments = eq ?? [];
   }
 
-  // Visão consolidada da igreja: o coordenador/pastor vê as escalas dos OUTROS
-  // setores neste mesmo culto (a RLS já libera; aqui só consultamos).
-  let outrosSetores: {
-    ministry: string;
-    rows: { name: string; role: string; status: string }[];
-  }[] = [];
-  if (tenant.isCoord) {
-    const { data: others } = await supabase
-      .from("assignments")
-      .select(
-        "role_name, status, ministries!inner(name), profiles!assignments_user_id_fkey(full_name)"
-      )
-      .eq("church_id", tenant.church.id)
-      .eq("event_id", id)
-      .neq("ministry_id", activeMinistryId)
-      .order("created_at");
-    const byMinistry = new Map<string, { name: string; role: string; status: string }[]>();
-    for (const a of others ?? []) {
-      const min = (a.ministries as unknown as { name: string }).name;
-      byMinistry.set(min, [
-        ...(byMinistry.get(min) ?? []),
-        {
-          name:
-            (a.profiles as unknown as { full_name: string } | null)?.full_name ??
-            "—",
-          role: a.role_name,
-          status: a.status,
-        },
-      ]);
+  const teamMap = new Map<string, TeamGroup>();
+  for (const assignment of allAssignments) {
+    const ministry = firstRelated(assignment.ministries);
+    if (!ministry) continue;
+    const current = teamMap.get(assignment.ministry_id);
+    if (current) {
+      current.rows.push(assignment);
+    } else {
+      teamMap.set(assignment.ministry_id, {
+        ministryId: assignment.ministry_id,
+        ministryName: ministry.name,
+        rows: [assignment],
+      });
     }
-    outrosSetores = [...byMinistry.entries()]
-      .map(([ministry, rows]) => ({ ministry, rows }))
-      .sort((a, b) => a.ministry.localeCompare(b.ministry, "pt-BR"));
   }
+  const teams = [...teamMap.values()].sort((a, b) =>
+    a.ministryName.localeCompare(b.ministryName, "pt-BR")
+  );
+
+  const totalConfirmados = allAssignments.filter((a) =>
+    ["confirmado", "presente"].includes(a.status)
+  ).length;
+  const totalPendencias = allAssignments.filter((a) =>
+    ["convidado", "substituicao_solicitada", "falar_lider"].includes(a.status)
+  ).length;
+
+  const type = event.event_types as unknown as { name: string } | null;
+  const dept = event.departments as unknown as { name: string } | null;
 
   return (
     <div className="space-y-6">
@@ -320,6 +358,9 @@ export default async function EventoDetailPage({
         <h1 className="text-3xl font-semibold leading-tight tracking-tight">
           {event.title}
         </h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Visão geral do culto: programação, repertório e todos os times que servem neste evento.
+        </p>
       </header>
 
       <Card className="rounded-3xl">
@@ -435,85 +476,172 @@ export default async function EventoDetailPage({
             eventId={id}
             startsAt={event.starts_at}
             items={(serviceItems ?? []) as ServiceItem[]}
-            canManage={canManage}
+            canManage={canManageActive}
           />
         )}
       </section>
 
-      <section className="space-y-3" aria-labelledby="time-title">
-        <div className="flex items-center gap-2 px-1">
-          <Users className="size-5" />
-          <h2 id="time-title" className="text-lg font-semibold tracking-tight">
-            Time do culto
-          </h2>
-          {active?.name && (
-            <span className="text-sm text-muted-foreground">· {active.name}</span>
-          )}
+      <section className="space-y-4" aria-labelledby="times-title">
+        <div className="flex flex-wrap items-end justify-between gap-3 px-1">
+          <div>
+            <div className="flex items-center gap-2">
+              <Users className="size-5" />
+              <h2 id="times-title" className="text-lg font-semibold tracking-tight">
+                Times do culto
+              </h2>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Visão consolidada das equipes deste evento.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Badge variant="secondary" className="rounded-full">
+              {teams.length} {teams.length === 1 ? "ministério" : "ministérios"}
+            </Badge>
+            <Badge variant="secondary" className="rounded-full">
+              {allAssignments.length} escalados
+            </Badge>
+            <Badge className="rounded-full border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+              {totalConfirmados} confirmados
+            </Badge>
+            {totalPendencias > 0 && (
+              <Badge className="rounded-full border-0 bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                {totalPendencias} pendências
+              </Badge>
+            )}
+          </div>
         </div>
 
-        {mine && (
-          <MyAssignmentCard
-            churchSlug={churchSlug}
-            churchId={tenant.church.id}
-            eventId={id}
-            assignmentId={mine.id}
-            roleName={mine.role_name}
-            status={mine.status}
-            arrivalTime={mine.arrival_time}
-            itemsToBring={mine.items_to_bring}
-            equipments={(equipByAssignment.get(mine.id) ?? []).map((e) => e.name)}
-            leaderName={
-              (mine.leader as unknown as { full_name: string } | null)?.full_name ?? null
-            }
-          />
+        {mineAssignments.length > 0 && (
+          <div className="space-y-3">
+            <p className="px-1 text-sm font-medium">Minha participação</p>
+            {mineAssignments.map((mine) => {
+              const ministry = firstRelated(mine.ministries);
+              return (
+                <div key={mine.id} className="space-y-1">
+                  {ministry && (
+                    <p className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {ministry.name}
+                    </p>
+                  )}
+                  <MyAssignmentCard
+                    churchSlug={churchSlug}
+                    churchId={tenant.church.id}
+                    eventId={id}
+                    assignmentId={mine.id}
+                    roleName={mine.role_name}
+                    status={mine.status}
+                    arrivalTime={mine.arrival_time}
+                    itemsToBring={mine.items_to_bring}
+                    equipments={(equipByAssignment.get(mine.id) ?? []).map((e) => e.name)}
+                    leaderName={firstRelated(mine.leader)?.full_name ?? null}
+                  />
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {assignmentsError ? (
-          <LoadError oQue="a equipe escalada" />
+          <LoadError oQue="os times do culto" />
+        ) : teams.length > 0 ? (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {teams.map((team) => {
+              const confirmed = team.rows.filter((row) =>
+                ["confirmado", "presente"].includes(row.status)
+              ).length;
+              const pending = team.rows.filter((row) =>
+                ["convidado", "substituicao_solicitada", "falar_lider"].includes(row.status)
+              ).length;
+              const dedicatedHref =
+                team.ministryId === louvor?.id
+                  ? `/${churchSlug}/louvor/escalas/${id}`
+                  : team.ministryId === kids?.id
+                    ? `/${churchSlug}/infantil/escalas/${id}`
+                    : null;
+
+              return (
+                <Card key={team.ministryId} className="rounded-3xl">
+                  <CardHeader className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <CardTitle className="text-base">{team.ministryName}</CardTitle>
+                        <CardDescription>
+                          {team.rows.length} escalados · {confirmed} confirmados
+                          {pending > 0 ? ` · ${pending} pendências` : ""}
+                        </CardDescription>
+                      </div>
+                      {dedicatedHref && (
+                        <Link
+                          href={dedicatedHref}
+                          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors hover:bg-accent"
+                        >
+                          Abrir escala
+                          <ArrowUpRight className="size-3.5" />
+                        </Link>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {team.rows.map((row) => (
+                      <div
+                        key={row.id}
+                        className="flex items-start justify-between gap-3 rounded-2xl border px-4 py-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">
+                            {firstRelated(row.profiles)?.full_name ?? "—"}
+                          </p>
+                          <p className="truncate text-sm text-muted-foreground">
+                            {row.role_name}
+                          </p>
+                        </div>
+                        <Badge
+                          className={`shrink-0 rounded-full border-0 ${assignmentStatusClass(row.status)}`}
+                        >
+                          {assignmentStatusLabel(row.status)}
+                        </Badge>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         ) : (
           <Card className="rounded-3xl">
-            <CardHeader>
-              <CardTitle className="text-base">Equipe escalada ({rows.length})</CardTitle>
-              <CardDescription>Funções e confirmações deste culto</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {canManage ? (
-                <AssignmentManager
-                  churchSlug={churchSlug}
-                  churchId={tenant.church.id}
-                  ministryId={activeMinistryId}
-                  eventId={id}
-                  assignments={rows}
-                  members={members}
-                  equipments={equipments}
-                />
-              ) : (
-                <div className="space-y-2">
-                  {rows.map((a) => (
-                    <div
-                      key={a.id}
-                      className="flex items-start justify-between gap-3 rounded-2xl border px-4 py-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">{a.full_name}</p>
-                        <p className="truncate text-sm text-muted-foreground">{a.role_name}</p>
-                      </div>
-                      <Badge
-                        className={`shrink-0 rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[a.status]}`}
-                      >
-                        {ASSIGNMENT_STATUS_LABELS[a.status]}
-                      </Badge>
-                    </div>
-                  ))}
-                  {rows.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Ninguém escalado ainda.</p>
-                  )}
-                </div>
-              )}
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+              Nenhum time escalado neste evento ainda.
             </CardContent>
           </Card>
         )}
       </section>
+
+      {canManageGeneric && activeMinistryId && active && (
+        <section className="space-y-3" aria-labelledby="gestao-time-title">
+          <div className="px-1">
+            <h2 id="gestao-time-title" className="text-lg font-semibold tracking-tight">
+              Gerenciar {active.name}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Este ministério ainda usa a área geral de Escalas para montar sua equipe.
+            </p>
+          </div>
+          <Card className="rounded-3xl">
+            <CardContent className="pt-6">
+              <AssignmentManager
+                churchSlug={churchSlug}
+                churchId={tenant.church.id}
+                ministryId={activeMinistryId}
+                eventId={id}
+                assignments={activeRows}
+                members={members}
+                equipments={equipments}
+              />
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {(event.description || event.script) && (
         <section className="space-y-3" aria-labelledby="informacoes-title">
@@ -546,46 +674,6 @@ export default async function EventoDetailPage({
           )}
         </section>
       )}
-
-      {outrosSetores.length > 0 && (
-        <Card className="rounded-3xl">
-          <CardHeader>
-            <CardTitle className="text-base">Outros setores neste culto</CardTitle>
-            <CardDescription>
-              Visão da igreja — quem serve nos demais setores
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {outrosSetores.map((s) => (
-              <div key={s.ministry} className="space-y-2">
-                <p className="text-sm font-semibold">
-                  {s.ministry}{" "}
-                  <span className="font-normal text-muted-foreground">
-                    · {s.rows.length}
-                  </span>
-                </p>
-                {s.rows.map((r, i) => (
-                  <div
-                    key={`${s.ministry}-${i}`}
-                    className="flex items-center justify-between gap-2 rounded-2xl border px-4 py-2.5 text-sm"
-                  >
-                    <span className="min-w-0 truncate">
-                      <span className="font-medium">{r.name}</span>{" "}
-                      <span className="text-muted-foreground">· {r.role}</span>
-                    </span>
-                    <Badge
-                      className={`shrink-0 rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[r.status]}`}
-                    >
-                      {ASSIGNMENT_STATUS_LABELS[r.status]}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
     </div>
   );
 }
