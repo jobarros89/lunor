@@ -38,7 +38,8 @@ async function chooseChordCandidate(candidates: ChordPageCandidate[]): Promise<{
 }> {
   const shortlist = candidates.slice(0, 6);
   const fallback = shortlist[0];
-  if (!fallback || shortlist.length === 1) return { candidate: fallback, aiUsed: false };
+  if (!fallback) throw new Error("chord_candidate_missing");
+  if (shortlist.length === 1) return { candidate: fallback, aiUsed: false };
 
   const previews = shortlist
     .map(
