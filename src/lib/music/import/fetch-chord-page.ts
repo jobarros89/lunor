@@ -69,9 +69,7 @@ function privateIpv6(hostname: string): boolean {
   if (mapped) return privateIpv4(mapped[1]);
 
   const first = value.split(":", 1)[0];
-  if (first === "fc" || first === "fd" || first.startsWith("fc") || first.startsWith("fd")) {
-    return true;
-  }
+  if (first.startsWith("fc") || first.startsWith("fd")) return true;
 
   // fe80::/10 cobre endereços link-local fe80 até febf.
   if (/^fe[89ab][0-9a-f]:/i.test(value)) return true;
@@ -86,7 +84,7 @@ export function parsePublicChordUrl(raw: string): URL {
     throw new ChordPageImportError("INVALID_URL", "Informe uma URL válida.");
   }
 
-  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
+  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
     throw new ChordPageImportError(
       "INVALID_URL",
       "A importação aceita apenas páginas públicas HTTP ou HTTPS."
@@ -114,6 +112,15 @@ export function parsePublicChordUrl(raw: string): URL {
   return url;
 }
 
+function decodeCodePoint(point: number, fallback: string): string {
+  const valid =
+    Number.isInteger(point) &&
+    point >= 0 &&
+    point <= 0x10ffff &&
+    !(point >= 0xd800 && point <= 0xdfff);
+  return valid ? String.fromCodePoint(point) : fallback;
+}
+
 function decodeHtmlEntities(value: string): string {
   const named: Record<string, string> = {
     amp: "&",
@@ -128,12 +135,10 @@ function decodeHtmlEntities(value: string): string {
 
   return value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (entity, token: string) => {
     if (token.startsWith("#x") || token.startsWith("#X")) {
-      const point = Number.parseInt(token.slice(2), 16);
-      return Number.isFinite(point) ? String.fromCodePoint(point) : entity;
+      return decodeCodePoint(Number.parseInt(token.slice(2), 16), entity);
     }
     if (token.startsWith("#")) {
-      const point = Number.parseInt(token.slice(1), 10);
-      return Number.isFinite(point) ? String.fromCodePoint(point) : entity;
+      return decodeCodePoint(Number.parseInt(token.slice(1), 10), entity);
     }
     return named[token.toLowerCase()] ?? entity;
   });
@@ -197,6 +202,18 @@ function candidateScore(content: string): number {
   return usefulLength + lineBonus + chordLines * 18 + sectionLines * 10 - noisePenalty;
 }
 
+function sourceBonus(source: ChordPageCandidate["source"]): number {
+  return {
+    pre: 80,
+    targeted: 70,
+    code: 40,
+    article: 20,
+    main: 15,
+    text: 10,
+    body: 0,
+  }[source];
+}
+
 function pushCandidate(
   list: ChordPageCandidate[],
   content: string,
@@ -207,7 +224,11 @@ function pushCandidate(
 
   const clipped = normalized.slice(0, MAX_EXTRACTED_CHARS);
   if (list.some((candidate) => candidate.content === clipped)) return;
-  list.push({ content: clipped, score: candidateScore(clipped), source });
+  list.push({
+    content: clipped,
+    score: candidateScore(clipped) + sourceBonus(source),
+    source,
+  });
 }
 
 function captureBlocks(
@@ -340,7 +361,13 @@ export async function fetchChordPage(rawUrl: string): Promise<FetchedChordPage> 
     const isHtml = contentType.includes("html") || /<html\b|<body\b|<pre\b/i.test(source);
     const candidates = isHtml
       ? extractChordPageCandidates(source)
-      : [{ content: source.slice(0, MAX_EXTRACTED_CHARS).trim(), score: candidateScore(source), source: "text" as const }];
+      : [
+          {
+            content: source.slice(0, MAX_EXTRACTED_CHARS).trim(),
+            score: candidateScore(source) + sourceBonus("text"),
+            source: "text" as const,
+          },
+        ];
 
     if (!candidates.length || !candidates[0].content.trim()) {
       throw new ChordPageImportError("EMPTY_CONTENT", "Não foi possível localizar conteúdo de cifra nessa página.");
