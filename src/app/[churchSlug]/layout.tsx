@@ -21,11 +21,15 @@ function isKidsMinistry(ministry: { name: string; slug: string }) {
     || name.includes("criancas");
 }
 
-function ministryNavigation(ministry: { name: string; slug: string } | null) {
-  if (!ministry) return null;
+function isLouvorMinistry(ministry: { name: string; slug: string }) {
   const slug = ministry.slug.toLocaleLowerCase("pt-BR");
   const name = ministry.name.toLocaleLowerCase("pt-BR");
-  if (slug === "louvor" || name.includes("louvor")) return { href: "/louvor", label: "Repertório", module: "louvor" as const };
+  return slug === "louvor" || name.includes("louvor");
+}
+
+function ministryNavigation(ministry: { name: string; slug: string } | null) {
+  if (!ministry) return null;
+  if (isLouvorMinistry(ministry)) return { href: "/louvor", label: "Repertório", module: "louvor" as const };
   if (isKidsMinistry(ministry)) return { href: "/infantil", label: "Kids", module: "infantil" as const };
   return null;
 }
@@ -35,6 +39,7 @@ export default async function TenantLayout({ children, params }: { children: Rea
   const tenant = await getTenant(churchSlug);
   const { active, options } = await getActiveMinistry(churchSlug);
   const activeMinistryNavigation = ministryNavigation(active);
+  const hasLouvor = options.some(isLouvorMinistry);
   const hasKids = options.some(isKidsMinistry);
   const supabase = await createClient();
   const [{ count: escalasPending }, { data: kidsNotices }] = await Promise.all([
@@ -82,7 +87,12 @@ export default async function TenantLayout({ children, params }: { children: Rea
           {children}
         </main>
       </div>
-      <BottomNav churchSlug={churchSlug} isLeader={tenant.isLeader} activeMinistryNavigation={activeMinistryNavigation} hasKids={hasKids} escalasPending={escalasPending ?? 0} />
+      <BottomNav
+        churchSlug={churchSlug}
+        hasLouvor={hasLouvor}
+        hasKids={hasKids}
+        escalasPending={escalasPending ?? 0}
+      />
     </div>
   );
 }
