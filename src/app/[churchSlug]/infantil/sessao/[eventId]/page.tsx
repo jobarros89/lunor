@@ -111,9 +111,6 @@ export default async function SessaoInfantilPage({
     ]);
   }
 
-  // A consulta vem em ordem cronológica; o Map sobrescreve o registro antigo
-  // e mantém a entrada mais recente de cada criança para a operação atual.
-  // As linhas anteriores continuam no banco para métricas e auditoria.
   const checkinByChild = new Map(
     (checkins ?? []).map((k) => [
       k.child_id,
@@ -209,6 +206,7 @@ export default async function SessaoInfantilPage({
       {sessionChildren.length > 0 ? (
         <ReceptionSearch
           sessionChildren={sessionChildren}
+          churchName={tenant.church.name}
           churchSlug={churchSlug}
           churchId={tenant.church.id}
           ministryId={ministry.id}
