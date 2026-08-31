@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadError } from "@/components/shell/load-error";
 import { Card, CardContent } from "@/components/ui/card";
+import { FutureEventLink } from "@/components/escalas/event-delete-control";
 import { cn } from "@/lib/utils";
 
 export default async function EscalasPage({
@@ -26,6 +27,7 @@ export default async function EscalasPage({
   const { filtro } = await searchParams;
   const tenant = await getTenant(churchSlug);
   const verMinhas = filtro ? filtro === "minhas" : !tenant.isLeader;
+  const canDeleteEvents = tenant.role === "admin" && !tenant.isMaster;
 
   const supabase = await createClient();
   const since = new Date();
@@ -113,8 +115,20 @@ export default async function EscalasPage({
             fallbackLocation: e.location,
           });
           const mine = myByEvent.get(e.id);
+          const canDelete =
+            canDeleteEvents && new Date(e.starts_at).getTime() > Date.now();
           return (
-            <Link key={e.id} href={`/${churchSlug}/escalas/${e.id}`} className="block">
+            <FutureEventLink
+              key={e.id}
+              href={`/${churchSlug}/escalas/${e.id}`}
+              canDelete={canDelete}
+              context={{
+                churchSlug,
+                churchId: tenant.church.id,
+                eventId: e.id,
+                eventTitle: e.title,
+              }}
+            >
               <Card className="rounded-3xl transition-colors hover:bg-accent/40">
                 <CardContent className="space-y-2 py-4">
                   <div className="flex items-start justify-between gap-3">
@@ -149,7 +163,7 @@ export default async function EscalasPage({
                   )}
                 </CardContent>
               </Card>
-            </Link>
+            </FutureEventLink>
           );
         })}
         {eventsError ? (
