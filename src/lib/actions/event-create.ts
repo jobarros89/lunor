@@ -20,6 +20,7 @@ const eventSchema = z.object({
   script: z.string().max(5000).default(""),
   startsAt: z.string().min(10, "Informe a data e hora"),
   endsAt: z.string().default(""),
+  redirectContext: z.enum(["louvor", "kids"]).nullable().default(null),
 });
 
 export async function createEventWithContext(raw: unknown): Promise<ActionResult> {
@@ -30,6 +31,57 @@ export async function createEventWithContext(raw: unknown): Promise<ActionResult
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false, error: "Faça login novamente para continuar" };
+
+  const [{ data: isMaster }, { data: churchMembership }] = await Promise.all([
+    supabase.rpc("is_platform_admin"),
+    supabase
+      .from("church_members")
+      .select("role")
+      .eq("church_id", d.churchId)
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle(),
+  ]);
+
+  let canCreate =
+    Boolean(isMaster) ||
+    churchMembership?.role === "admin" ||
+    churchMembership?.role === "coordenador";
+
+  if (d.ministryId) {
+    const { data: ministry } = await supabase
+      .from("ministries")
+      .select("id")
+      .eq("id", d.ministryId)
+      .eq("church_id", d.churchId)
+      .maybeSingle();
+
+    if (!ministry) return { ok: false, error: "Ministério inválido" };
+
+    if (!canCreate) {
+      const { data: ministryMembership } = await supabase
+        .from("ministry_members")
+        .select("role")
+        .eq("church_id", d.churchId)
+        .eq("ministry_id", d.ministryId)
+        .eq("user_id", user.id)
+        .eq("active", true)
+        .maybeSingle();
+
+      canCreate =
+        ministryMembership?.role === "gerente" ||
+        ministryMembership?.role === "lider";
+    }
+  }
+
+  if (!canCreate) {
+    return {
+      ok: false,
+      error: "Apenas Admin, Coordenador, Gerente ou Líder podem criar esta escala",
+    };
+  }
 
   let campusName: string | null = null;
   if (d.campusId) {
@@ -63,7 +115,7 @@ export async function createEventWithContext(raw: unknown): Promise<ActionResult
       script: d.script || null,
       starts_at: new Date(d.startsAt).toISOString(),
       ends_at: d.endsAt ? new Date(d.endsAt).toISOString() : null,
-      created_by: user?.id ?? null,
+      created_by: user.id,
     })
     .select("id")
     .single();
@@ -71,6 +123,16 @@ export async function createEventWithContext(raw: unknown): Promise<ActionResult
   if (error || !created) return { ok: false, error: "Sem permissão para criar eventos" };
 
   revalidatePath(`/${d.churchSlug}/escalas`);
+  revalidatePath(`/${d.churchSlug}/louvor/escalas`);
+  revalidatePath(`/${d.churchSlug}/infantil/escalas`);
   revalidatePath(`/${d.churchSlug}/infantil`);
+
+  if (d.redirectContext === "louvor") {
+    redirect(`/${d.churchSlug}/louvor/escalas/${created.id}`);
+  }
+  if (d.redirectContext === "kids") {
+    redirect(`/${d.churchSlug}/infantil/escalas/${created.id}`);
+  }
+
   redirect(`/${d.churchSlug}/escalas/${created.id}`);
 }
