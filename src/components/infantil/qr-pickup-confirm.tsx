@@ -50,7 +50,10 @@ export function QrPickupConfirm({
         guardianId,
         overrideReason: reason,
       });
-      if (!result.ok) return toast.error(result.error);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       toast.success("Retirada confirmada");
       router.refresh();
     });
