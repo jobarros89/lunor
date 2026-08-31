@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
-import { Baby, BookOpen, Calendar, Home, Music2, PanelLeftClose, PanelLeftOpen, Settings, User, Users } from "lucide-react";
+import { Baby, BookOpen, Calendar, CalendarCheck2, Home, Music2, PanelLeftClose, PanelLeftOpen, Settings, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLockup } from "@/components/brand-lockup";
 import { SIDEBAR_ATTRIBUTE, SIDEBAR_STORAGE_KEY } from "@/components/shell/sidebar-state";
@@ -67,6 +67,7 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
     ...(ministryItem ? [ministryItem] : []),
     ...(showStandaloneKids ? [{ href: "/infantil", label: "Kids", icon: Baby }] : []),
     { href: "/escalas", label: "Cultos e escalas", icon: Calendar },
+    { href: "/disponibilidade", label: "Disponibilidade", icon: CalendarCheck2 },
     { href: "/perfil", label: "Perfil", icon: User },
     ...(isLeader ? [{ href: "/pessoas", label: "Equipe", icon: Users }] : []),
     ...(canAdmin ? [{ href: "/admin", label: "Administração", icon: Settings }] : []),
