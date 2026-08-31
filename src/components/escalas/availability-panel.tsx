@@ -89,7 +89,10 @@ function AvailabilityChoice({
         requestId: requestId ?? null,
         status,
       });
-      if (!result.ok) return toast.error(result.error);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       toast.success("Disponibilidade salva");
       router.refresh();
     });
@@ -104,7 +107,10 @@ function AvailabilityChoice({
         eventId: event.id,
         requestId: requestId ?? null,
       });
-      if (!result.ok) return toast.error(result.error);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       router.refresh();
     });
   }
@@ -204,7 +210,10 @@ export function AvailabilityPanel({
         eventIds: selected,
         respondBy: deadline ? new Date(deadline).toISOString() : null,
       });
-      if (!result.ok) return toast.error(result.error);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       toast.success("Solicitação enviada para a equipe");
       setTitle("");
       setDeadline("");
