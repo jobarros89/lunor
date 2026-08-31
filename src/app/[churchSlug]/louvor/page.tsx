@@ -216,7 +216,7 @@ export default async function LouvorPage({
             {repertorios.map((event) => {
               const future = new Date(event.starts_at) >= now;
               return (
-                <Link key={event.id} href={`/${churchSlug}/escalas/${event.id}`} className="grid gap-2 py-4 transition hover:opacity-70 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <Link key={event.id} href={`/${churchSlug}/louvor/repertorios/${event.id}`} className="grid gap-2 py-4 transition hover:opacity-70 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{event.title}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
