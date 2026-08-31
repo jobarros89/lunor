@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Sparkles, X } from "lucide-react";
 import {
@@ -89,6 +90,7 @@ export function AssignmentManager({
   members: Member[];
   equipments: Equipment[];
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [userId, setUserId] = useState("");
   const [roleName, setRoleName] = useState("");
@@ -111,8 +113,12 @@ export function AssignmentManager({
   function act(fn: () => Promise<{ ok: boolean; error?: string; data?: unknown } | void>, success?: string) {
     startTransition(async () => {
       const result = await fn();
-      if (result && !result.ok) toast.error(result.error ?? "Erro");
-      else if (success) toast.success(success);
+      if (result && !result.ok) {
+        toast.error(result.error ?? "Erro");
+        return;
+      }
+      if (success) toast.success(success);
+      router.refresh();
     });
   }
 
