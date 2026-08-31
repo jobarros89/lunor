@@ -2,31 +2,30 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Baby, Calendar, Home, Music2, User, Users } from "lucide-react";
+import { Baby, Calendar, Home, Music2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, hasKids = false, escalasPending = 0 }: {
+export function BottomNav({
+  churchSlug,
+  hasLouvor = false,
+  hasKids = false,
+  escalasPending = 0,
+}: {
   churchSlug: string;
-  isLeader: boolean;
-  activeMinistryNavigation: { href: string; label: string; module: "louvor" | "infantil" } | null;
+  hasLouvor?: boolean;
   hasKids?: boolean;
   escalasPending?: number;
 }) {
   const pathname = usePathname();
-  const ministryItem = activeMinistryNavigation ? {
-    ...activeMinistryNavigation,
-    icon: activeMinistryNavigation.module === "louvor" ? Music2 : Baby,
-    badge: 0,
-  } : null;
-  const showStandaloneKids = hasKids && activeMinistryNavigation?.module !== "infantil";
   const items = [
     { href: "", label: "Início", icon: Home, badge: 0 },
-    ...(ministryItem ? [ministryItem] : []),
-    ...(showStandaloneKids ? [{ href: "/infantil", label: "Kids", icon: Baby, badge: 0 }] : []),
+    ...(hasLouvor
+      ? [{ href: "/louvor", label: "Louvor", icon: Music2, badge: 0 }]
+      : []),
+    ...(hasKids
+      ? [{ href: "/infantil", label: "Kids", icon: Baby, badge: 0 }]
+      : []),
     { href: "/escalas", label: "Escalas", icon: Calendar, badge: escalasPending },
-    ...(isLeader ? [
-      { href: "/pessoas", label: "Equipe", icon: Users, badge: 0 },
-    ] : []),
     { href: "/perfil", label: "Perfil", icon: User, badge: 0 },
   ];
 
@@ -48,7 +47,9 @@ export function BottomNav({ churchSlug, isLeader, activeMinistryNavigation, hasK
               title={label}
               className={cn(
                 "relative flex h-12 min-w-0 flex-col items-center justify-center overflow-hidden rounded-xl transition-colors duration-200",
-                active ? "bg-[#6e5ce6]/12 text-[#6e5ce6]" : "text-muted-foreground hover:bg-foreground/8 hover:text-foreground"
+                active
+                  ? "bg-[#6e5ce6]/12 text-[#6e5ce6]"
+                  : "text-muted-foreground hover:bg-foreground/8 hover:text-foreground"
               )}
             >
               <Icon className="size-[21px] shrink-0" strokeWidth={active ? 2.35 : 1.8} />
