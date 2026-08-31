@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { getLouvorMinistry } from "@/lib/louvor-server";
 import { MinistryScheduleList } from "@/components/escalas/ministry-schedule-list";
-import { LouvorSectionNav } from "@/components/louvor/louvor-section-nav";
 
 export default async function LouvorEscalasPage({
   params,
@@ -25,8 +24,6 @@ export default async function LouvorEscalasPage({
           Equipe, confirmações e pendências do Louvor separadas da visão geral do culto.
         </p>
       </header>
-
-      <LouvorSectionNav churchSlug={churchSlug} active="escalas" />
 
       <MinistryScheduleList
         churchSlug={churchSlug}
