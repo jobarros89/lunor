@@ -26,6 +26,7 @@ import {
   type AssignmentRow,
 } from "@/components/escalas/assignment-manager";
 import { MyAssignmentCard } from "@/components/escalas/my-assignment-card";
+import { DeleteFutureEventButton } from "@/components/escalas/event-delete-control";
 import {
   ServiceOrderCard,
   type ServiceItem,
@@ -294,6 +295,10 @@ export default async function EventoDetailPage({
 
   const type = event.event_types as unknown as { name: string } | null;
   const dept = event.departments as unknown as { name: string } | null;
+  const canDeleteEvent =
+    tenant.role === "admin" &&
+    !tenant.isMaster &&
+    new Date(event.starts_at).getTime() > Date.now();
 
   return (
     <div className="space-y-6">
@@ -604,6 +609,20 @@ export default async function EventoDetailPage({
               </CardContent>
             </Card>
           )}
+        </section>
+      )}
+
+      {canDeleteEvent && (
+        <section className="hidden border-t pt-6 md:flex md:justify-end">
+          <DeleteFutureEventButton
+            context={{
+              churchSlug,
+              churchId: tenant.church.id,
+              eventId: id,
+              eventTitle: event.title,
+            }}
+            redirectTo={`/${churchSlug}/escalas`}
+          />
         </section>
       )}
     </div>
