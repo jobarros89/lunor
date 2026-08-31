@@ -54,6 +54,7 @@ function childStatus(child: SessionChild) {
 
 export function ReceptionSearch({
   sessionChildren,
+  churchName,
   churchSlug,
   churchId,
   ministryId,
@@ -63,6 +64,7 @@ export function ReceptionSearch({
   podeLiberar,
 }: {
   sessionChildren: SessionChild[];
+  churchName: string;
   churchSlug: string;
   churchId: string;
   ministryId: string;
@@ -162,6 +164,7 @@ export function ReceptionSearch({
           </p>
           <SessionChildRow
             child={selectedChild}
+            churchName={churchName}
             churchSlug={churchSlug}
             churchId={churchId}
             ministryId={ministryId}
@@ -192,6 +195,7 @@ export function ReceptionSearch({
                   <SessionChildRow
                     key={child.id}
                     child={child}
+                    churchName={churchName}
                     churchSlug={churchSlug}
                     churchId={churchId}
                     ministryId={ministryId}
