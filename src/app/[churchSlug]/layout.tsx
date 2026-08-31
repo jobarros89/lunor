@@ -29,7 +29,7 @@ function isLouvorMinistry(ministry: { name: string; slug: string }) {
 
 function ministryNavigation(ministry: { name: string; slug: string } | null) {
   if (!ministry) return null;
-  if (isLouvorMinistry(ministry)) return { href: "/louvor", label: "Repertório", module: "louvor" as const };
+  if (isLouvorMinistry(ministry)) return { href: "/louvor", label: "Louvor", module: "louvor" as const };
   if (isKidsMinistry(ministry)) return { href: "/infantil", label: "Kids", module: "infantil" as const };
   return null;
 }
