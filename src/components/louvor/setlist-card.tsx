@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   ChevronUp,
@@ -57,6 +58,7 @@ export function SetlistCard({
   youtubePlaylistError,
   podeEditar,
 }: Props) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
   const [avisoPlaylist, setAvisoPlaylist] = useState<string | null>(
@@ -67,7 +69,6 @@ export function SetlistCard({
   const [cifraAberta, setCifraAberta] = useState<string | null>(null);
   const [editandoTom, setEditandoTom] = useState<string | null>(null);
 
-  // A mídia projeta pelo Holyrics: o que ela precisa daqui é a lista em texto.
   async function copiarLista() {
     await navigator.clipboard.writeText(listaParaHolyrics(itens));
     setCopiado(true);
@@ -82,7 +83,10 @@ export function SetlistCard({
     startTransition(async () => {
       const r = await fn();
       if (!r.ok) setErro(r.error ?? "Não deu certo");
-      else onSuccess?.();
+      else {
+        onSuccess?.();
+        router.refresh();
+      }
     });
   }
 
@@ -96,6 +100,7 @@ export function SetlistCard({
         return;
       }
       setAvisoPlaylist(result.data.playlistWarning);
+      router.refresh();
     });
   }
 
@@ -265,8 +270,6 @@ export function SetlistCard({
                 )}
               </div>
 
-              {/* A letra é para o músico ensaiar — fica recolhida para não
-                  atrapalhar quem só veio conferir a ordem. */}
               {temLetra && (
                 <div className="border-t px-4 py-2">
                   <button

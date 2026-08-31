@@ -2,11 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight, CalendarDays, Clock3, MapPin, Users } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
-import { type SetlistItem, type Song } from "@/lib/louvor";
 import { getLouvorMinistry } from "@/lib/louvor-server";
 import { getInfantilMinistry } from "@/lib/infantil";
-import { SetlistCard } from "@/components/louvor/setlist-card";
-import { AddToSetlist } from "@/components/louvor/add-to-setlist";
 import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -33,6 +30,10 @@ import {
   ServiceOrderCard,
   type ServiceItem,
 } from "@/components/escalas/service-order-card";
+import {
+  EventSetlistSummary,
+  type EventSetlistSummaryItem,
+} from "@/components/louvor/event-setlist-summary";
 
 type EventAssignment = {
   id: string;
@@ -118,65 +119,26 @@ export default async function EventoDetailPage({
   const canManageGeneric =
     !!activeMinistryId && canManageActive && !isDedicatedMinistry;
 
-  // Repertório: a RLS decide o que aparece. Em rascunho volta vazio para quem
-  // não é do louvor, então não é preciso checar o status aqui.
-  const podeEditarRepertorio =
-    !!louvor &&
-    (tenant.isCoord ||
-      (await supabase
-        .from("ministry_members")
-        .select("id")
-        .eq("ministry_id", louvor.id)
-        .eq("user_id", tenant.userId)
-        .eq("active", true)
-        .in("role", ["gerente", "lider"])
-        .maybeSingle()
-      ).data !== null);
+  let canOpenLouvor = tenant.isCoord;
+  if (louvor && !canOpenLouvor) {
+    const { data: louvorMembership } = await supabase
+      .from("ministry_members")
+      .select("id")
+      .eq("church_id", tenant.church.id)
+      .eq("ministry_id", louvor.id)
+      .eq("user_id", tenant.userId)
+      .eq("active", true)
+      .maybeSingle();
+    canOpenLouvor = !!louvorMembership;
+  }
 
   const { data: setlist, error: setlistError } = await supabase
     .from("setlist_items")
-    .select(
-      "id, position, key_override, notes, songs(id, title, artist, default_key, bpm, lyrics, chord_chart, link, active)"
-    )
+    .select("id, position, key_override, songs(id, title, artist, default_key, bpm)")
     .eq("church_id", tenant.church.id)
     .eq("event_id", id)
     .order("position");
-  const itensRepertorio = (setlist ?? []) as unknown as SetlistItem[];
-
-  // O acervo e o histórico só interessam a quem monta a sequência.
-  let acervo: (Song & { ultimaVez: string | null })[] = [];
-  let acervoError = false;
-  if (podeEditarRepertorio) {
-    const [
-      { data: songs, error: songsError },
-      { data: historico, error: historicoError },
-    ] = await Promise.all([
-      supabase
-        .from("songs")
-        .select("id, title, artist, default_key, bpm, lyrics, link, active")
-        .eq("church_id", tenant.church.id)
-        .eq("active", true)
-        .order("title"),
-      supabase
-        .from("setlist_items")
-        .select("song_id, events!inner(starts_at)")
-        .eq("church_id", tenant.church.id)
-        .lte("events.starts_at", new Date().toISOString()),
-    ]);
-    acervoError = !!songsError || !!historicoError;
-    if (songsError) console.error("acervo do louvor:", songsError);
-    if (historicoError) console.error("historico do louvor:", historicoError);
-    const ultima = new Map<string, string>();
-    for (const h of historico ?? []) {
-      const quando = (h.events as unknown as { starts_at: string }).starts_at;
-      const atual = ultima.get(h.song_id);
-      if (!atual || quando > atual) ultima.set(h.song_id, quando);
-    }
-    acervo = (songs ?? []).map((s) => ({
-      ...s,
-      ultimaVez: ultima.get(s.id) ?? null,
-    }));
-  }
+  const itensRepertorio = (setlist ?? []) as unknown as EventSetlistSummaryItem[];
 
   const mineAssignments = allAssignments.filter((a) => a.user_id === tenant.userId);
   const activeAssignments = activeMinistryId
@@ -420,43 +382,13 @@ export default async function EventoDetailPage({
         {setlistError ? (
           <LoadError oQue="o repertório" />
         ) : (
-          <>
-            <SetlistCard
-              churchSlug={churchSlug}
-              churchId={tenant.church.id}
-              eventId={id}
-              itens={itensRepertorio}
-              publicado={event.setlist_status === "publicado"}
-              publicadoEm={event.setlist_published_at}
-              youtubePlaylistUrl={event.youtube_playlist_url}
-              youtubePlaylistError={event.youtube_playlist_error}
-              podeEditar={podeEditarRepertorio}
-            />
-
-            {podeEditarRepertorio && acervoError && (
-              <LoadError oQue="o acervo de músicas" />
-            )}
-
-            {podeEditarRepertorio && !acervoError && (
-              <Card className="rounded-3xl">
-                <CardHeader>
-                  <CardTitle className="text-base">Escolher músicas</CardTitle>
-                  <CardDescription>
-                    Do acervo da igreja, na ordem em que vão ser cantadas
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <AddToSetlist
-                    churchSlug={churchSlug}
-                    churchId={tenant.church.id}
-                    eventId={id}
-                    acervo={acervo}
-                    jaEscolhidas={itensRepertorio.map((i) => i.songs.id)}
-                  />
-                </CardContent>
-              </Card>
-            )}
-          </>
+          <EventSetlistSummary
+            churchSlug={churchSlug}
+            eventId={id}
+            items={itensRepertorio}
+            published={event.setlist_status === "publicado"}
+            canOpenLouvor={canOpenLouvor}
+          />
         )}
       </section>
 
