@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useRef, useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
-import { deleteFutureEvent } from "@/lib/actions/escalas";
+import { deleteFutureEvent } from "@/lib/actions/event-delete";
 import { Button } from "@/components/ui/button";
 
 type DeleteContext = {
