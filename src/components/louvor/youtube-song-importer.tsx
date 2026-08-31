@@ -130,12 +130,11 @@ export function YouTubeSongImporter({
     return (
       <Button
         type="button"
-        variant="outline"
         className="h-11 rounded-full"
         onClick={() => setOpen(true)}
       >
         <Video className="size-4" />
-        Pesquisar no YouTube
+        Pesquisar e cadastrar pelo YouTube
       </Button>
     );
   }
@@ -143,10 +142,9 @@ export function YouTubeSongImporter({
   return (
     <div className="space-y-5 rounded-2xl border p-4">
       <div>
-        <h3 className="font-semibold">Pesquisar no YouTube</h3>
+        <h3 className="font-semibold">Pesquisar e cadastrar pelo YouTube</h3>
         <p className="text-sm text-muted-foreground">
-          Escolha a gravação de referência. O LUNOR tentará localizar tom, BPM
-          e compasso, mas você confirma os dados antes de salvar.
+          Encontre a gravação, revise os dados e adicione a música direto ao acervo.
         </p>
       </div>
 
