@@ -62,9 +62,13 @@ export function SongForm(props: SongFormProps) {
 
   if (!aberto) {
     return (
-      <Button className="h-11 rounded-full" onClick={() => setAberto(true)}>
+      <Button
+        variant="outline"
+        className="h-11 rounded-full"
+        onClick={() => setAberto(true)}
+      >
         <Plus className="size-4" />
-        Cadastrar música
+        Ou cadastre manualmente
       </Button>
     );
   }
