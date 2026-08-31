@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Upload } from "lucide-react";
+import { Globe2, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { confirmChordImport } from "@/lib/actions/chord-import";
+import {
+  confirmChordImport,
+  fetchChordFromUrl,
+} from "@/lib/actions/chord-import";
 import { extractLyricsFromChordPro } from "@/lib/music/import/extract-lyrics";
 import { parseChordChart, type ParsedChordChart } from "@/lib/music/import/parse-chord-chart";
 import { Button } from "@/components/ui/button";
@@ -13,6 +16,13 @@ import { Label } from "@/components/ui/label";
 
 const MAX_LENGTH = 20_000;
 const ACCEPTED = ".txt,.cho,.crd,.pro,.chordpro";
+
+type ImportedSource = {
+  url: string;
+  title: string | null;
+  hostname: string;
+  aiUsed: boolean;
+};
 
 export function ChordImporter({
   churchSlug,
@@ -29,6 +39,8 @@ export function ChordImporter({
 }) {
   const [open, setOpen] = useState(false);
   const [content, setContent] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [importedSource, setImportedSource] = useState<ImportedSource | null>(null);
   const [file, setFile] = useState<{ name: string; type: string } | null>(null);
   const [parsed, setParsed] = useState<ParsedChordChart | null>(null);
   const [arrangementId, setArrangementId] = useState("new");
@@ -37,6 +49,7 @@ export function ChordImporter({
   const [syncLyrics, setSyncLyrics] = useState(!hasLyrics);
   const [syncChordChart, setSyncChordChart] = useState(!hasChordChart);
   const [pending, startTransition] = useTransition();
+  const [urlPending, startUrlTransition] = useTransition();
   const blocking = !content.trim() || content.length > MAX_LENGTH || parsed?.warnings.some((w) => w.code === "EMPTY_CONTENT");
   const extractedLyrics = useMemo(
     () => (parsed ? extractLyricsFromChordPro(parsed.chordProContent) : ""),
@@ -57,7 +70,32 @@ export function ChordImporter({
     const text = await selected.text();
     setContent(text);
     setFile({ name: selected.name, type: selected.type });
+    setImportedSource(null);
     setParsed(null);
+  }
+
+  function importFromUrl() {
+    if (!sourceUrl.trim() || urlPending) return;
+    startUrlTransition(async () => {
+      const result = await fetchChordFromUrl({ churchSlug, songId, url: sourceUrl });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+
+      const nextContent = result.data.content;
+      setContent(nextContent);
+      setFile(null);
+      setImportedSource({
+        url: result.data.sourceUrl,
+        title: result.data.sourceTitle,
+        hostname: result.data.hostname,
+        aiUsed: result.data.aiUsed,
+      });
+      setParsed(parseChordChart({ content: nextContent }));
+      setConfirmed(false);
+      toast.success(`Cifra encontrada em ${result.data.hostname}. Revise antes de salvar.`);
+    });
   }
 
   function review() {
@@ -94,6 +132,8 @@ export function ChordImporter({
       setOpen(false);
       setParsed(null);
       setContent("");
+      setSourceUrl("");
+      setImportedSource(null);
       setConfirmed(false);
     });
   }
@@ -111,15 +151,56 @@ export function ChordImporter({
     <Card className="w-full rounded-3xl">
       <CardHeader>
         <CardTitle className="text-base">
-          Importar letra e cifra · {parsed ? "Revisão e confirmação" : "Colar conteúdo"}
+          Importar letra e cifra · {parsed ? "Revisão e confirmação" : "Escolher fonte"}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         {!parsed ? (
           <>
-            <div className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
-              Abra a cifra na fonte que você usa, copie o conteúdo completo e cole abaixo. O LUNOR tenta reconhecer tom, seções, acordes e letra antes de salvar.
+            <section className="space-y-3 rounded-2xl border p-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-primary/10 p-2 text-primary">
+                  <Globe2 className="size-4" />
+                </div>
+                <div>
+                  <p className="font-medium">Buscar cifra na internet</p>
+                  <p className="text-xs text-muted-foreground">
+                    Cole o endereço de uma página pública. O LUNOR procura o conteúdo musical, usa IA para escolher o bloco mais provável e abre a revisão automaticamente.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  id="chord-url"
+                  type="url"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  placeholder="https://site.com/musica/cifra"
+                  value={sourceUrl}
+                  onChange={(e) => setSourceUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      importFromUrl();
+                    }
+                  }}
+                />
+                <Button onClick={importFromUrl} disabled={!sourceUrl.trim() || urlPending}>
+                  {urlPending ? "Buscando…" : "Buscar cifra"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Funciona em páginas públicas acessíveis normalmente. Sites que exigem login, CAPTCHA, paywall ou bloqueiam automação podem não permitir a importação.
+              </p>
+            </section>
+
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              ou cole / envie manualmente
+              <span className="h-px flex-1 bg-border" />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="chord-content">Cole letra + cifra</Label>
               <textarea
@@ -128,8 +209,9 @@ export function ChordImporter({
                 onChange={(e) => {
                   setContent(e.target.value);
                   setFile(null);
+                  setImportedSource(null);
                 }}
-                rows={14}
+                rows={12}
                 className="w-full rounded-2xl border bg-transparent p-3 font-mono text-sm"
                 placeholder={"Tom: C\n\nIntrodução:\nC  G  Am  F\n\nVerso:\nC             G\nGrande é o Senhor…"}
               />
@@ -149,6 +231,31 @@ export function ChordImporter({
           </>
         ) : (
           <>
+            {importedSource && (
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl border bg-muted/40 p-4 text-sm">
+                <Globe2 className="size-4 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">
+                    {importedSource.title || importedSource.hostname}
+                  </p>
+                  <a
+                    href={importedSource.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="break-all text-xs text-muted-foreground underline underline-offset-4"
+                  >
+                    {importedSource.hostname}
+                  </a>
+                </div>
+                {importedSource.aiUsed && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                    <Sparkles className="size-3" />
+                    IA selecionou o conteúdo
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3 rounded-2xl bg-muted p-4 text-sm sm:grid-cols-3">
               <Meta label="Formato" value={parsed.detectedFormat} />
               <Meta label="Título" value={parsed.metadata.title} />
@@ -232,7 +339,7 @@ export function ChordImporter({
               <Button onClick={save} disabled={!confirmed || pending || (arrangementId === "new" && !arrangementName.trim())}>
                 {pending ? "Salvando…" : "Salvar letra e cifra"}
               </Button>
-              <Button variant="outline" onClick={() => setParsed(null)} disabled={pending}>Voltar à colagem</Button>
+              <Button variant="outline" onClick={() => setParsed(null)} disabled={pending}>Voltar à fonte</Button>
               <Button variant="ghost" onClick={() => setOpen(false)} disabled={pending}>Cancelar</Button>
             </div>
           </>
