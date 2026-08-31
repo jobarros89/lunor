@@ -30,7 +30,8 @@ export default async function EscalasPage({
   const canDeleteEvents = tenant.role === "admin" && !tenant.isMaster;
 
   const supabase = await createClient();
-  const since = new Date();
+  const now = new Date();
+  const since = new Date(now);
   since.setHours(0, 0, 0, 0);
 
   const [{ data: events, error: eventsError }, { data: myAssignments }] =
@@ -127,7 +128,7 @@ export default async function EscalasPage({
           });
           const mine = myByEvent.get(e.id);
           const canDelete =
-            canDeleteEvents && new Date(e.starts_at).getTime() > Date.now();
+            canDeleteEvents && new Date(e.starts_at).getTime() > now.getTime();
           return (
             <FutureEventLink
               key={e.id}
