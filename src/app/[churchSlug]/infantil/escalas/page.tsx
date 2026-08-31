@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { getInfantilMinistry } from "@/lib/infantil";
 import { MinistryScheduleList } from "@/components/escalas/ministry-schedule-list";
-import { KidsSectionNav } from "@/components/infantil/kids-section-nav";
 
 export default async function KidsEscalasPage({
   params,
@@ -25,8 +24,6 @@ export default async function KidsEscalasPage({
           Equipe, confirmações e pendências do Kids separadas da operação de recepção.
         </p>
       </header>
-
-      <KidsSectionNav churchSlug={churchSlug} active="escalas" />
 
       <MinistryScheduleList
         churchSlug={churchSlug}
