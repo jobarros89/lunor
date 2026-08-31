@@ -11,18 +11,26 @@ import { Field } from "@/components/ui/field";
 
 type Option = { id: string; name: string };
 
+type RedirectContext = "louvor" | "kids";
+
 export function EventForm({
   churchSlug,
   churchId,
   eventTypes,
   ministries,
   campuses,
+  initialMinistryId = null,
+  fixedMinistryName,
+  redirectContext,
 }: {
   churchSlug: string;
   churchId: string;
   eventTypes: Option[];
   ministries: Option[];
   campuses: Option[];
+  initialMinistryId?: string | null;
+  fixedMinistryName?: string;
+  redirectContext?: RedirectContext;
 }) {
   const [pending, startTransition] = useTransition();
   const [v, setV] = useState<{
@@ -39,7 +47,7 @@ export function EventForm({
     endsAt: string;
   }>({
     typeId: eventTypes[0]?.id ?? null,
-    ministryId: null,
+    ministryId: initialMinistryId,
     campusId: campuses[0]?.id ?? null,
     servicePeriod: null,
     title: "",
@@ -55,7 +63,12 @@ export function EventForm({
     if (v.title.length < 2) return toast.error("Dê um título ao evento");
     if (!v.startsAt) return toast.error("Escolha a data e hora de início");
     startTransition(async () => {
-      const result = await createEventWithContext({ churchSlug, churchId, ...v });
+      const result = await createEventWithContext({
+        churchSlug,
+        churchId,
+        redirectContext: redirectContext ?? null,
+        ...v,
+      });
       if (result && !result.ok) toast.error(result.error);
     });
   }
@@ -90,18 +103,24 @@ export function EventForm({
             </select>
           </Field>
           <Field label="Ministério">
-            <select
-              value={v.ministryId ?? ""}
-              onChange={(e) => setV({ ...v, ministryId: e.target.value || null })}
-              className={selectCls}
-            >
-              <option value="">Toda a igreja</option>
-              {ministries.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
+            {fixedMinistryName ? (
+              <div className="flex h-11 items-center rounded-xl border bg-muted/40 px-3 text-sm font-medium">
+                {fixedMinistryName}
+              </div>
+            ) : (
+              <select
+                value={v.ministryId ?? ""}
+                onChange={(e) => setV({ ...v, ministryId: e.target.value || null })}
+                className={selectCls}
+              >
+                <option value="">Toda a igreja</option>
+                {ministries.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </Field>
           <Field label="Campus">
             <select
@@ -199,7 +218,7 @@ export function EventForm({
           onClick={submit}
           className="h-12 w-full rounded-full text-base"
         >
-          {pending ? "Criando…" : "Criar evento"}
+          {pending ? "Criando…" : redirectContext ? "Criar escala" : "Criar evento"}
         </Button>
       </CardContent>
     </Card>
