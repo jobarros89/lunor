@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ export function AddToSetlist({
   acervo,
   jaEscolhidas,
 }: Props) {
+  const router = useRouter();
   const [busca, setBusca] = useState("");
   const [selecionada, setSelecionada] = useState<string | null>(null);
   const [tom, setTom] = useState("");
@@ -67,6 +69,7 @@ export function AddToSetlist({
         setBusca("");
         setSelecionada(null);
         setTom("");
+        router.refresh();
       }
     });
   }
