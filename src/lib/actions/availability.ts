@@ -6,7 +6,18 @@ import { createClient } from "@/lib/supabase/server";
 import { notifyUsers } from "@/lib/push/notify";
 import type { ActionResult } from "./types";
 
-const statusSchema = z.enum(["available", "unavailable", "maybe"]);
+const statusSchema = z.enum(["available", "unavailable"]);
+const periodSchema = z.enum(["all_day", "morning", "afternoon", "evening"]);
+
+export type AvailabilityStatus = z.infer<typeof statusSchema>;
+export type AvailabilityPeriod = z.infer<typeof periodSchema>;
+
+function revalidateAvailability(churchSlug: string) {
+  revalidatePath(`/${churchSlug}/disponibilidade`);
+  revalidatePath(`/${churchSlug}/escalas`);
+  revalidatePath(`/${churchSlug}/louvor`);
+  revalidatePath(`/${churchSlug}/infantil`);
+}
 
 const availabilitySchema = z.object({
   churchSlug: z.string().min(2),
@@ -16,8 +27,6 @@ const availabilitySchema = z.object({
   requestId: z.string().uuid().nullable().optional(),
   status: statusSchema,
 });
-
-export type AvailabilityStatus = z.infer<typeof statusSchema>;
 
 export async function setMyAvailability(raw: unknown): Promise<ActionResult> {
   const parsed = availabilitySchema.safeParse(raw);
@@ -47,8 +56,7 @@ export async function setMyAvailability(raw: unknown): Promise<ActionResult> {
     return { ok: false, error: "Não foi possível salvar sua disponibilidade" };
   }
 
-  revalidatePath(`/${d.churchSlug}/disponibilidade`);
-  revalidatePath(`/${d.churchSlug}/escalas`);
+  revalidateAvailability(d.churchSlug);
   return { ok: true, data: undefined };
 }
 
@@ -73,7 +81,158 @@ export async function clearMyAvailability(raw: unknown): Promise<ActionResult> {
     .eq("user_id", user.id);
 
   if (error) return { ok: false, error: "Não foi possível limpar sua resposta" };
-  revalidatePath(`/${d.churchSlug}/disponibilidade`);
+  revalidateAvailability(d.churchSlug);
+  return { ok: true, data: undefined };
+}
+
+const calendarSchema = z.object({
+  churchSlug: z.string().min(2),
+  churchId: z.string().uuid(),
+  ministryId: z.string().uuid().nullable(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  period: periodSchema,
+  status: statusSchema,
+});
+
+function scopeDelete<T extends { eq: (column: string, value: string) => T; is: (column: string, value: null) => T }>(
+  query: T,
+  ministryId: string | null
+) {
+  return ministryId ? query.eq("ministry_id", ministryId) : query.is("ministry_id", null);
+}
+
+export async function setMyCalendarAvailability(raw: unknown): Promise<ActionResult> {
+  const parsed = calendarSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Data ou disponibilidade inválida" };
+  const d = parsed.data;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sua sessão expirou" };
+
+  const baseDelete = supabase
+    .from("member_availability_calendar")
+    .delete()
+    .eq("church_id", d.churchId)
+    .eq("user_id", user.id)
+    .eq("availability_date", d.date)
+    .eq("period", d.period);
+  const { error: deleteError } = await scopeDelete(baseDelete, d.ministryId);
+  if (deleteError) {
+    console.error("setMyCalendarAvailability/delete:", deleteError);
+    return { ok: false, error: "Não foi possível atualizar o calendário" };
+  }
+
+  const { error } = await supabase.from("member_availability_calendar").insert({
+    church_id: d.churchId,
+    ministry_id: d.ministryId,
+    user_id: user.id,
+    availability_date: d.date,
+    period: d.period,
+    status: d.status,
+  });
+
+  if (error) {
+    console.error("setMyCalendarAvailability/insert:", error);
+    return { ok: false, error: "Não foi possível salvar no calendário" };
+  }
+
+  revalidateAvailability(d.churchSlug);
+  return { ok: true, data: undefined };
+}
+
+export async function clearMyCalendarAvailability(raw: unknown): Promise<ActionResult> {
+  const parsed = calendarSchema.omit({ status: true }).safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Dados inválidos" };
+  const d = parsed.data;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sua sessão expirou" };
+
+  const baseDelete = supabase
+    .from("member_availability_calendar")
+    .delete()
+    .eq("church_id", d.churchId)
+    .eq("user_id", user.id)
+    .eq("availability_date", d.date)
+    .eq("period", d.period);
+  const { error } = await scopeDelete(baseDelete, d.ministryId);
+  if (error) return { ok: false, error: "Não foi possível limpar esta data" };
+
+  revalidateAvailability(d.churchSlug);
+  return { ok: true, data: undefined };
+}
+
+const recurringSchema = z.object({
+  churchSlug: z.string().min(2),
+  churchId: z.string().uuid(),
+  ministryId: z.string().uuid().nullable(),
+  weekday: z.number().int().min(0).max(6),
+  period: periodSchema,
+  status: statusSchema,
+});
+
+export async function setMyRecurringAvailability(raw: unknown): Promise<ActionResult> {
+  const parsed = recurringSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Regra recorrente inválida" };
+  const d = parsed.data;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sua sessão expirou" };
+
+  const baseDelete = supabase
+    .from("member_availability_recurring")
+    .delete()
+    .eq("church_id", d.churchId)
+    .eq("user_id", user.id)
+    .eq("weekday", d.weekday)
+    .eq("period", d.period);
+  const { error: deleteError } = await scopeDelete(baseDelete, d.ministryId);
+  if (deleteError) return { ok: false, error: "Não foi possível atualizar a recorrência" };
+
+  const { error } = await supabase.from("member_availability_recurring").insert({
+    church_id: d.churchId,
+    ministry_id: d.ministryId,
+    user_id: user.id,
+    weekday: d.weekday,
+    period: d.period,
+    status: d.status,
+  });
+  if (error) {
+    console.error("setMyRecurringAvailability:", error);
+    return { ok: false, error: "Não foi possível salvar a recorrência" };
+  }
+
+  revalidateAvailability(d.churchSlug);
+  return { ok: true, data: undefined };
+}
+
+export async function clearMyRecurringAvailability(raw: unknown): Promise<ActionResult> {
+  const parsed = recurringSchema.omit({ status: true }).safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Dados inválidos" };
+  const d = parsed.data;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sua sessão expirou" };
+
+  const baseDelete = supabase
+    .from("member_availability_recurring")
+    .delete()
+    .eq("church_id", d.churchId)
+    .eq("user_id", user.id)
+    .eq("weekday", d.weekday)
+    .eq("period", d.period);
+  const { error } = await scopeDelete(baseDelete, d.ministryId);
+  if (error) return { ok: false, error: "Não foi possível limpar a recorrência" };
+
+  revalidateAvailability(d.churchSlug);
   return { ok: true, data: undefined };
 }
 
@@ -128,6 +287,6 @@ export async function createAvailabilityRequest(
     }
   );
 
-  revalidatePath(`/${d.churchSlug}/disponibilidade`);
+  revalidateAvailability(d.churchSlug);
   return { ok: true, data: { requestId: String(requestId) } };
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarCheck2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -66,27 +66,16 @@ export default async function EscalasPage({
           <h1 className="text-2xl font-semibold tracking-tight">Escalas</h1>
           <p className="text-muted-foreground">Próximos eventos</p>
         </div>
-        <div className="flex items-center gap-2">
+        {tenant.isLeader && (
           <Button
-            variant="outline"
-            className="h-11 rounded-full px-4"
+            className="h-11 rounded-full px-5"
             nativeButton={false}
-            render={<Link href={`/${churchSlug}/disponibilidade`} />}
+            render={<Link href={`/${churchSlug}/escalas/novo`} />}
           >
-            <CalendarCheck2 className="size-4" />
-            Disponibilidade
+            <Plus className="size-4" />
+            Novo
           </Button>
-          {tenant.isLeader && (
-            <Button
-              className="h-11 rounded-full px-5"
-              nativeButton={false}
-              render={<Link href={`/${churchSlug}/escalas/novo`} />}
-            >
-              <Plus className="size-4" />
-              Novo
-            </Button>
-          )}
-        </div>
+        )}
       </div>
 
       <div className="flex gap-2">

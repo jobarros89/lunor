@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CircleHelp, Clock3, Send, X } from "lucide-react";
+import { Check, Clock3, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   clearMyAvailability,
@@ -25,7 +25,6 @@ export type AvailabilityEvent = {
   counts: {
     available: number;
     unavailable: number;
-    maybe: number;
     notInformed: number;
   } | null;
 };
@@ -45,19 +44,13 @@ const choices: Array<{
 }> = [
   {
     status: "available",
-    label: "Posso",
+    label: "Disponível",
     icon: Check,
     activeClass: "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-600",
   },
   {
-    status: "maybe",
-    label: "Talvez",
-    icon: CircleHelp,
-    activeClass: "border-amber-500 bg-amber-500 text-black hover:bg-amber-500",
-  },
-  {
     status: "unavailable",
-    label: "Não posso",
+    label: "Não disponível",
     icon: X,
     activeClass: "border-rose-600 bg-rose-600 text-white hover:bg-rose-600",
   },
@@ -136,7 +129,7 @@ function AvailabilityChoice({
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {choices.map(({ status, label, icon: Icon, activeClass }) => (
           <Button
             key={status}
@@ -158,9 +151,8 @@ function AvailabilityChoice({
       {event.counts && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 border-t pt-3 text-xs text-muted-foreground">
           <span><strong className="text-foreground">{event.counts.available}</strong> disponíveis</span>
-          <span><strong className="text-foreground">{event.counts.maybe}</strong> talvez</span>
-          <span><strong className="text-foreground">{event.counts.unavailable}</strong> indisponíveis</span>
-          <span><strong className="text-foreground">{event.counts.notInformed}</strong> pendentes</span>
+          <span><strong className="text-foreground">{event.counts.unavailable}</strong> não disponíveis</span>
+          <span><strong className="text-foreground">{event.counts.notInformed}</strong> sem resposta</span>
         </div>
       )}
     </div>
@@ -265,9 +257,9 @@ export function AvailabilityPanel({
 
       <section className="space-y-3">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">Minha disponibilidade</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Cultos já criados</h2>
           <p className="text-sm text-muted-foreground">
-            Você não precisa esperar uma solicitação. Informe ou altere sua disponibilidade a qualquer momento.
+            A resposta específica de um culto prevalece sobre o calendário e sobre o padrão semanal.
           </p>
         </div>
         {events.length > 0 ? (
@@ -285,7 +277,7 @@ export function AvailabilityPanel({
         ) : (
           <Card className="rounded-3xl">
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Nenhum culto futuro deste ministério para informar disponibilidade.
+              Nenhum culto futuro deste ministério. Você ainda pode informar datas no calendário acima.
             </CardContent>
           </Card>
         )}
@@ -296,7 +288,7 @@ export function AvailabilityPanel({
           <CardHeader>
             <CardTitle className="text-lg">Solicitar disponibilidade</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Escolha os cultos. Os voluntários do {ministryName} receberão o pedido no LUNOR e, quando Push estiver ativo, também a notificação.
+              Escolha os cultos já criados. Os voluntários do {ministryName} receberão o pedido no LUNOR e, quando Push estiver ativo, também a notificação.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
