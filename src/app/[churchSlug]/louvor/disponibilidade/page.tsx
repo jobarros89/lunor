@@ -34,10 +34,14 @@ export default async function LouvorAvailabilityPage({
 
   const now = new Date();
   const initialMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-  const [{ data: calendarAvailability }, { data: recurringAvailability }] = await Promise.all([
+  const [
+    { data: calendarAvailability },
+    { data: recurringAvailability },
+    { data: campuses },
+  ] = await Promise.all([
     supabase
       .from("member_availability_calendar")
-      .select("availability_date, period, status")
+      .select("availability_date, period, status, campus_id")
       .eq("church_id", tenant.church.id)
       .eq("ministry_id", louvor.id)
       .eq("user_id", tenant.userId)
@@ -46,22 +50,31 @@ export default async function LouvorAvailabilityPage({
       .limit(500),
     supabase
       .from("member_availability_recurring")
-      .select("weekday, period, status")
+      .select("weekday, period, status, campus_id")
       .eq("church_id", tenant.church.id)
       .eq("ministry_id", louvor.id)
       .eq("user_id", tenant.userId)
       .order("weekday"),
+    supabase
+      .from("campuses")
+      .select("id, name")
+      .eq("church_id", tenant.church.id)
+      .eq("active", true)
+      .order("sort_order")
+      .order("name"),
   ]);
 
   const calendarEntries: CalendarAvailabilityEntry[] = (calendarAvailability ?? []).map((row) => ({
     date: row.availability_date,
     period: row.period as AvailabilityPeriod,
     status: row.status as AvailabilityStatus,
+    campusId: row.campus_id,
   }));
   const recurringEntries: RecurringAvailabilityEntry[] = (recurringAvailability ?? []).map((row) => ({
     weekday: row.weekday,
     period: row.period as AvailabilityPeriod,
     status: row.status as AvailabilityStatus,
+    campusId: row.campus_id,
   }));
 
   return (
@@ -84,6 +97,7 @@ export default async function LouvorAvailabilityPage({
         initialMonth={initialMonth}
         entries={calendarEntries}
         recurring={recurringEntries}
+        campuses={campuses ?? []}
       />
     </div>
   );

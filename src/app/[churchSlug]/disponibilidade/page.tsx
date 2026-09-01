@@ -28,10 +28,10 @@ export default async function DisponibilidadePage({
   since.setHours(0, 0, 0, 0);
   const initialMonth = `${since.getFullYear()}-${String(since.getMonth() + 1).padStart(2, "0")}-01`;
 
-  const [calendarResult, recurringResult, eventResult, requestResult] = await Promise.all([
+  const [calendarResult, recurringResult, eventResult, requestResult, campusResult] = await Promise.all([
     supabase
       .from("member_availability_calendar")
-      .select("availability_date, period, status")
+      .select("availability_date, period, status, campus_id")
       .eq("church_id", tenant.church.id)
       .eq("user_id", tenant.userId)
       .is("ministry_id", null)
@@ -40,7 +40,7 @@ export default async function DisponibilidadePage({
       .limit(500),
     supabase
       .from("member_availability_recurring")
-      .select("weekday, period, status")
+      .select("weekday, period, status, campus_id")
       .eq("church_id", tenant.church.id)
       .eq("user_id", tenant.userId)
       .is("ministry_id", null)
@@ -65,17 +65,26 @@ export default async function DisponibilidadePage({
           .order("created_at", { ascending: false })
           .limit(20)
       : Promise.resolve({ data: [] }),
+    supabase
+      .from("campuses")
+      .select("id, name")
+      .eq("church_id", tenant.church.id)
+      .eq("active", true)
+      .order("sort_order")
+      .order("name"),
   ]);
 
   const calendarEntries: CalendarAvailabilityEntry[] = (calendarResult.data ?? []).map((row) => ({
     date: row.availability_date,
     period: row.period as AvailabilityPeriod,
     status: row.status as AvailabilityStatus,
+    campusId: row.campus_id,
   }));
   const recurringEntries: RecurringAvailabilityEntry[] = (recurringResult.data ?? []).map((row) => ({
     weekday: row.weekday,
     period: row.period as AvailabilityPeriod,
     status: row.status as AvailabilityStatus,
+    campusId: row.campus_id,
   }));
 
   const eventRows = eventResult.data ?? [];
@@ -219,6 +228,7 @@ export default async function DisponibilidadePage({
         initialMonth={initialMonth}
         entries={calendarEntries}
         recurring={recurringEntries}
+        campuses={campusResult.data ?? []}
       />
 
       {active && (

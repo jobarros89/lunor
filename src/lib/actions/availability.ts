@@ -16,7 +16,9 @@ function revalidateAvailability(churchSlug: string) {
   revalidatePath(`/${churchSlug}/disponibilidade`);
   revalidatePath(`/${churchSlug}/escalas`);
   revalidatePath(`/${churchSlug}/louvor`);
+  revalidatePath(`/${churchSlug}/louvor/disponibilidade`);
   revalidatePath(`/${churchSlug}/infantil`);
+  revalidatePath(`/${churchSlug}/infantil/disponibilidade`);
 }
 
 const availabilitySchema = z.object({
@@ -89,16 +91,18 @@ const calendarSchema = z.object({
   churchSlug: z.string().min(2),
   churchId: z.string().uuid(),
   ministryId: z.string().uuid().nullable(),
+  campusId: z.string().uuid().nullable(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   period: periodSchema,
   status: statusSchema,
 });
 
-function scopeDelete<T extends { eq: (column: string, value: string) => T; is: (column: string, value: null) => T }>(
+function scopeNullable<T extends { eq: (column: string, value: string) => T; is: (column: string, value: null) => T }>(
   query: T,
-  ministryId: string | null
+  column: string,
+  value: string | null
 ) {
-  return ministryId ? query.eq("ministry_id", ministryId) : query.is("ministry_id", null);
+  return value ? query.eq(column, value) : query.is(column, null);
 }
 
 export async function setMyCalendarAvailability(raw: unknown): Promise<ActionResult> {
@@ -118,7 +122,8 @@ export async function setMyCalendarAvailability(raw: unknown): Promise<ActionRes
     .eq("user_id", user.id)
     .eq("availability_date", d.date)
     .eq("period", d.period);
-  const { error: deleteError } = await scopeDelete(baseDelete, d.ministryId);
+  const ministryDelete = scopeNullable(baseDelete, "ministry_id", d.ministryId);
+  const { error: deleteError } = await scopeNullable(ministryDelete, "campus_id", d.campusId);
   if (deleteError) {
     console.error("setMyCalendarAvailability/delete:", deleteError);
     return { ok: false, error: "Não foi possível atualizar o calendário" };
@@ -127,6 +132,7 @@ export async function setMyCalendarAvailability(raw: unknown): Promise<ActionRes
   const { error } = await supabase.from("member_availability_calendar").insert({
     church_id: d.churchId,
     ministry_id: d.ministryId,
+    campus_id: d.campusId,
     user_id: user.id,
     availability_date: d.date,
     period: d.period,
@@ -159,7 +165,8 @@ export async function clearMyCalendarAvailability(raw: unknown): Promise<ActionR
     .eq("user_id", user.id)
     .eq("availability_date", d.date)
     .eq("period", d.period);
-  const { error } = await scopeDelete(baseDelete, d.ministryId);
+  const ministryDelete = scopeNullable(baseDelete, "ministry_id", d.ministryId);
+  const { error } = await scopeNullable(ministryDelete, "campus_id", d.campusId);
   if (error) return { ok: false, error: "Não foi possível limpar esta data" };
 
   revalidateAvailability(d.churchSlug);
@@ -170,6 +177,7 @@ const recurringSchema = z.object({
   churchSlug: z.string().min(2),
   churchId: z.string().uuid(),
   ministryId: z.string().uuid().nullable(),
+  campusId: z.string().uuid().nullable(),
   weekday: z.number().int().min(0).max(6),
   period: periodSchema,
   status: statusSchema,
@@ -192,12 +200,14 @@ export async function setMyRecurringAvailability(raw: unknown): Promise<ActionRe
     .eq("user_id", user.id)
     .eq("weekday", d.weekday)
     .eq("period", d.period);
-  const { error: deleteError } = await scopeDelete(baseDelete, d.ministryId);
+  const ministryDelete = scopeNullable(baseDelete, "ministry_id", d.ministryId);
+  const { error: deleteError } = await scopeNullable(ministryDelete, "campus_id", d.campusId);
   if (deleteError) return { ok: false, error: "Não foi possível atualizar a recorrência" };
 
   const { error } = await supabase.from("member_availability_recurring").insert({
     church_id: d.churchId,
     ministry_id: d.ministryId,
+    campus_id: d.campusId,
     user_id: user.id,
     weekday: d.weekday,
     period: d.period,
@@ -229,7 +239,8 @@ export async function clearMyRecurringAvailability(raw: unknown): Promise<Action
     .eq("user_id", user.id)
     .eq("weekday", d.weekday)
     .eq("period", d.period);
-  const { error } = await scopeDelete(baseDelete, d.ministryId);
+  const ministryDelete = scopeNullable(baseDelete, "ministry_id", d.ministryId);
+  const { error } = await scopeNullable(ministryDelete, "campus_id", d.campusId);
   if (error) return { ok: false, error: "Não foi possível limpar a recorrência" };
 
   revalidateAvailability(d.churchSlug);
