@@ -31,7 +31,6 @@ jobs:
         run: npm ci --no-audit --no-fund --prefer-offline
 
       - name: Auditar dependências de produção
-        continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
 
       - name: Lint
