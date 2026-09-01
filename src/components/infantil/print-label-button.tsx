@@ -7,59 +7,85 @@ import { qrSvgMarkup } from "@/lib/qr";
 const PROD_ORIGIN = "https://lunorservice.com";
 
 export function PrintLabelButton({
+  churchName,
   childName,
+  childAge,
   className,
+  guardianName,
+  restrictedPickupNames,
+  allergies,
+  specialNeeds,
   code,
   pickupToken,
   eventTitle,
   eventContext,
 }: {
+  churchName: string;
   childName: string;
+  childAge: string;
   className: string | null;
+  guardianName: string | null;
+  restrictedPickupNames: string[];
+  allergies: string | null;
+  specialNeeds: string | null;
   code: string;
   pickupToken: string;
   eventTitle: string;
   eventContext: string;
 }) {
   function printLabel() {
-    const popup = window.open("", "_blank", "width=520,height=420");
+    const popup = window.open("", "_blank", "width=620,height=560");
     if (!popup) return;
 
+ fix/kids-label-standard
+    const restriction = restrictedPickupNames.length
+      ? `Não entregar para: ${restrictedPickupNames.join(", ")}`
+      : "";
     const currentUrl = `${window.location.origin.replace(/\/$/, "")}/q/${pickupToken}`;
     const pickupUrl = new TextEncoder().encode(currentUrl).length <= 78
       ? currentUrl
       : `${PROD_ORIGIN}/q/${pickupToken}`;
     const qr = qrSvgMarkup(pickupUrl, 3, 4);
+    main
 
     popup.document.write(`<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <title>Etiqueta ${code}</title>
+  <title>Etiqueta ${escapeHtml(code)}</title>
   <style>
-    @page { size: 62mm 40mm; margin: 3mm; }
+    @page { size: 62mm 50mm; margin: 2.5mm; }
+    * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; margin: 0; color: #111; }
-    .label { border: 1px solid #111; border-radius: 10px; padding: 8px; display: grid; grid-template-columns: 1fr 86px; gap: 8px; align-items: center; }
-    .brand { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
-    .name { font-size: 17px; font-weight: 700; margin-top: 6px; line-height: 1.05; }
+    .label { border: 1px solid #111; border-radius: 8px; padding: 7px; }
+    .church { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .brand { font-size: 8px; margin-top: 1px; color: #444; text-transform: uppercase; letter-spacing: .1em; }
+    .name { font-size: 18px; line-height: 1.05; font-weight: 800; margin-top: 5px; }
     .meta { font-size: 10px; margin-top: 3px; }
-    .context { font-size: 10px; font-weight: 700; margin-top: 3px; }
-    .code { font-size: 24px; font-weight: 800; letter-spacing: .12em; margin-top: 7px; }
-    .qr { text-align: center; font-size: 8px; }
-    .qr svg { width: 82px; height: 82px; display: block; margin: 0 auto 2px; }
+    .meta strong { font-weight: 700; }
+    .event { font-size: 9px; margin-top: 3px; color: #333; }
+    .security { display: flex; align-items: end; justify-content: space-between; gap: 8px; margin-top: 6px; padding-top: 5px; border-top: 1px solid #bbb; }
+    .security-label { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+    .code { font-size: 27px; line-height: 1; font-weight: 900; letter-spacing: .12em; }
+    .alert { margin-top: 5px; border: 2px solid #111; border-radius: 5px; padding: 4px 5px; font-size: 9px; font-weight: 700; line-height: 1.2; }
+    .attention { margin-top: 3px; border: 1px solid #555; border-radius: 5px; padding: 3px 5px; font-size: 8px; line-height: 1.2; }
   </style>
 </head>
 <body>
   <div class="label">
-    <div>
-      <div class="brand">LUNOR Kids</div>
-      <div class="name">${escapeHtml(childName)}</div>
-      <div class="meta">${escapeHtml(className ?? "Turma não definida")}</div>
-      <div class="meta">${escapeHtml(eventTitle)}</div>
-      ${eventContext ? `<div class="context">${escapeHtml(eventContext)}</div>` : ""}
+    <div class="church">${escapeHtml(churchName)}</div>
+    <div class="brand">LUNOR Kids</div>
+    <div class="name">${escapeHtml(childName)}</div>
+    <div class="meta"><strong>Idade / Sala:</strong> ${escapeHtml(childAge)}${className ? ` · ${escapeHtml(className)}` : " · Turma não definida"}</div>
+    <div class="meta"><strong>Responsável:</strong> ${escapeHtml(guardianName ?? "Não informado")}</div>
+    <div class="event">${escapeHtml(eventTitle)}${eventContext ? ` · ${escapeHtml(eventContext)}` : ""}</div>
+    ${allergies ? `<div class="alert">⚠ ALERTA DE ALERGIA: ${escapeHtml(allergies)}</div>` : ""}
+    ${restriction ? `<div class="alert">RESTRIÇÃO DE SAÍDA: ${escapeHtml(restriction)}</div>` : ""}
+    ${specialNeeds ? `<div class="attention"><strong>ATENÇÃO ESPECIAL:</strong> ${escapeHtml(specialNeeds)}</div>` : ""}
+    <div class="security">
+      <div class="security-label">Código de segurança</div>
       <div class="code">${escapeHtml(code)}</div>
     </div>
-    <div class="qr">${qr}<span>Retirada</span></div>
   </div>
   <script>window.onload = () => { window.print(); window.close(); };</script>
 </body>

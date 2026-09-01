@@ -33,6 +33,7 @@ export type SessionChild = {
 
 export function SessionChildRow({
   child,
+  churchName,
   churchSlug,
   churchId,
   ministryId,
@@ -42,6 +43,7 @@ export function SessionChildRow({
   podeLiberar,
 }: {
   child: SessionChild;
+  churchName: string;
   churchSlug: string;
   churchId: string;
   ministryId: string;
@@ -59,6 +61,8 @@ export function SessionChildRow({
   const autorizados = child.guardians.filter((g) => g.canPickup);
   const escolhido = child.guardians.find((g) => g.id === guardianId);
   const precisaJustificar = !!escolhido && !escolhido.canPickup;
+  const responsavelPrincipal = child.guardians[0] ?? null;
+  const restritos = child.guardians.filter((g) => !g.canPickup).map((g) => g.name);
 
   function entrar() {
     startTransition(async () => {
@@ -201,50 +205,38 @@ export function SessionChildRow({
       {child.checkin && !child.checkin.checkedOut && (
         <div className="space-y-3">
           {!retirando ? (
-            <>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <PrintLabelButton
-                  childName={child.fullName}
-                  className={child.className}
-                  code={child.checkin.code}
-                  pickupToken={child.checkin.pickupToken}
-                  eventTitle={eventTitle}
-                  eventContext={eventContext}
-                />
-                <Button
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => setMostrarQr((current) => !current)}
-                  className="h-10 rounded-full"
-                >
-                  <QrCode className="size-4" />
-                  {mostrarQr ? "Ocultar QR" : "QR retirada"}
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={pending}
-                  onClick={chamar}
-                  className="h-10 rounded-full"
-                >
-                  <BellRing className="size-4" />
-                  Chamar
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={pending}
-                  onClick={() => setRetirando(true)}
-                  className="h-10 rounded-full"
-                >
-                  Registrar retirada
-                </Button>
-              </div>
-
-              {mostrarQr && (
-                <div className="rounded-2xl border bg-muted/20 p-4">
-                  <PickupQr token={child.checkin.pickupToken} />
-                </div>
-              )}
-            </>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <PrintLabelButton
+                churchName={churchName}
+                childName={child.fullName}
+                childAge={child.age}
+                className={child.className}
+                guardianName={responsavelPrincipal?.name ?? null}
+                restrictedPickupNames={restritos}
+                allergies={child.allergies}
+                specialNeeds={child.specialNeeds}
+                code={child.checkin.code}
+                eventTitle={eventTitle}
+                eventContext={eventContext}
+              />
+              <Button
+                variant="outline"
+                disabled={pending}
+                onClick={chamar}
+                className="h-10 rounded-full"
+              >
+                <BellRing className="size-4" />
+                Chamar
+              </Button>
+              <Button
+                variant="outline"
+                disabled={pending}
+                onClick={() => setRetirando(true)}
+                className="h-10 rounded-full"
+              >
+                Registrar retirada
+              </Button>
+            </div>
           ) : (
             <div className="space-y-2 rounded-2xl bg-muted/40 p-3">
               <p className="text-xs font-medium">Quem está retirando?</p>
