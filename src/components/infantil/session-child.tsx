@@ -216,6 +216,7 @@ export function SessionChildRow({
                 allergies={child.allergies}
                 specialNeeds={child.specialNeeds}
                 code={child.checkin.code}
+                pickupToken={child.checkin.pickupToken}
                 eventTitle={eventTitle}
                 eventContext={eventContext}
               />
