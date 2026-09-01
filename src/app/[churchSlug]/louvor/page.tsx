@@ -1,15 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, Layers3, Music, Plus, Video } from "lucide-react";
+import { CalendarCheck2, CalendarDays, Layers3, Music, Plus, Video } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { type Song } from "@/lib/louvor";
 import { getLouvorMinistry } from "@/lib/louvor-server";
 import { createClient } from "@/lib/supabase/server";
+import type { AvailabilityPeriod, AvailabilityStatus } from "@/lib/actions/availability";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SongForm } from "@/components/louvor/song-form";
 import { Button } from "@/components/ui/button";
 import { YouTubeSongImporter } from "@/components/louvor/youtube-song-importer";
 import { SongLibrary } from "@/components/louvor/song-library";
+import {
+  AvailabilityCalendar,
+  type CalendarAvailabilityEntry,
+  type RecurringAvailabilityEntry,
+} from "@/components/disponibilidade/availability-calendar";
 
 const youtubeStatusMessage: Record<string, { text: string; success?: boolean }> = {
   connected: { text: "Conta do YouTube conectada com sucesso.", success: true },
@@ -20,7 +26,7 @@ const youtubeStatusMessage: Record<string, { text: string; success?: boolean }> 
   "state-expired": { text: "A tentativa de conexão expirou. Inicie novamente." },
 };
 
-type WorshipTab = "acervo" | "repertorios" | "arranjos";
+type WorshipTab = "acervo" | "repertorios" | "arranjos" | "disponibilidade";
 type SetlistEvent = {
   id: string;
   title: string;
@@ -48,10 +54,10 @@ export default async function LouvorPage({
   searchParams: Promise<{ youtube?: string; aba?: string; novo?: string }>;
 }) {
   const [{ churchSlug }, query] = await Promise.all([params, searchParams]);
-  const tab: WorshipTab = ["acervo", "repertorios", "arranjos"].includes(query.aba ?? "")
+  const tab: WorshipTab = ["acervo", "repertorios", "arranjos", "disponibilidade"].includes(query.aba ?? "")
     ? (query.aba as WorshipTab)
     : "acervo";
-  const showNew = query.novo === "1";
+  const showNew = query.novo === "1" && tab !== "disponibilidade";
   const youtubeMessage = query.youtube ? youtubeStatusMessage[query.youtube] : undefined;
 
   const tenant = await getTenant(churchSlug);
@@ -60,6 +66,7 @@ export default async function LouvorPage({
 
   const supabase = await createClient();
   const now = new Date();
+  const initialMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const futureLimit = new Date(now.getTime() + 120 * 24 * 60 * 60 * 1000).toISOString();
   const pastLimit = new Date(now.getTime() - 120 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -70,6 +77,8 @@ export default async function LouvorPage({
     { data: youtubeIntegration },
     { data: repertoireEvents },
     { data: arrangements },
+    { data: calendarAvailability },
+    { data: recurringAvailability },
   ] = await Promise.all([
     supabase
       .from("songs")
@@ -110,6 +119,22 @@ export default async function LouvorPage({
       .eq("active", true)
       .order("updated_at", { ascending: false })
       .limit(100),
+    supabase
+      .from("member_availability_calendar")
+      .select("availability_date, period, status")
+      .eq("church_id", tenant.church.id)
+      .eq("ministry_id", louvor.id)
+      .eq("user_id", tenant.userId)
+      .gte("availability_date", initialMonth)
+      .order("availability_date")
+      .limit(500),
+    supabase
+      .from("member_availability_recurring")
+      .select("weekday, period, status")
+      .eq("church_id", tenant.church.id)
+      .eq("ministry_id", louvor.id)
+      .eq("user_id", tenant.userId)
+      .order("weekday"),
   ]);
 
   const podeEditar = tenant.isCoord || ["gerente", "lider"].includes(papel?.role ?? "");
@@ -126,6 +151,16 @@ export default async function LouvorPage({
     .filter((event) => event.setlist_items.length > 0 || new Date(event.starts_at) >= now)
     .sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
   const arranjos = (arrangements ?? []) as unknown as ArrangementRow[];
+  const calendarEntries: CalendarAvailabilityEntry[] = (calendarAvailability ?? []).map((row) => ({
+    date: row.availability_date,
+    period: row.period as AvailabilityPeriod,
+    status: row.status as AvailabilityStatus,
+  }));
+  const recurringEntries: RecurringAvailabilityEntry[] = (recurringAvailability ?? []).map((row) => ({
+    weekday: row.weekday,
+    period: row.period as AvailabilityPeriod,
+    status: row.status as AvailabilityStatus,
+  }));
 
   return (
     <div className="space-y-8">
@@ -137,7 +172,7 @@ export default async function LouvorPage({
             Música, repertórios, arranjos e operação do time em um só módulo.
           </p>
         </div>
-        {podeEditar && (
+        {podeEditar && tab !== "disponibilidade" && (
           <Link
             href={`/${churchSlug}/louvor?aba=${tab}&novo=1`}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:bg-primary/80"
@@ -152,6 +187,7 @@ export default async function LouvorPage({
         <TabLink churchSlug={churchSlug} tab="acervo" active={tab === "acervo"} icon={<Music className="size-4" />} label="Acervo" />
         <TabLink churchSlug={churchSlug} tab="repertorios" active={tab === "repertorios"} icon={<CalendarDays className="size-4" />} label="Repertórios" />
         <TabLink churchSlug={churchSlug} tab="arranjos" active={tab === "arranjos"} icon={<Layers3 className="size-4" />} label="Arranjos" />
+        <TabLink churchSlug={churchSlug} tab="disponibilidade" active={tab === "disponibilidade"} icon={<CalendarCheck2 className="size-4" />} label="Disponibilidade" />
       </nav>
 
       {showNew && podeEditar && (
@@ -259,6 +295,18 @@ export default async function LouvorPage({
             {arranjos.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">Nenhum arranjo ativo ainda.</p>}
           </div>
         </section>
+      )}
+
+      {tab === "disponibilidade" && (
+        <AvailabilityCalendar
+          churchSlug={churchSlug}
+          churchId={tenant.church.id}
+          ministryId={louvor.id}
+          scopeLabel="Louvor"
+          initialMonth={initialMonth}
+          entries={calendarEntries}
+          recurring={recurringEntries}
+        />
       )}
     </div>
   );
