@@ -30,7 +30,8 @@ export default async function EscalasPage({
   const canDeleteEvents = tenant.role === "admin" && !tenant.isMaster;
 
   const supabase = await createClient();
-  const since = new Date();
+  const now = new Date();
+  const since = new Date(now);
   since.setHours(0, 0, 0, 0);
 
   const now = Date.now();
@@ -62,7 +63,7 @@ export default async function EscalasPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Escalas</h1>
           <p className="text-muted-foreground">Próximos eventos</p>
@@ -118,7 +119,10 @@ export default async function EscalasPage({
           });
           const mine = myByEvent.get(e.id);
           const canDelete =
+ fix/kids-label-standard
             canDeleteEvents && new Date(e.starts_at).getTime() > now;
+            canDeleteEvents && new Date(e.starts_at).getTime() > now.getTime();
+ main
           return (
             <FutureEventLink
               key={e.id}

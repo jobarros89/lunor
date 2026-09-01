@@ -2,6 +2,9 @@
 
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { qrSvgMarkup } from "@/lib/qr";
+
+const PROD_ORIGIN = "https://lunorservice.com";
 
 export function PrintLabelButton({
   churchName,
@@ -13,6 +16,7 @@ export function PrintLabelButton({
   allergies,
   specialNeeds,
   code,
+  pickupToken,
   eventTitle,
   eventContext,
 }: {
@@ -25,6 +29,7 @@ export function PrintLabelButton({
   allergies: string | null;
   specialNeeds: string | null;
   code: string;
+  pickupToken: string;
   eventTitle: string;
   eventContext: string;
 }) {
@@ -32,9 +37,16 @@ export function PrintLabelButton({
     const popup = window.open("", "_blank", "width=620,height=560");
     if (!popup) return;
 
+ fix/kids-label-standard
     const restriction = restrictedPickupNames.length
       ? `Não entregar para: ${restrictedPickupNames.join(", ")}`
       : "";
+    const currentUrl = `${window.location.origin.replace(/\/$/, "")}/q/${pickupToken}`;
+    const pickupUrl = new TextEncoder().encode(currentUrl).length <= 78
+      ? currentUrl
+      : `${PROD_ORIGIN}/q/${pickupToken}`;
+    const qr = qrSvgMarkup(pickupUrl, 3, 4);
+    main
 
     popup.document.write(`<!doctype html>
 <html lang="pt-BR">

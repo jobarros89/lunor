@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { BellRing, TriangleAlert } from "lucide-react";
+import { BellRing, QrCode, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PrintLabelButton } from "@/components/infantil/print-label-button";
+import { PickupQr } from "@/components/infantil/pickup-qr";
 import { checkOutChild } from "@/lib/actions/infantil";
 import { chamarResponsavelSeguro } from "@/lib/actions/infantil-call";
 import { checkInOrReenterChild } from "@/lib/actions/infantil-checkin";
@@ -26,7 +27,7 @@ export type SessionChild = {
   specialNeeds: string | null;
   classId: string | null;
   className: string | null;
-  checkin: { id: string; code: string; checkedOut: boolean } | null;
+  checkin: { id: string; code: string; pickupToken: string; checkedOut: boolean } | null;
   guardians: Guardian[];
 };
 
@@ -53,6 +54,7 @@ export function SessionChildRow({
 }) {
   const [pending, startTransition] = useTransition();
   const [retirando, setRetirando] = useState(false);
+  const [mostrarQr, setMostrarQr] = useState(false);
   const [guardianId, setGuardianId] = useState("");
   const [justificativa, setJustificativa] = useState("");
 
@@ -97,6 +99,7 @@ export function SessionChildRow({
       if (r.ok) {
         toast.success(`${child.fullName} foi retirado(a)`);
         setRetirando(false);
+        setMostrarQr(false);
         setGuardianId("");
         setJustificativa("");
       } else {
@@ -200,7 +203,7 @@ export function SessionChildRow({
       )}
 
       {child.checkin && !child.checkin.checkedOut && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {!retirando ? (
             <div className="grid gap-2 sm:grid-cols-3">
               <PrintLabelButton

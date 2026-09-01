@@ -69,7 +69,7 @@ export default async function SessaoInfantilPage({
       .order("full_name"),
     supabase
       .from("child_checkins")
-      .select("id, child_id, code, checked_out_at, checked_in_at")
+      .select("id, child_id, code, pickup_qr_token, checked_out_at, checked_in_at")
       .eq("event_id", eventId)
       .order("checked_in_at", { ascending: true }),
     supabase.rpc("child_page_delivery_status", { p_event: eventId }),
@@ -114,7 +114,12 @@ export default async function SessaoInfantilPage({
   const checkinByChild = new Map(
     (checkins ?? []).map((k) => [
       k.child_id,
-      { id: k.id, code: k.code, checkedOut: !!k.checked_out_at },
+      {
+        id: k.id,
+        code: k.code,
+        pickupToken: k.pickup_qr_token,
+        checkedOut: !!k.checked_out_at,
+      },
     ])
   );
 
