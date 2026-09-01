@@ -20,12 +20,19 @@ export type CalendarAvailabilityEntry = {
   date: string;
   period: AvailabilityPeriod;
   status: AvailabilityStatus;
+  campusId: string | null;
 };
 
 export type RecurringAvailabilityEntry = {
   weekday: number;
   period: AvailabilityPeriod;
   status: AvailabilityStatus;
+  campusId: string | null;
+};
+
+export type AvailabilityCampus = {
+  id: string;
+  name: string;
 };
 
 const periodOptions: Array<{ value: AvailabilityPeriod; label: string }> = [
@@ -81,6 +88,7 @@ export function AvailabilityCalendar({
   initialMonth,
   entries,
   recurring,
+  campuses,
 }: {
   churchSlug: string;
   churchId: string;
@@ -89,19 +97,23 @@ export function AvailabilityCalendar({
   initialMonth: string;
   entries: CalendarAvailabilityEntry[];
   recurring: RecurringAvailabilityEntry[];
+  campuses: AvailabilityCampus[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [monthKey, setMonthKey] = useState(initialMonth.slice(0, 7));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [period, setPeriod] = useState<AvailabilityPeriod>("all_day");
+  const [campusId, setCampusId] = useState<string | null>(null);
+
+  const campusKey = campusId ?? "all";
 
   const entryMap = useMemo(
-    () => new Map(entries.map((entry) => [`${entry.date}:${entry.period}`, entry.status])),
+    () => new Map(entries.map((entry) => [`${entry.campusId ?? "all"}:${entry.date}:${entry.period}`, entry.status])),
     [entries]
   );
   const recurringMap = useMemo(
-    () => new Map(recurring.map((entry) => [`${entry.weekday}:${entry.period}`, entry.status])),
+    () => new Map(recurring.map((entry) => [`${entry.campusId ?? "all"}:${entry.weekday}:${entry.period}`, entry.status])),
     [recurring]
   );
 
@@ -114,7 +126,7 @@ export function AvailabilityCalendar({
   }).format(new Date(year, monthIndex, 1));
 
   const selectedStatus = selectedDate
-    ? entryMap.get(`${selectedDate}:${period}`) ?? null
+    ? entryMap.get(`${campusKey}:${selectedDate}:${period}`) ?? null
     : null;
 
   function saveDate(status: AvailabilityStatus) {
@@ -124,6 +136,7 @@ export function AvailabilityCalendar({
         churchSlug,
         churchId,
         ministryId,
+        campusId,
         date: selectedDate,
         period,
         status,
@@ -144,6 +157,7 @@ export function AvailabilityCalendar({
         churchSlug,
         churchId,
         ministryId,
+        campusId,
         date: selectedDate,
         period,
       });
@@ -161,6 +175,7 @@ export function AvailabilityCalendar({
         churchSlug,
         churchId,
         ministryId,
+        campusId,
         weekday,
         period,
         status,
@@ -180,6 +195,7 @@ export function AvailabilityCalendar({
         churchSlug,
         churchId,
         ministryId,
+        campusId,
         weekday,
         period,
       });
@@ -203,20 +219,37 @@ export function AvailabilityCalendar({
             Marque quando pode ou não pode servir, mesmo que o culto ainda não tenha sido criado.
           </p>
         </div>
-        <label className="grid gap-1 text-xs text-muted-foreground">
-          Período
-          <select
-            value={period}
-            onChange={(event) => setPeriod(event.target.value as AvailabilityPeriod)}
-            className="h-10 rounded-xl border bg-background px-3 text-sm text-foreground"
-          >
-            {periodOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            Campus
+            <select
+              value={campusId ?? ""}
+              onChange={(event) => setCampusId(event.target.value || null)}
+              className="h-10 rounded-xl border bg-background px-3 text-sm text-foreground"
+            >
+              <option value="">Todos os campus</option>
+              {campuses.map((campus) => (
+                <option key={campus.id} value={campus.id}>
+                  {campus.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            Período
+            <select
+              value={period}
+              onChange={(event) => setPeriod(event.target.value as AvailabilityPeriod)}
+              className="h-10 rounded-xl border bg-background px-3 text-sm text-foreground"
+            >
+              {periodOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
       <Card className="rounded-3xl">
@@ -255,7 +288,7 @@ export function AvailabilityCalendar({
             {Array.from({ length: daysInMonth }).map((_, index) => {
               const day = index + 1;
               const key = dateKey(year, monthIndex, day);
-              const status = entryMap.get(`${key}:${period}`) ?? null;
+              const status = entryMap.get(`${campusKey}:${key}:${period}`) ?? null;
               const selected = selectedDate === key;
               return (
                 <button
@@ -341,7 +374,7 @@ export function AvailabilityCalendar({
         </CardHeader>
         <CardContent className="space-y-2">
           {weekdayLongLabels.map((label, weekday) => {
-            const status = recurringMap.get(`${weekday}:${period}`) ?? null;
+            const status = recurringMap.get(`${campusKey}:${weekday}:${period}`) ?? null;
             return (
               <div key={label} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border p-3">
                 <div className="min-w-[110px]">
