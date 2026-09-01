@@ -33,6 +33,8 @@ export default async function EscalasPage({
   const since = new Date();
   since.setHours(0, 0, 0, 0);
 
+  const now = Date.now();
+
   const [{ data: events, error: eventsError }, { data: myAssignments }] =
     await Promise.all([
       supabase
@@ -116,7 +118,7 @@ export default async function EscalasPage({
           });
           const mine = myByEvent.get(e.id);
           const canDelete =
-            canDeleteEvents && new Date(e.starts_at).getTime() > Date.now();
+            canDeleteEvents && new Date(e.starts_at).getTime() > now;
           return (
             <FutureEventLink
               key={e.id}
