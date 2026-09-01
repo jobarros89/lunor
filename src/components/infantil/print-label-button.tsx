@@ -37,7 +37,6 @@ export function PrintLabelButton({
     const popup = window.open("", "_blank", "width=620,height=560");
     if (!popup) return;
 
- fix/kids-label-standard
     const restriction = restrictedPickupNames.length
       ? `Não entregar para: ${restrictedPickupNames.join(", ")}`
       : "";
@@ -46,7 +45,6 @@ export function PrintLabelButton({
       ? currentUrl
       : `${PROD_ORIGIN}/q/${pickupToken}`;
     const qr = qrSvgMarkup(pickupUrl, 3, 4);
-    main
 
     popup.document.write(`<!doctype html>
 <html lang="pt-BR">
@@ -65,6 +63,9 @@ export function PrintLabelButton({
     .meta strong { font-weight: 700; }
     .event { font-size: 9px; margin-top: 3px; color: #333; }
     .security { display: flex; align-items: end; justify-content: space-between; gap: 8px; margin-top: 6px; padding-top: 5px; border-top: 1px solid #bbb; }
+    .security-copy { min-width: 0; }
+    .qr { width: 54px; height: 54px; flex: 0 0 54px; }
+    .qr svg { display: block; width: 100%; height: 100%; }
     .security-label { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
     .code { font-size: 27px; line-height: 1; font-weight: 900; letter-spacing: .12em; }
     .alert { margin-top: 5px; border: 2px solid #111; border-radius: 5px; padding: 4px 5px; font-size: 9px; font-weight: 700; line-height: 1.2; }
@@ -83,8 +84,11 @@ export function PrintLabelButton({
     ${restriction ? `<div class="alert">RESTRIÇÃO DE SAÍDA: ${escapeHtml(restriction)}</div>` : ""}
     ${specialNeeds ? `<div class="attention"><strong>ATENÇÃO ESPECIAL:</strong> ${escapeHtml(specialNeeds)}</div>` : ""}
     <div class="security">
-      <div class="security-label">Código de segurança</div>
-      <div class="code">${escapeHtml(code)}</div>
+      <div class="security-copy">
+        <div class="security-label">Código de segurança</div>
+        <div class="code">${escapeHtml(code)}</div>
+      </div>
+      <div class="qr">${qr}</div>
     </div>
   </div>
   <script>window.onload = () => { window.print(); window.close(); };</script>
