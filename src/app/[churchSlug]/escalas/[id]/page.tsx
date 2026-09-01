@@ -298,7 +298,7 @@ export default async function EventoDetailPage({
   const canDeleteEvent =
     tenant.role === "admin" &&
     !tenant.isMaster &&
-    new Date(event.starts_at).getTime() > Date.now();
+    new Date(event.starts_at).getTime() > new Date().getTime();
 
   return (
     <div className="space-y-6">

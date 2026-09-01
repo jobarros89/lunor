@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { BellRing, TriangleAlert } from "lucide-react";
+import { BellRing, QrCode, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PrintLabelButton } from "@/components/infantil/print-label-button";
+import { PickupQr } from "@/components/infantil/pickup-qr";
 import { checkOutChild } from "@/lib/actions/infantil";
 import { chamarResponsavelSeguro } from "@/lib/actions/infantil-call";
 import { checkInOrReenterChild } from "@/lib/actions/infantil-checkin";
@@ -26,7 +27,7 @@ export type SessionChild = {
   specialNeeds: string | null;
   classId: string | null;
   className: string | null;
-  checkin: { id: string; code: string; checkedOut: boolean } | null;
+  checkin: { id: string; code: string; pickupToken: string; checkedOut: boolean } | null;
   guardians: Guardian[];
 };
 
@@ -51,6 +52,7 @@ export function SessionChildRow({
 }) {
   const [pending, startTransition] = useTransition();
   const [retirando, setRetirando] = useState(false);
+  const [mostrarQr, setMostrarQr] = useState(false);
   const [guardianId, setGuardianId] = useState("");
   const [justificativa, setJustificativa] = useState("");
 
@@ -93,6 +95,7 @@ export function SessionChildRow({
       if (r.ok) {
         toast.success(`${child.fullName} foi retirado(a)`);
         setRetirando(false);
+        setMostrarQr(false);
         setGuardianId("");
         setJustificativa("");
       } else {
@@ -196,34 +199,52 @@ export function SessionChildRow({
       )}
 
       {child.checkin && !child.checkin.checkedOut && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {!retirando ? (
-            <div className="grid gap-2 sm:grid-cols-3">
-              <PrintLabelButton
-                childName={child.fullName}
-                className={child.className}
-                code={child.checkin.code}
-                eventTitle={eventTitle}
-                eventContext={eventContext}
-              />
-              <Button
-                variant="outline"
-                disabled={pending}
-                onClick={chamar}
-                className="h-10 rounded-full"
-              >
-                <BellRing className="size-4" />
-                Chamar
-              </Button>
-              <Button
-                variant="outline"
-                disabled={pending}
-                onClick={() => setRetirando(true)}
-                className="h-10 rounded-full"
-              >
-                Registrar retirada
-              </Button>
-            </div>
+            <>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <PrintLabelButton
+                  childName={child.fullName}
+                  className={child.className}
+                  code={child.checkin.code}
+                  pickupToken={child.checkin.pickupToken}
+                  eventTitle={eventTitle}
+                  eventContext={eventContext}
+                />
+                <Button
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => setMostrarQr((current) => !current)}
+                  className="h-10 rounded-full"
+                >
+                  <QrCode className="size-4" />
+                  {mostrarQr ? "Ocultar QR" : "QR retirada"}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={pending}
+                  onClick={chamar}
+                  className="h-10 rounded-full"
+                >
+                  <BellRing className="size-4" />
+                  Chamar
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => setRetirando(true)}
+                  className="h-10 rounded-full"
+                >
+                  Registrar retirada
+                </Button>
+              </div>
+
+              {mostrarQr && (
+                <div className="rounded-2xl border bg-muted/20 p-4">
+                  <PickupQr token={child.checkin.pickupToken} />
+                </div>
+              )}
+            </>
           ) : (
             <div className="space-y-2 rounded-2xl bg-muted/40 p-3">
               <p className="text-xs font-medium">Quem está retirando?</p>

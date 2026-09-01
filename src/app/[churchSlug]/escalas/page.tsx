@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { CalendarCheck2, Plus } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -30,7 +30,8 @@ export default async function EscalasPage({
   const canDeleteEvents = tenant.role === "admin" && !tenant.isMaster;
 
   const supabase = await createClient();
-  const since = new Date();
+  const now = new Date();
+  const since = new Date(now);
   since.setHours(0, 0, 0, 0);
 
   const [{ data: events, error: eventsError }, { data: myAssignments }] =
@@ -60,21 +61,32 @@ export default async function EscalasPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Escalas</h1>
           <p className="text-muted-foreground">Próximos eventos</p>
         </div>
-        {tenant.isLeader && (
+        <div className="flex items-center gap-2">
           <Button
-            className="h-11 rounded-full px-5"
+            variant="outline"
+            className="h-11 rounded-full px-4"
             nativeButton={false}
-            render={<Link href={`/${churchSlug}/escalas/novo`} />}
+            render={<Link href={`/${churchSlug}/disponibilidade`} />}
           >
-            <Plus className="size-4" />
-            Novo
+            <CalendarCheck2 className="size-4" />
+            Disponibilidade
           </Button>
-        )}
+          {tenant.isLeader && (
+            <Button
+              className="h-11 rounded-full px-5"
+              nativeButton={false}
+              render={<Link href={`/${churchSlug}/escalas/novo`} />}
+            >
+              <Plus className="size-4" />
+              Novo
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-2">
@@ -116,7 +128,7 @@ export default async function EscalasPage({
           });
           const mine = myByEvent.get(e.id);
           const canDelete =
-            canDeleteEvents && new Date(e.starts_at).getTime() > Date.now();
+            canDeleteEvents && new Date(e.starts_at).getTime() > now.getTime();
           return (
             <FutureEventLink
               key={e.id}
