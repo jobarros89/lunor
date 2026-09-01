@@ -79,6 +79,7 @@ export default async function LouvorPage({
     { data: arrangements },
     { data: calendarAvailability },
     { data: recurringAvailability },
+    { data: campuses },
   ] = await Promise.all([
     supabase
       .from("songs")
@@ -121,7 +122,7 @@ export default async function LouvorPage({
       .limit(100),
     supabase
       .from("member_availability_calendar")
-      .select("availability_date, period, status")
+      .select("availability_date, period, status, campus_id")
       .eq("church_id", tenant.church.id)
       .eq("ministry_id", louvor.id)
       .eq("user_id", tenant.userId)
@@ -130,11 +131,18 @@ export default async function LouvorPage({
       .limit(500),
     supabase
       .from("member_availability_recurring")
-      .select("weekday, period, status")
+      .select("weekday, period, status, campus_id")
       .eq("church_id", tenant.church.id)
       .eq("ministry_id", louvor.id)
       .eq("user_id", tenant.userId)
       .order("weekday"),
+    supabase
+      .from("campuses")
+      .select("id, name")
+      .eq("church_id", tenant.church.id)
+      .eq("active", true)
+      .order("sort_order")
+      .order("name"),
   ]);
 
   const podeEditar = tenant.isCoord || ["gerente", "lider"].includes(papel?.role ?? "");
@@ -155,11 +163,13 @@ export default async function LouvorPage({
     date: row.availability_date,
     period: row.period as AvailabilityPeriod,
     status: row.status as AvailabilityStatus,
+    campusId: row.campus_id,
   }));
   const recurringEntries: RecurringAvailabilityEntry[] = (recurringAvailability ?? []).map((row) => ({
     weekday: row.weekday,
     period: row.period as AvailabilityPeriod,
     status: row.status as AvailabilityStatus,
+    campusId: row.campus_id,
   }));
 
   return (
@@ -306,6 +316,7 @@ export default async function LouvorPage({
           initialMonth={initialMonth}
           entries={calendarEntries}
           recurring={recurringEntries}
+          campuses={campuses ?? []}
         />
       )}
     </div>
