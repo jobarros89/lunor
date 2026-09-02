@@ -446,6 +446,7 @@ export function AvailabilityPanel({
   const [selected, setSelected] = useState<string[]>([]);
   const [teamMonth, setTeamMonth] = useState(initialEventMonth);
   const [requestMonth, setRequestMonth] = useState(initialEventMonth);
+  const [requestOpen, setRequestOpen] = useState(false);
   const [openMonths, setOpenMonths] = useState<string[]>(() =>
     events[0]?.monthKey ? [events[0].monthKey] : []
   );
@@ -455,6 +456,12 @@ export function AvailabilityPanel({
   const filteredRequestableEvents = requestableEvents.filter(
     (event) => event.monthKey === requestMonth
   );
+  const requestMonthLabel =
+    events.find((event) => event.monthKey === requestMonth)?.monthLabel ??
+    new Date(`${requestMonth}-01T12:00:00`).toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    });
   const groupedEvents = Object.entries(
     events.reduce<Record<string, { label: string; events: AvailabilityEvent[] }>>((groups, event) => {
       const group = groups[event.monthKey] ?? { label: event.monthLabel, events: [] };
@@ -642,35 +649,61 @@ export function AvailabilityPanel({
       )}
 
       {canManage && (
-        <Card id="availability-request-form" className="rounded-3xl border-t">
-          <CardHeader>
-            <CardTitle className="text-lg">Solicitar disponibilidade</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Escolha cultos já criados. A equipe do {ministryName} responderá antes da montagem da escala.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {requestableEvents.length > 0 ? (
-              <>
-                <label className="block w-full sm:w-48">
-                  <span className="mb-1 block text-xs font-medium text-muted-foreground">Mês e ano dos cultos</span>
-                  <Input
-                    type="month"
-                    value={requestMonth}
-                    onChange={(event) => {
-                      setRequestMonth(event.target.value);
-                      setSelected([]);
-                    }}
-                    className="h-11 rounded-xl"
-                    aria-label="Mês e ano dos cultos para solicitar disponibilidade"
-                  />
-                </label>
+        <section id="availability-request-form" className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight">Solicitar disponibilidade</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Escolha cultos já criados. A equipe do {ministryName} responderá antes da montagem da escala.
+              </p>
+            </div>
+            <label className="w-full shrink-0 sm:w-48">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">Mês e ano</span>
+              <Input
+                type="month"
+                value={requestMonth}
+                onChange={(event) => {
+                  setRequestMonth(event.target.value);
+                  setSelected([]);
+                  setRequestOpen(false);
+                }}
+                className="h-11 rounded-xl"
+                aria-label="Mês e ano dos cultos para solicitar disponibilidade"
+              />
+            </label>
+          </div>
+
+          <div className="overflow-hidden rounded-3xl border bg-card/30">
+            <button
+              type="button"
+              aria-expanded={requestOpen}
+              onClick={() => setRequestOpen((current) => !current)}
+              className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left"
+            >
+              <span>
+                <span className="block font-semibold capitalize">{requestMonthLabel}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {filteredRequestableEvents.length}{" "}
+                  {filteredRequestableEvents.length === 1 ? "culto disponível" : "cultos disponíveis"}
+                </span>
+              </span>
+              <ChevronDown
+                className={cn(
+                  "size-5 text-muted-foreground transition-transform",
+                  requestOpen && "rotate-180"
+                )}
+              />
+            </button>
+
+            {requestOpen ? (
+              <div className="space-y-4 border-t p-3 sm:p-4">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Input
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
-                    placeholder={`Ex.: Disponibilidade de setembro · ${ministryName}`}
+                    placeholder={`Ex.: Disponibilidade de ${requestMonthLabel} · ${ministryName}`}
                     className="h-11 rounded-xl"
+                    aria-label="Título da solicitação"
                   />
                   <Input
                     type="datetime-local"
@@ -686,7 +719,7 @@ export function AvailabilityPanel({
                     <label
                       key={event.id}
                       className={cn(
-                        "flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition-colors",
+                        "flex min-h-14 cursor-pointer items-start gap-3 rounded-2xl border p-3 transition-colors",
                         selected.includes(event.id) && "border-foreground bg-muted/50"
                       )}
                     >
@@ -706,7 +739,9 @@ export function AvailabilityPanel({
                   ))}
                   {filteredRequestableEvents.length === 0 ? (
                     <p className="rounded-2xl border border-dashed p-5 text-center text-sm text-muted-foreground">
-                      Nenhum culto disponível para solicitação neste mês.
+                      {events.length === 0
+                        ? "Crie primeiro um culto ou uma escala para solicitar disponibilidade."
+                        : "Nenhum culto disponível para solicitação neste mês."}
                     </p>
                   ) : null}
                 </div>
@@ -720,16 +755,10 @@ export function AvailabilityPanel({
                   <Send className="size-4" />
                   {pending ? "Enviando…" : `Enviar solicitação${selected.length > 0 ? ` · ${selected.length}` : ""}`}
                 </Button>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {events.length === 0
-                  ? "Crie primeiro um culto ou uma escala para solicitar disponibilidade."
-                  : "Todos os cultos futuros já possuem uma solicitação aberta."}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+              </div>
+            ) : null}
+          </div>
+        </section>
       )}
     </div>
   );
