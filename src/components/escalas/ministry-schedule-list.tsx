@@ -5,6 +5,7 @@ import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
+import { timeLabel } from "@/lib/service-window";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadError } from "@/components/shell/load-error";
@@ -24,6 +25,12 @@ type AssignmentRow = {
   user_id: string;
   role_name: string;
   status: string;
+};
+
+type ServiceWindowRow = {
+  event_id: string;
+  arrival_at: string | null;
+  release_at: string | null;
 };
 
 function firstRelated<T>(value: T | T[] | null | undefined): T | null {
@@ -68,31 +75,44 @@ export async function MinistryScheduleList({
   since.setHours(0, 0, 0, 0);
   const until = new Date(since.getTime() + 60 * 24 * 60 * 60 * 1000);
 
-  const [{ data: events, error: eventsError }, { data: assignments, error: assignmentsError }] =
-    await Promise.all([
-      supabase
-        .from("events")
-        .select("id, title, starts_at, location, service_period, campuses(name), event_types(name)")
-        .eq("church_id", tenant.church.id)
-        .gte("starts_at", since.toISOString())
-        .lte("starts_at", until.toISOString())
-        .order("starts_at")
-        .limit(30),
-      supabase
-        .from("assignments")
-        .select("event_id, user_id, role_name, status, events!inner(starts_at)")
-        .eq("church_id", tenant.church.id)
-        .eq("ministry_id", ministryId)
-        .gte("events.starts_at", since.toISOString())
-        .lte("events.starts_at", until.toISOString()),
-    ]);
+  const [
+    { data: events, error: eventsError },
+    { data: assignments, error: assignmentsError },
+    { data: serviceWindows, error: serviceWindowsError },
+  ] = await Promise.all([
+    supabase
+      .from("events")
+      .select("id, title, starts_at, location, service_period, campuses(name), event_types(name)")
+      .eq("church_id", tenant.church.id)
+      .gte("starts_at", since.toISOString())
+      .lte("starts_at", until.toISOString())
+      .order("starts_at")
+      .limit(30),
+    supabase
+      .from("assignments")
+      .select("event_id, user_id, role_name, status, events!inner(starts_at)")
+      .eq("church_id", tenant.church.id)
+      .eq("ministry_id", ministryId)
+      .gte("events.starts_at", since.toISOString())
+      .lte("events.starts_at", until.toISOString()),
+    supabase
+      .from("event_ministry_windows")
+      .select("event_id, arrival_at, release_at, events!inner(starts_at)")
+      .eq("church_id", tenant.church.id)
+      .eq("ministry_id", ministryId)
+      .gte("events.starts_at", since.toISOString())
+      .lte("events.starts_at", until.toISOString()),
+  ]);
 
   if (eventsError) console.error(`${ministryName}: eventos da escala`, eventsError);
   if (assignmentsError) console.error(`${ministryName}: assignments da escala`, assignmentsError);
+  if (serviceWindowsError) console.error(`${ministryName}: horários da equipe`, serviceWindowsError);
 
   const eventRows = (events ?? []) as unknown as EventRow[];
   const assignmentRows = (assignments ?? []) as unknown as AssignmentRow[];
+  const windowRows = (serviceWindows ?? []) as unknown as ServiceWindowRow[];
   const byEvent = new Map<string, AssignmentRow[]>();
+  const windowByEvent = new Map(windowRows.map((window) => [window.event_id, window]));
   for (const assignment of assignmentRows) {
     byEvent.set(assignment.event_id, [...(byEvent.get(assignment.event_id) ?? []), assignment]);
   }
@@ -121,12 +141,13 @@ export async function MinistryScheduleList({
           <span className="shrink-0 text-xs text-muted-foreground">{eventRows.length} eventos</span>
         </div>
 
-        {eventsError || assignmentsError ? (
+        {eventsError || assignmentsError || serviceWindowsError ? (
           <LoadError oQue={`as escalas de ${ministryName}`} />
         ) : (
           <div className="divide-y">
             {eventRows.map((event) => {
               const eventAssignments = byEvent.get(event.id) ?? [];
+              const serviceWindow = windowByEvent.get(event.id);
               const eventConfirmed = eventAssignments.filter((item) => isConfirmed(item.status)).length;
               const eventWaiting = eventAssignments.filter((item) => item.status === "convidado").length;
               const eventAttention = eventAssignments.filter((item) => needsAttention(item.status)).length;
@@ -138,6 +159,8 @@ export async function MinistryScheduleList({
                 servicePeriod: event.service_period,
                 fallbackLocation: event.location,
               });
+              const arrival = timeLabel(serviceWindow?.arrival_at);
+              const release = timeLabel(serviceWindow?.release_at);
 
               return (
                 <Link
@@ -149,7 +172,14 @@ export async function MinistryScheduleList({
                     <p className="truncate font-medium">{event.title}</p>
                     <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                       <span>{formatEventDate(event.starts_at)}</span>
-                      <span className="inline-flex items-center gap-1"><Clock3 className="size-3.5" />{formatEventTime(event.starts_at)}</span>
+                      {arrival ? (
+                        <span className="inline-flex items-center gap-1 font-medium text-foreground">
+                          <Clock3 className="size-3.5" />Chegada {arrival}{release ? ` · saída ${release}` : ""}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1"><Clock3 className="size-3.5" />Culto {formatEventTime(event.starts_at)}</span>
+                      )}
+                      {arrival && <span>· Culto {formatEventTime(event.starts_at)}</span>}
                       {(type?.name || context) && <span>· {[type?.name, context].filter(Boolean).join(" · ")}</span>}
                     </p>
                     {mine.length > 0 && (
