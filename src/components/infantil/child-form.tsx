@@ -12,10 +12,12 @@ export function ChildForm({
   churchSlug,
   churchId,
   ministryId,
+  eventId,
 }: {
   churchSlug: string;
   churchId: string;
   ministryId: string;
+  eventId: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -30,6 +32,7 @@ export function ChildForm({
         churchSlug,
         churchId,
         ministryId,
+        eventId,
         fullName: String(fd.get("fullName") ?? ""),
         birthDate: String(fd.get("birthDate") ?? ""),
         allergies: String(fd.get("allergies") ?? ""),
@@ -172,3 +175,4 @@ export function ChildForm({
     </form>
   );
 }
+

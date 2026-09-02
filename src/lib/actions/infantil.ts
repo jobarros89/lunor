@@ -10,6 +10,7 @@ const childSchema = z.object({
   churchSlug: z.string().min(2),
   churchId: z.string().uuid(),
   ministryId: z.string().uuid(),
+  eventId: z.string().uuid(),
   fullName: z.string().min(2, "Informe o nome da criança").max(120),
   birthDate: z.string().min(10, "Informe a data de nascimento"),
   allergies: z.string().max(500).default(""),
@@ -49,6 +50,7 @@ export async function createChild(raw: unknown): Promise<ActionResult> {
     p_guardian_name: d.guardianName,
     p_guardian_phone: d.guardianPhone || null,
     p_guardian_relationship: d.guardianRelationship || null,
+    p_event: d.eventId,
   });
 
   if (error) return { ok: false, error: "Sem permissão ou não foi possível cadastrar" };
@@ -321,3 +323,4 @@ export async function seedClasses(
   revalidatePath(`/${churchSlug}/infantil`);
   return { ok: true, data: undefined };
 }
+

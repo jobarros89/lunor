@@ -30,14 +30,14 @@ jobs:
       - name: Instalar dependências
         run: npm ci --no-audit --no-fund --prefer-offline
 
-      - name: Auditar dependências de produção
-        run: npm audit --omit=dev --audit-level=high
-
       - name: Lint
         run: npm run lint
 
       - name: Typecheck
         run: npx tsc --noEmit
+
+      - name: Auditar dependências de produção
+        run: npm audit --omit=dev --audit-level=high
 
   tests:
     name: Supabase efêmero + testes
@@ -70,3 +70,4 @@ jobs:
       - name: Descartar ambiente Supabase efêmero
         if: always()
         run: npx supabase stop || true
+

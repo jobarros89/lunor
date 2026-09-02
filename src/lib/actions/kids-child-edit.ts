@@ -31,18 +31,14 @@ export async function updateKidsChild(raw: unknown): Promise<ActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Faça login novamente" };
 
-  const { data: membership } = await supabase
-    .from("ministry_members")
-    .select("role")
-    .eq("ministry_id", d.ministryId)
-    .eq("user_id", user.id)
-    .eq("active", true)
-    .maybeSingle();
-
-  const { data: coord } = await supabase.rpc("is_church_coord", { p_church: d.churchId });
-  const canManage =
-    coord === true || membership?.role === "gerente" || membership?.role === "lider";
-  if (!canManage) return { ok: false, error: "Sem permissão para editar a criança" };
+  const { data: canOperate } = await supabase.rpc("can_operate_kids", {
+    p_church: d.churchId,
+    p_ministry: d.ministryId,
+    p_event: null,
+  });
+  if (!canOperate) {
+    return { ok: false, error: "A edição só fica disponível durante a operação em que você está escalado(a)" };
+  }
 
   const { error } = await supabase
     .from("children")
@@ -67,3 +63,4 @@ export async function updateKidsChild(raw: unknown): Promise<ActionResult> {
   revalidatePath(`/${d.churchSlug}/infantil/crianca/${d.childId}`);
   return { ok: true, data: undefined };
 }
+

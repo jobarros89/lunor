@@ -20,6 +20,10 @@ export type TenantContext = {
   isManager: boolean;
   /** isManager ou líder de algum ministério */
   isLeader: boolean;
+  /** conta vinculada como responsável por ao menos uma criança */
+  isGuardian: boolean;
+  /** responsável sem vínculo de equipe/voluntariado nesta igreja */
+  guardianOnly: boolean;
   /** true quando o acesso vem do usuário master (super-admin de plataforma) */
   isMaster: boolean;
 };
@@ -73,9 +77,46 @@ export const getTenant = cache(
           isCoord: true,
           isManager: true,
           isLeader: true,
+          isGuardian: false,
+          guardianOnly: false,
           isMaster: true,
         };
       }
+
+      const { data: guardian } = await supabase
+        .from("guardians")
+        .select("church_id, churches!inner(id, name, slug)")
+        .eq("user_id", user.id)
+        .eq("churches.slug", churchSlug)
+        .limit(1)
+        .maybeSingle();
+
+      if (guardian) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url, onboarding_completed")
+          .eq("id", user.id)
+          .single();
+
+        return {
+          userId: user.id,
+          church: guardian.churches as unknown as TenantContext["church"],
+          role: "member",
+          profile: (profile ?? {
+            full_name: "",
+            avatar_url: null,
+            onboarding_completed: true,
+          }) as TenantContext["profile"],
+          ministryRoles: [],
+          isCoord: false,
+          isManager: false,
+          isLeader: false,
+          isGuardian: true,
+          guardianOnly: true,
+          isMaster: false,
+        };
+      }
+
       notFound();
     }
 
@@ -99,6 +140,13 @@ export const getTenant = cache(
     const ministryRoles = (memberships ?? []).map(
       (m) => m.role as MinistryRole
     );
+    const { data: guardian } = await supabase
+      .from("guardians")
+      .select("id")
+      .eq("church_id", church.id)
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
     // admin e coordenador têm gestão no nível da igreja toda
     const isCoord = data.role === "admin" || data.role === "coordenador";
     const isManager = isCoord || ministryRoles.includes("gerente");
@@ -113,7 +161,10 @@ export const getTenant = cache(
       isCoord,
       isManager,
       isLeader,
+      isGuardian: !!guardian,
+      guardianOnly: false,
       isMaster: false,
     };
   }
 );
+

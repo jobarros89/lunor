@@ -14,7 +14,7 @@ export default async function InfantilLayout({
   const tenant = await getTenant(churchSlug);
   const kids = await getInfantilMinistry(tenant.church.id);
 
-  if (!kids) return children;
+  if (!kids || tenant.guardianOnly) return children;
 
   if (!tenant.isCoord) {
     const supabase = await createClient();
@@ -37,3 +37,4 @@ export default async function InfantilLayout({
     </div>
   );
 }
+

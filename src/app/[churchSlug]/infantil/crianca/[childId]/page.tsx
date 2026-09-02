@@ -19,17 +19,12 @@ export default async function KidsChildPage({
   if (!ministry) redirect(`/${churchSlug}/infantil`);
 
   const supabase = await createClient();
-  const { data: membership } = await supabase
-    .from("ministry_members")
-    .select("role")
-    .eq("ministry_id", ministry.id)
-    .eq("user_id", tenant.userId)
-    .eq("active", true)
-    .maybeSingle();
-
-  const canManage =
-    tenant.isCoord || membership?.role === "gerente" || membership?.role === "lider";
-  if (!canManage) redirect(`/${churchSlug}/infantil`);
+  const { data: canOperate } = await supabase.rpc("can_operate_kids", {
+    p_church: tenant.church.id,
+    p_ministry: ministry.id,
+    p_event: null,
+  });
+  if (!canOperate) redirect(`/${churchSlug}/infantil`);
 
   const [{ data: child }, { data: links }] = await Promise.all([
     supabase
@@ -82,7 +77,7 @@ export default async function KidsChildPage({
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">{child.full_name}</h1>
           <p className="text-muted-foreground">
-            Edite os dados da criança. O acesso permanece restrito à liderança do Kids e à coordenação.
+            Edite os dados operacionais da criança. Toda alteração fica registrada.
           </p>
         </div>
       </div>
@@ -141,3 +136,4 @@ export default async function KidsChildPage({
     </div>
   );
 }
+

@@ -30,7 +30,7 @@ function subscribeSidebar(callback: () => void) {
   };
 }
 
-export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMinistryNavigation, hasKids = false, escalasPending = 0 }: {
+export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMinistryNavigation, hasKids = false, escalasPending = 0, guardianOnly = false }: {
   churchSlug: string;
   churchName: string;
   canAdmin: boolean;
@@ -38,6 +38,7 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
   activeMinistryNavigation: { href: string; label: string; module: "louvor" | "infantil" } | null;
   hasKids?: boolean;
   escalasPending?: number;
+  guardianOnly?: boolean;
 }) {
   const pathname = usePathname();
   const collapsed = useSyncExternalStore(
@@ -62,17 +63,22 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
     icon: activeMinistryNavigation.module === "louvor" ? Music2 : Baby,
   } : null;
   const showStandaloneKids = hasKids && activeMinistryNavigation?.module !== "infantil";
-  const nav = [
-    { href: "", label: "Visão geral", icon: Home },
-    ...(ministryItem ? [ministryItem] : []),
-    ...(showStandaloneKids ? [{ href: "/infantil", label: "Kids", icon: Baby }] : []),
-    { href: "/escalas", label: "Cultos e escalas", icon: Calendar },
-    { href: "/disponibilidade", label: "Disponibilidade", icon: CalendarCheck2 },
-    { href: "/perfil", label: "Perfil", icon: User },
-    ...(isLeader ? [{ href: "/pessoas", label: "Equipe", icon: Users }] : []),
-    ...(canAdmin ? [{ href: "/admin", label: "Administração", icon: Settings }] : []),
-    { href: "/guia", label: "Guia", icon: BookOpen },
-  ];
+  const nav = guardianOnly
+    ? [
+        { href: "/infantil", label: "Meus filhos", icon: Baby },
+        { href: "/perfil", label: "Perfil", icon: User },
+      ]
+    : [
+        { href: "", label: "Visão geral", icon: Home },
+        ...(ministryItem ? [ministryItem] : []),
+        ...(showStandaloneKids ? [{ href: "/infantil", label: "Kids", icon: Baby }] : []),
+        { href: "/escalas", label: "Cultos e escalas", icon: Calendar },
+        { href: "/disponibilidade", label: "Disponibilidade", icon: CalendarCheck2 },
+        { href: "/perfil", label: "Perfil", icon: User },
+        ...(isLeader ? [{ href: "/pessoas", label: "Equipe", icon: Users }] : []),
+        ...(canAdmin ? [{ href: "/admin", label: "Administração", icon: Settings }] : []),
+        { href: "/guia", label: "Guia", icon: BookOpen },
+      ];
 
   return (
     <aside
@@ -161,3 +167,4 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
     </aside>
   );
 }
+

@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { SeedClassesButton } from "@/components/infantil/seed-classes-button";
 import { GuardianAccountLink } from "@/components/infantil/guardian-account-link";
+import { GuardianKidsPage } from "@/components/infantil/guardian-kids-page";
 
 const DEFAULT_EVENT_DURATION_MS = 4 * 60 * 60 * 1000;
 
@@ -70,6 +71,18 @@ export default async function InfantilPage({
   }
 
   const supabase = await createClient();
+
+  if (tenant.guardianOnly) {
+    return (
+      <GuardianKidsPage
+        churchSlug={churchSlug}
+        churchId={tenant.church.id}
+        ministryId={ministry.id}
+        userId={tenant.userId}
+      />
+    );
+  }
+
   const { data: vinculo } = await supabase
     .from("ministry_members")
     .select("role")
@@ -79,8 +92,12 @@ export default async function InfantilPage({
     .maybeSingle();
   if (!vinculo && !tenant.isCoord) redirect(`/${churchSlug}`);
 
-  const podeGerir =
-    tenant.isCoord || vinculo?.role === "gerente" || vinculo?.role === "lider";
+  const { data: canOperate } = await supabase.rpc("can_operate_kids", {
+    p_church: tenant.church.id,
+    p_ministry: ministry.id,
+    p_event: null,
+  });
+  const podeGerir = canOperate === true;
 
   // Momento desta renderização no servidor; usado apenas para escolher a
   // sessão operacional atual/próxima, sem participar de hidratação client-side.
@@ -189,10 +206,12 @@ export default async function InfantilPage({
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard Kids</h1>
           <p className="text-muted-foreground">
-            Veja a operação do Kids e entre rapidamente na recepção.
+            {podeGerir
+              ? "Veja a operação do Kids e entre rapidamente na recepção."
+              : "A recepção é liberada no horário em que você estiver escalado(a)."}
           </p>
         </div>
-        {eventoAtual && (
+        {eventoAtual && podeGerir && (
           <Button
             nativeButton={false}
             className="h-11 rounded-full px-5"
@@ -339,7 +358,7 @@ export default async function InfantilPage({
           <CardHeader>
             <CardTitle className="text-base">Responsáveis e conta LUNOR</CardTitle>
             <CardDescription>
-              Vincule o responsável a uma conta ativa da igreja para que os chamados do Kids cheguem ao aparelho correto.
+              Vincule uma conta existente ou gere um convite familiar com acesso restrito à própria criança.
             </CardDescription>
           </CardHeader>
           <CardContent>

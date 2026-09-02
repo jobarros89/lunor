@@ -14,18 +14,33 @@ export default async function NovaCriancaPage({
   const ministry = await getInfantilMinistry(tenant.church.id);
   if (!ministry) redirect(`/${churchSlug}/infantil`);
 
-  // cadastrar exige liderança do setor (ou coordenação da igreja)
   const supabase = await createClient();
-  const { data: vinculo } = await supabase
-    .from("ministry_members")
-    .select("role")
-    .eq("ministry_id", ministry.id)
-    .eq("user_id", tenant.userId)
-    .eq("active", true)
-    .maybeSingle();
-  const podeGerir =
-    tenant.isCoord || vinculo?.role === "gerente" || vinculo?.role === "lider";
-  if (!podeGerir) redirect(`/${churchSlug}/infantil`);
+  // Momento da renderização no servidor; usado somente para resolver a sessão atual.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const { data: events } = await supabase
+    .from("events")
+    .select("id, starts_at, ends_at")
+    .eq("church_id", tenant.church.id)
+    .gte("starts_at", new Date(now - 6 * 60 * 60 * 1000).toISOString())
+    .order("starts_at")
+    .limit(8);
+
+  const operational = (events ?? []).find((event) => {
+    const startsAt = new Date(event.starts_at).getTime();
+    const endsAt = event.ends_at
+      ? new Date(event.ends_at).getTime()
+      : startsAt + 4 * 60 * 60 * 1000;
+    return now >= startsAt - 90 * 60 * 1000 && now <= endsAt + 60 * 60 * 1000;
+  });
+  if (!operational) redirect(`/${churchSlug}/infantil`);
+
+  const { data: canOperate } = await supabase.rpc("can_operate_kids", {
+    p_church: tenant.church.id,
+    p_ministry: ministry.id,
+    p_event: operational.id,
+  });
+  if (!canOperate) redirect(`/${churchSlug}/infantil`);
 
   return (
     <div className="space-y-6">
@@ -39,6 +54,7 @@ export default async function NovaCriancaPage({
         churchSlug={churchSlug}
         churchId={tenant.church.id}
         ministryId={ministry.id}
+        eventId={operational.id}
       />
     </div>
   );
