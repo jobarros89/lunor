@@ -319,7 +319,7 @@ function TeamStatusGroup({
                 <p className="truncate text-sm font-medium">{member.name}</p>
                 <p className="truncate text-[11px] text-muted-foreground">
                   {roleLabels[member.role] ?? member.role}
-                  {member.source ? ` · ${sourceLabels[member.source]` : " · Não informou"}
+                  {member.source ? ` · ${sourceLabels[member.source]}` : " · Não informou"}
                 </p>
               </div>
             </div>
