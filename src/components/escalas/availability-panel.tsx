@@ -525,6 +525,7 @@ export function AvailabilityPanel({
                 onChange={(event) => {
                   const month = event.target.value;
                   setTeamMonth(month);
+                  setSelected([]);
                   setOpenMonths((current) =>
                     current.includes(month) ? current : [...current, month]
                   );
@@ -656,7 +657,10 @@ export function AvailabilityPanel({
                   <Input
                     type="month"
                     value={requestMonth}
-                    onChange={(event) => setRequestMonth(event.target.value)}
+                    onChange={(event) => {
+                      setRequestMonth(event.target.value);
+                      setSelected([]);
+                    }}
                     className="h-11 rounded-xl"
                     aria-label="Mês e ano dos cultos para solicitar disponibilidade"
                   />
