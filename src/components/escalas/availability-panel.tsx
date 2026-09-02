@@ -60,6 +60,14 @@ const roleLabels: Record<string, string> = {
   voluntario: "Voluntário",
 };
 
+const sourceLabels: Record<NonNullable<TeamMemberAvailability["source"]>, string> = {
+  event: "Evento específico",
+  ministry_calendar: "Calendário mensal",
+  general_calendar: "Calendário geral",
+  ministry_recurring: "Padrão do ministério",
+  general_recurring: "Padrão geral",
+};
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -311,7 +319,7 @@ function TeamStatusGroup({
                 <p className="truncate text-sm font-medium">{member.name}</p>
                 <p className="truncate text-[11px] text-muted-foreground">
                   {roleLabels[member.role] ?? member.role}
-                  {member.status ? " · Resposta enviada" : " · Não informou"}
+                  {member.source ? ` · ${sourceLabels[member.source]` : " · Não informou"}
                 </p>
               </div>
             </div>
@@ -371,7 +379,6 @@ export function AvailabilityPanel({
   const [selected, setSelected] = useState<string[]>([]);
   const byId = new Map(events.map((event) => [event.id, event]));
   const requestedIds = new Set(requests.flatMap((request) => request.eventIds));
-  const requestedEvents = events.filter((event) => requestedIds.has(event.id));
   const requestableEvents = events.filter((event) => !requestedIds.has(event.id));
 
   function toggleEvent(eventId: string) {
@@ -413,40 +420,40 @@ export function AvailabilityPanel({
             <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
               Equipe · {ministryName}
             </p>
-            <h2 className="mt-1 text-xl font-semibold tracking-tight">Respostas para montar a escala</h2>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight">Disponibilidade para montar a escala</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Apenas respostas enviadas para cultos solicitados. Quem não respondeu permanece separado.
+              O calendário mensal aparece em cada evento. Uma resposta específica do evento tem prioridade.
             </p>
           </div>
 
-          {requestedEvents.length > 0 ? (
+          {events.length > 0 ? (
             <div className="space-y-3">
-              {requestedEvents.map((event) => (
+              {events.map((event) => (
                 <TeamAvailabilityCard key={event.id} event={event} />
               ))}
             </div>
           ) : (
             <Card className="rounded-3xl">
               <CardContent className="py-8 text-center text-sm text-muted-foreground">
-                Nenhuma solicitação enviada para a equipe deste ministério.
+                Nenhum evento futuro criado para este ministério.
               </CardContent>
             </Card>
           )}
         </section>
       )}
 
-      <section className={cn("space-y-3", canManage && "border-t pt-7")}>
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Área pessoal
-          </p>
-          <h2 className="mt-1 text-xl font-semibold tracking-tight">Minha disponibilidade</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Preencha todos os dias solicitados e envie sua resposta para a liderança.
-          </p>
-        </div>
+      {requests.length > 0 && (
+        <section className={cn("space-y-3", canManage && "border-t pt-7")}>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              Eventos específicos
+            </p>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight">Solicitações da liderança</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Responda cada evento. Esta resposta substitui a marcação mensal somente naquela data.
+            </p>
+          </div>
 
-        {requests.length > 0 ? (
           <div className="space-y-3">
             {requests.map((request) => {
               const requestEvents = request.eventIds
@@ -465,14 +472,8 @@ export function AvailabilityPanel({
               );
             })}
           </div>
-        ) : (
-          <Card className="rounded-3xl">
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Nenhuma solicitação de disponibilidade no momento.
-            </CardContent>
-          </Card>
-        )}
-      </section>
+        </section>
+      )}
 
       {canManage && (
         <Card className="rounded-3xl border-t">
