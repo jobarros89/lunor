@@ -17,6 +17,7 @@ import type { AvailabilityPeriod, AvailabilityStatus } from "@/lib/actions/avail
 import {
   buildTeamAvailabilityOverview,
   type AvailabilityOverviewMember,
+  type TeamMemberAvailability,
 } from "@/lib/availability-overview";
 
 export default async function DisponibilidadePage({
@@ -249,7 +250,7 @@ export default async function DisponibilidadePage({
           status: row.status as AvailabilityStatus,
         })),
       })
-    : new Map();
+    : new Map<string, TeamMemberAvailability[]>();
 
   const events: AvailabilityEvent[] = eventRows.map((event) => {
     const campus = event.campuses as unknown as { name: string } | null;
