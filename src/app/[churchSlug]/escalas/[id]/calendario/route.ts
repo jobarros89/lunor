@@ -96,6 +96,7 @@ export async function GET(
     end,
     location: event.location,
     description: event.description || event.script || null,
+    floatingTime: true,
   });
 
   return new Response(ics, {
