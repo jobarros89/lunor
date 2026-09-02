@@ -24,6 +24,7 @@ export type AvailabilityEvent = {
   context: string;
   monthKey: string;
   monthLabel: string;
+  serviceRoles: Record<string, string>;
   team: TeamMemberAvailability[] | null;
 };
 
@@ -54,13 +55,6 @@ const choices: Array<{
     activeClass: "border-rose-600 bg-rose-600 text-white hover:bg-rose-600",
   },
 ];
-
-const roleLabels: Record<string, string> = {
-  gerente: "Gerente",
-  lider: "Líder",
-  instrutor: "Instrutor",
-  voluntario: "Voluntário",
-};
 
 const sourceLabels: Record<NonNullable<TeamMemberAvailability["source"]>, string> = {
   event: "Evento específico",
@@ -286,10 +280,12 @@ function TeamStatusGroup({
   title,
   members,
   tone,
+  serviceRoles,
 }: {
   title: string;
   members: TeamMemberAvailability[];
   tone: "available" | "unavailable" | "pending";
+  serviceRoles: Record<string, string>;
 }) {
   return (
     <div className="min-w-0 rounded-2xl border p-3">
@@ -320,7 +316,7 @@ function TeamStatusGroup({
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{member.name}</p>
                 <p className="truncate text-[11px] text-muted-foreground">
-                  {roleLabels[member.role] ?? member.role}
+                  {serviceRoles[member.userId] ?? "Função ainda não definida"}
                   {member.source ? ` · ${sourceLabels[member.source]}` : " · Não informou"}
                 </p>
               </div>
@@ -416,9 +412,9 @@ function TeamAvailabilityCard({
       </summary>
 
       <div className="grid gap-3 border-t p-3 lg:grid-cols-3">
-        <TeamStatusGroup title="Disponíveis" members={available} tone="available" />
-        <TeamStatusGroup title="Não disponíveis" members={unavailable} tone="unavailable" />
-        <TeamStatusGroup title="Não responderam" members={unanswered} tone="pending" />
+        <TeamStatusGroup title="Disponíveis" members={available} tone="available" serviceRoles={event.serviceRoles} />
+        <TeamStatusGroup title="Não disponíveis" members={unavailable} tone="unavailable" serviceRoles={event.serviceRoles} />
+        <TeamStatusGroup title="Não responderam" members={unanswered} tone="pending" serviceRoles={event.serviceRoles} />
       </div>
     </details>
   );
