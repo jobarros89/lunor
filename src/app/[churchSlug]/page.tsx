@@ -2,11 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Megaphone } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
+import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
+import { loadOperationalSummary } from "@/lib/operational-summary-server";
 import { ASSIGNMENT_STATUS_BADGE, ASSIGNMENT_STATUS_LABELS, formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
 import { Badge } from "@/components/ui/badge";
 import { QuickConfirm } from "@/components/escalas/quick-confirm";
+import { OperationalSummarySection } from "@/components/home/operational-summary";
 
 type RelatedName = { name: string } | { name: string }[] | null;
 type AssignmentEvent = {
@@ -65,9 +68,17 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   if (tenant.guardianOnly) redirect(`/${churchSlug}/infantil`);
 
   const supabase = await createClient();
+  const { active: activeMinistry } = await getActiveMinistry(churchSlug);
+  const operationalSummaryPromise = activeMinistry?.canManage
+    ? loadOperationalSummary({
+        churchId: tenant.church.id,
+        ministryId: activeMinistry.id,
+        ministryName: activeMinistry.name,
+      })
+    : Promise.resolve(null);
 
   const nowIso = new Date().toISOString();
-  const [{ data: myEscalas }, { data: nextChurchEvent }] = await Promise.all([
+  const [{ data: myEscalas }, { data: nextChurchEvent }, operationalSummary] = await Promise.all([
     supabase
       .from("assignments")
       .select("id, role_name, status, arrival_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, location, service_period, campuses(name))")
@@ -85,6 +96,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
       .order("starts_at")
       .limit(1)
       .maybeSingle(),
+    operationalSummaryPromise,
   ]);
   const { data: anuncios } = await supabase.rpc("anuncios_infantil", { p_church: tenant.church.id });
   const escalas = (myEscalas ?? []) as unknown as HomeAssignment[];
@@ -182,6 +194,10 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
           </Link>
         </div>
       </section>
+
+      {operationalSummary && (
+        <OperationalSummarySection churchSlug={churchSlug} summary={operationalSummary} />
+      )}
 
       <section className="max-w-4xl">
         <div>
