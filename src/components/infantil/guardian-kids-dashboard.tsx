@@ -48,7 +48,10 @@ export function GuardianKidsDashboard({
         eventId: event.id,
         childId: child.id,
       });
-      if (!result.ok) return toast.error(result.error);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       toast.success(`${child.fullName} entrou no Kids`);
       router.refresh();
     });
@@ -61,7 +64,10 @@ export function GuardianKidsDashboard({
         churchSlug,
         checkinId: child.checkin!.id,
       });
-      if (!result.ok) return toast.error(result.error);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       toast.success(`${child.fullName} foi retirado(a)`);
       router.refresh();
     });
