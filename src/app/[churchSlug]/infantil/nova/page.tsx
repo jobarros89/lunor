@@ -15,6 +15,8 @@ export default async function NovaCriancaPage({
   if (!ministry) redirect(`/${churchSlug}/infantil`);
 
   const supabase = await createClient();
+  // Momento da renderização no servidor; usado somente para resolver a sessão atual.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const { data: events } = await supabase
     .from("events")
@@ -57,4 +59,3 @@ export default async function NovaCriancaPage({
     </div>
   );
 }
-

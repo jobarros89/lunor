@@ -27,13 +27,13 @@ export function GuardianKidsDashboard({
   churchId,
   ministryId,
   event,
-  children,
+  familyChildren,
 }: {
   churchSlug: string;
   churchId: string;
   ministryId: string;
   event: { id: string; title: string } | null;
-  children: FamilyChild[];
+  familyChildren: FamilyChild[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -91,7 +91,7 @@ export function GuardianKidsDashboard({
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {children.map((child) => {
+        {familyChildren.map((child) => {
           const present = child.checkin && !child.checkin.checkedOut;
           return (
             <Card key={child.id} className="rounded-3xl">
@@ -141,7 +141,7 @@ export function GuardianKidsDashboard({
         })}
       </div>
 
-      {children.length === 0 && (
+      {familyChildren.length === 0 && (
         <Card className="rounded-3xl">
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             Nenhuma criança está vinculada a esta conta. Peça à recepção do Kids para enviar um novo convite.

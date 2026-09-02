@@ -94,7 +94,7 @@ export async function GuardianKidsPage({
       churchId={churchId}
       ministryId={ministryId}
       event={event ? { id: event.id, title: event.title } : null}
-      children={(children ?? []).map((child) => {
+      familyChildren={(children ?? []).map((child) => {
         const checkin = latestByChild.get(child.id);
         return {
           id: child.id,
