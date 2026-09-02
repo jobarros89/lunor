@@ -10,7 +10,9 @@ import {
   setMyAvailability,
   type AvailabilityStatus,
 } from "@/lib/actions/availability";
+import type { TeamMemberAvailability } from "@/lib/availability-overview";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,6 +29,7 @@ export type AvailabilityEvent = {
     unavailable: number;
     notInformed: number;
   } | null;
+  team: TeamMemberAvailability[] | null;
 };
 
 export type AvailabilityRequestView = {
@@ -55,6 +58,21 @@ const choices: Array<{
     activeClass: "border-rose-600 bg-rose-600 text-white hover:bg-rose-600",
   },
 ];
+
+const roleLabels: Record<string, string> = {
+  gerente: "Gerente",
+  lider: "Líder",
+  instrutor: "Instrutor",
+  voluntario: "Voluntário",
+};
+
+const sourceLabels: Record<NonNullable<TeamMemberAvailability["source"]>, string> = {
+  event: "Resposta deste culto",
+  ministry_calendar: "Calendário do ministério",
+  general_calendar: "Calendário geral",
+  ministry_recurring: "Padrão semanal do ministério",
+  general_recurring: "Padrão semanal geral",
+};
 
 function AvailabilityChoice({
   churchSlug,
@@ -159,6 +177,91 @@ function AvailabilityChoice({
   );
 }
 
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function TeamStatusGroup({
+  title,
+  members,
+  tone,
+}: {
+  title: string;
+  members: TeamMemberAvailability[];
+  tone: "available" | "unavailable" | "pending";
+}) {
+  return (
+    <div className="min-w-0 rounded-2xl border p-3">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p
+          className={cn(
+            "text-sm font-semibold",
+            tone === "available" && "text-emerald-600 dark:text-emerald-400",
+            tone === "unavailable" && "text-rose-600 dark:text-rose-400",
+            tone === "pending" && "text-muted-foreground"
+          )}
+        >
+          {title}
+        </p>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold">
+          {members.length}
+        </span>
+      </div>
+
+      {members.length > 0 ? (
+        <div className="space-y-2">
+          {members.map((member) => (
+            <div key={member.userId} className="flex min-w-0 items-center gap-2">
+              <Avatar className="size-8 shrink-0">
+                <AvatarImage src={member.avatarUrl ?? undefined} />
+                <AvatarFallback className="text-[10px]">{initials(member.name)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{member.name}</p>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {roleLabels[member.role] ?? member.role}
+                  {member.source ? ` · ${sourceLabels[member.source]}` : " · Não informou"}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">Nenhum voluntário</p>
+      )}
+    </div>
+  );
+}
+
+function TeamAvailabilityCard({ event }: { event: AvailabilityEvent }) {
+  const team = event.team ?? [];
+  const available = team.filter((member) => member.status === "available");
+  const unavailable = team.filter((member) => member.status === "unavailable");
+  const pending = team.filter((member) => member.status === null);
+
+  return (
+    <Card className="rounded-3xl">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{event.title}</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          {event.dateLabel} · {event.timeLabel}{event.context ? ` · ${event.context}` : ""}
+        </p>
+      </CardHeader>
+      <CardContent className="grid gap-3 lg:grid-cols-3">
+        <TeamStatusGroup title="Disponíveis" members={available} tone="available" />
+        <TeamStatusGroup title="Não disponíveis" members={unavailable} tone="unavailable" />
+        <TeamStatusGroup title="Não informaram" members={pending} tone="pending" />
+      </CardContent>
+    </Card>
+  );
+}
+
 export function AvailabilityPanel({
   churchSlug,
   churchId,
@@ -216,7 +319,7 @@ export function AvailabilityPanel({
 
   return (
     <div className="space-y-6">
-      {requests.length > 0 && (
+      {!canManage && requests.length > 0 && (
         <section className="space-y-3">
           <div>
             <h2 className="text-lg font-semibold tracking-tight">Solicitações</h2>
@@ -257,27 +360,37 @@ export function AvailabilityPanel({
 
       <section className="space-y-3">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">Cultos já criados</h2>
+          <h2 className="text-lg font-semibold tracking-tight">
+            {canManage ? "Disponibilidade para montar a escala" : "Cultos já criados"}
+          </h2>
           <p className="text-sm text-muted-foreground">
-            A resposta específica de um culto prevalece sobre o calendário e sobre o padrão semanal.
+            {canManage
+              ? `Visão consolidada apenas dos integrantes do ${ministryName}. Não informado não é tratado como disponível.`
+              : "A resposta específica de um culto prevalece sobre o calendário e sobre o padrão semanal."}
           </p>
         </div>
         {events.length > 0 ? (
           <div className="space-y-3">
-            {events.map((event) => (
-              <AvailabilityChoice
-                key={event.id}
-                churchSlug={churchSlug}
-                churchId={churchId}
-                ministryId={ministryId}
-                event={event}
-              />
-            ))}
+            {events.map((event) =>
+              canManage ? (
+                <TeamAvailabilityCard key={event.id} event={event} />
+              ) : (
+                <AvailabilityChoice
+                  key={event.id}
+                  churchSlug={churchSlug}
+                  churchId={churchId}
+                  ministryId={ministryId}
+                  event={event}
+                />
+              )
+            )}
           </div>
         ) : (
           <Card className="rounded-3xl">
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Nenhum culto futuro deste ministério. Você ainda pode informar datas no calendário acima.
+              {canManage
+                ? "Nenhum culto futuro deste ministério. Crie o culto antes de solicitar disponibilidade."
+                : "Nenhum culto futuro deste ministério. Você ainda pode informar datas no calendário."}
             </CardContent>
           </Card>
         )}
@@ -344,6 +457,28 @@ export function AvailabilityPanel({
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {canManage && events.length > 0 && (
+        <section className="space-y-3 border-t pt-6">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">Minha resposta nos cultos</h2>
+            <p className="text-sm text-muted-foreground">
+              Caso você também sirva na equipe, informe aqui a sua própria disponibilidade.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {events.map((event) => (
+              <AvailabilityChoice
+                key={event.id}
+                churchSlug={churchSlug}
+                churchId={churchId}
+                ministryId={ministryId}
+                event={{ ...event, counts: null }}
+              />
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );
