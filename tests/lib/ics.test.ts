@@ -20,6 +20,19 @@ describe("buildIcs", () => {
     expect(ics).toContain("SUMMARY:Culto de Domingo");
   });
 
+  it("preserva horário de parede quando floatingTime está ativo", () => {
+    const ics = buildIcs({
+      ...base,
+      start: new Date("2026-09-06T09:00:00.000Z"),
+      end: new Date("2026-09-06T12:45:00.000Z"),
+      floatingTime: true,
+    });
+
+    expect(ics).toContain("DTSTART:20260906T090000\r\n");
+    expect(ics).toContain("DTEND:20260906T124500\r\n");
+    expect(ics).not.toContain("DTSTART:20260906T090000Z");
+  });
+
   it("usa CRLF entre linhas (exigência do formato)", () => {
     expect(buildIcs(base)).toContain("\r\n");
   });
