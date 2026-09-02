@@ -5,10 +5,12 @@ import { getLouvorMinistry } from "@/lib/louvor-server";
 
 export default async function LouvorAvailabilityPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ churchSlug: string }>;
+  searchParams: Promise<{ view?: "mine" | "team" }>;
 }) {
-  const { churchSlug } = await params;
+  const [{ churchSlug }, query] = await Promise.all([params, searchParams]);
   const tenant = await getTenant(churchSlug);
   const louvor = await getLouvorMinistry(tenant.church.id);
 
@@ -16,6 +18,6 @@ export default async function LouvorAvailabilityPage({
 
   return DisponibilidadePage({
     params: Promise.resolve({ churchSlug }),
-    searchParams: Promise.resolve({ ministry: louvor.id, module: "louvor" }),
+    searchParams: Promise.resolve({ ministry: louvor.id, module: "louvor", view: query.view }),
   });
 }

@@ -353,6 +353,9 @@ function TeamAvailabilityCard({
     holdTimer.current = setTimeout(() => {
       held.current = true;
       onSelect(event.id);
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate?.(20);
+      }
     }, 550);
   }
 
@@ -362,15 +365,35 @@ function TeamAvailabilityCard({
   }
 
   return (
-    <details
+    <div
       className={cn(
-        "group rounded-2xl border bg-card transition-colors",
+        "rounded-2xl border bg-card transition-colors",
         selected && "border-emerald-500/70 bg-emerald-500/5"
       )}
     >
+      <div className="flex items-stretch">
+        <button
+          type="button"
+          aria-label={`${selected ? "Remover" : "Selecionar"} ${event.title}`}
+          aria-pressed={selected}
+          onClick={() => onSelect(event.id)}
+          className="flex min-h-16 w-11 shrink-0 items-center justify-center rounded-l-2xl focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
+        >
+          <span
+            aria-hidden="true"
+            className={cn(
+              "flex size-5 items-center justify-center rounded-full border",
+              selected && "border-emerald-500 bg-emerald-500 text-white"
+            )}
+          >
+            {selected ? <Check className="size-3" /> : null}
+          </span>
+        </button>
+        <details className="group min-w-0 flex-1">
       <summary
-        className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden"
+        className="flex min-h-16 cursor-pointer list-none items-center gap-3 py-3 pl-1 pr-4 [&::-webkit-details-marker]:hidden"
         onPointerDown={startHold}
+        onPointerMove={cancelHold}
         onPointerUp={cancelHold}
         onPointerCancel={cancelHold}
         onPointerLeave={cancelHold}
@@ -382,15 +405,6 @@ function TeamAvailabilityCard({
           }
         }}
       >
-        <span
-          aria-hidden="true"
-          className={cn(
-            "flex size-5 shrink-0 items-center justify-center rounded-full border",
-            selected && "border-emerald-500 bg-emerald-500 text-white"
-          )}
-        >
-          {selected ? <Check className="size-3" /> : null}
-        </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium">{event.title}</span>
           <span className="block truncate text-xs text-muted-foreground">
@@ -416,7 +430,9 @@ function TeamAvailabilityCard({
         <TeamStatusGroup title="Não disponíveis" members={unavailable} tone="unavailable" serviceRoles={event.serviceRoles} />
         <TeamStatusGroup title="Não responderam" members={unanswered} tone="pending" serviceRoles={event.serviceRoles} />
       </div>
-    </details>
+        </details>
+      </div>
+    </div>
   );
 }
 
@@ -546,7 +562,7 @@ export function AvailabilityPanel({
           {events.length > 0 ? (
             <div className="space-y-3">
               <p className="px-1 text-xs text-muted-foreground sm:hidden">
-                Segure um culto para selecionar.
+                Toque no círculo ou segure um culto para selecionar.
               </p>
               {groupedEvents
                 .filter(([monthKey]) => monthKey === teamMonth)

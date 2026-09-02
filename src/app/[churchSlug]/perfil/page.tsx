@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, ChevronRight, Download, Settings, Users } from "lucide-react";
+import { ChevronRight, Download } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { serverEnv } from "@/lib/env";
 import { signOut } from "@/lib/actions/auth";
@@ -46,31 +46,6 @@ export default async function PerfilPage({
         .filter((r) => r !== "voluntario")
         .map((r) => MINISTRY_ROLE_LABEL[r]),
     ]),
-  ];
-
-  const secondaryLinks = [
-    ...(tenant.isLeader
-      ? [{
-          href: `/${churchSlug}/pessoas`,
-          title: "Equipe",
-          description: "Pessoas, ministérios e disponibilidade",
-          icon: Users,
-        }]
-      : []),
-    ...(tenant.isCoord
-      ? [{
-          href: `/${churchSlug}/admin`,
-          title: "Administração",
-          description: "Configurações e estrutura da igreja",
-          icon: Settings,
-        }]
-      : []),
-    {
-      href: `/${churchSlug}/guia`,
-      title: "Guia",
-      description: "Ajuda e orientações do LUNOR",
-      icon: BookOpen,
-    },
   ];
 
   return (
@@ -121,27 +96,6 @@ export default async function PerfilPage({
           </CardContent>
         </Card>
       </Link>
-
-      <Card className="rounded-3xl">
-        <CardContent className="divide-y py-0">
-          {secondaryLinks.map(({ href, title, description, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center gap-3 py-4 transition-colors hover:text-foreground"
-            >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                <Icon className="size-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">{title}</p>
-                <p className="truncate text-sm text-muted-foreground">{description}</p>
-              </div>
-              <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-            </Link>
-          ))}
-        </CardContent>
-      </Card>
 
       <Card className="rounded-3xl">
         <CardContent className="space-y-3 py-4">

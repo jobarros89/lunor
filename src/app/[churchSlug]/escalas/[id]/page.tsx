@@ -380,10 +380,39 @@ export default async function EventoDetailPage({
         </CardContent>
       </Card>
 
-      <section className="space-y-3" aria-labelledby="repertorio-title">
-        <h2 id="repertorio-title" className="px-1 text-lg font-semibold tracking-tight">
-          Repertório
-        </h2>
+      {mineAssignments.length > 0 && (
+        <section className="space-y-3" aria-labelledby="minha-participacao-title">
+          <h2 id="minha-participacao-title" className="px-1 text-lg font-semibold tracking-tight">
+            Minha participação
+          </h2>
+          {mineAssignments.map((mine) => {
+            const ministry = firstRelated(mine.ministries);
+            return (
+              <div key={mine.id} className="space-y-1">
+                {ministry && (
+                  <p className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {ministry.name}
+                  </p>
+                )}
+                <MyAssignmentCard
+                  churchSlug={churchSlug}
+                  churchId={tenant.church.id}
+                  eventId={id}
+                  assignmentId={mine.id}
+                  roleName={mine.role_name}
+                  status={mine.status}
+                  arrivalTime={mine.arrival_time}
+                  itemsToBring={mine.items_to_bring}
+                  equipments={(equipByAssignment.get(mine.id) ?? []).map((e) => e.name)}
+                  leaderName={firstRelated(mine.leader)?.full_name ?? null}
+                />
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      <section aria-label="Repertório">
         {setlistError ? (
           <LoadError oQue="o repertório" />
         ) : (
@@ -397,13 +426,7 @@ export default async function EventoDetailPage({
         )}
       </section>
 
-      <section className="space-y-3" aria-labelledby="ordem-culto-title">
-        <h2
-          id="ordem-culto-title"
-          className="px-1 text-lg font-semibold tracking-tight"
-        >
-          Ordem do Culto
-        </h2>
+      <section aria-label="Ordem do culto">
         {serviceItemsError ? (
           <LoadError oQue="a ordem do culto" />
         ) : (
@@ -449,41 +472,12 @@ export default async function EventoDetailPage({
           </div>
         </div>
 
-        {mineAssignments.length > 0 && (
-          <div className="space-y-3">
-            <p className="px-1 text-sm font-medium">Minha participação</p>
-            {mineAssignments.map((mine) => {
-              const ministry = firstRelated(mine.ministries);
-              return (
-                <div key={mine.id} className="space-y-1">
-                  {ministry && (
-                    <p className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {ministry.name}
-                    </p>
-                  )}
-                  <MyAssignmentCard
-                    churchSlug={churchSlug}
-                    churchId={tenant.church.id}
-                    eventId={id}
-                    assignmentId={mine.id}
-                    roleName={mine.role_name}
-                    status={mine.status}
-                    arrivalTime={mine.arrival_time}
-                    itemsToBring={mine.items_to_bring}
-                    equipments={(equipByAssignment.get(mine.id) ?? []).map((e) => e.name)}
-                    leaderName={firstRelated(mine.leader)?.full_name ?? null}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-
         {assignmentsError ? (
           <LoadError oQue="os times do culto" />
         ) : teams.length > 0 ? (
           <div className="grid gap-3 lg:grid-cols-2">
             {teams.map((team) => {
+              const visibleRows = team.rows.filter((row) => row.user_id !== tenant.userId);
               const confirmed = team.rows.filter((row) =>
                 ["confirmado", "presente"].includes(row.status)
               ).length;
@@ -520,7 +514,7 @@ export default async function EventoDetailPage({
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {team.rows.map((row) => (
+                    {visibleRows.map((row) => (
                       <div
                         key={row.id}
                         className="flex items-start justify-between gap-3 rounded-2xl border px-4 py-3"
@@ -540,6 +534,11 @@ export default async function EventoDetailPage({
                         </Badge>
                       </div>
                     ))}
+                    {visibleRows.length === 0 && (
+                      <p className="py-2 text-sm text-muted-foreground">
+                        Sua participação está destacada acima.
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               );

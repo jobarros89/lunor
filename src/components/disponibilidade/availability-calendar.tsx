@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CheckCircle2, ChevronLeft, ChevronRight, RotateCcw, Send, X } from "lucide-react";
+import { Check, CheckCircle2, ChevronLeft, ChevronRight, Pencil, RotateCcw, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   submitMyCalendarAvailability,
@@ -83,6 +83,13 @@ export function AvailabilityCalendar({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [period, setPeriod] = useState<AvailabilityPeriod>("all_day");
   const [campusId, setCampusId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(() =>
+    !entries.some((entry) =>
+      entry.date.startsWith(initialMonth.slice(0, 7))
+      && entry.period === "all_day"
+      && entry.campusId === null
+    )
+  );
 
   const campusKey = campusId ?? "all";
 
@@ -125,6 +132,7 @@ export function AvailabilityCalendar({
     JSON.stringify(monthEntries) !== JSON.stringify(scopeEntries(savedMap));
   const availableCount = monthEntries.filter(([, status]) => status === "available").length;
   const unavailableCount = monthEntries.filter(([, status]) => status === "unavailable").length;
+  const submitted = !monthDirty && monthEntries.length > 0;
 
   function markDate(status: AvailabilityStatus) {
     if (!selectedDate) return;
@@ -166,6 +174,7 @@ export function AvailabilityCalendar({
 
       setSavedMap(new Map(draftMap));
       setSelectedDate(null);
+      setEditing(false);
       toast.success("Disponibilidade do mês enviada");
       router.refresh();
     });
@@ -183,7 +192,7 @@ export function AvailabilityCalendar({
             Marque sua disponibilidade dia a dia. As alterações só serão enviadas quando você confirmar o mês.
           </p>
         </div>
-        <div className="flex flex-wrap items-end gap-2">
+        {editing && <div className="flex flex-wrap items-end gap-2">
           <label className="grid gap-1 text-xs text-muted-foreground">
             Campus
             <select
@@ -213,9 +222,28 @@ export function AvailabilityCalendar({
               ))}
             </select>
           </label>
-        </div>
+        </div>}
       </div>
 
+      {submitted && !editing ? (
+        <div className="flex flex-col gap-4 rounded-3xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5" role="status">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <div>
+              <p className="text-sm font-medium capitalize">Disponibilidade de {monthLabel} enviada</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {availableCount} {availableCount === 1 ? "dia disponível" : "dias disponíveis"}
+                {" · "}
+                {unavailableCount} {unavailableCount === 1 ? "dia indisponível" : "dias indisponíveis"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">A liderança já pode consultar o resultado.</p>
+            </div>
+          </div>
+          <Button type="button" variant="outline" onClick={() => setEditing(true)} className="h-10 rounded-full px-4">
+            <Pencil className="size-3.5" /> Editar
+          </Button>
+        </div>
+      ) : <>
       <Card className="rounded-3xl">
         <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 pb-3">
           <Button
@@ -329,9 +357,8 @@ export function AvailabilityCalendar({
         </CardContent>
       </Card>
 
-
       <div className="rounded-3xl border p-4">
-        {!monthDirty && monthEntries.length > 0 ? (
+        {submitted ? (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3" role="status">
               <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
@@ -344,7 +371,9 @@ export function AvailabilityCalendar({
                 </p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">A liderança já pode consultar o resultado.</p>
+            <Button type="button" variant="outline" onClick={() => setEditing(false)} className="h-10 rounded-full px-4">
+              Concluir
+            </Button>
           </div>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -370,6 +399,7 @@ export function AvailabilityCalendar({
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 }

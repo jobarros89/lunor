@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
-import { Baby, BookOpen, Calendar, CalendarCheck2, Home, Music2, PanelLeftClose, PanelLeftOpen, Settings, User, Users } from "lucide-react";
+import { Baby, Calendar, Home, Music2, PanelLeftClose, PanelLeftOpen, Settings, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandLockup } from "@/components/brand-lockup";
 import { SIDEBAR_ATTRIBUTE, SIDEBAR_STORAGE_KEY } from "@/components/shell/sidebar-state";
@@ -30,12 +30,13 @@ function subscribeSidebar(callback: () => void) {
   };
 }
 
-export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMinistryNavigation, hasKids = false, escalasPending = 0, guardianOnly = false }: {
+export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMinistryNavigation, hasLouvor = false, hasKids = false, escalasPending = 0, guardianOnly = false }: {
   churchSlug: string;
   churchName: string;
   canAdmin: boolean;
   isLeader: boolean;
-  activeMinistryNavigation: { href: string; label: string; module: "louvor" | "infantil" } | null;
+  activeMinistryNavigation: { href: string; label: string; module: "generic" } | null;
+  hasLouvor?: boolean;
   hasKids?: boolean;
   escalasPending?: number;
   guardianOnly?: boolean;
@@ -60,9 +61,8 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
 
   const ministryItem = activeMinistryNavigation ? {
     ...activeMinistryNavigation,
-    icon: activeMinistryNavigation.module === "louvor" ? Music2 : Baby,
+    icon: Users,
   } : null;
-  const showStandaloneKids = hasKids && activeMinistryNavigation?.module !== "infantil";
   const nav = guardianOnly
     ? [
         { href: "/infantil", label: "Meus filhos", icon: Baby },
@@ -70,14 +70,13 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
       ]
     : [
         { href: "", label: "Visão geral", icon: Home },
+        ...(hasLouvor ? [{ href: "/louvor", label: "Louvor", icon: Music2 }] : []),
+        ...(hasKids ? [{ href: "/infantil", label: "Kids", icon: Baby }] : []),
         ...(ministryItem ? [ministryItem] : []),
-        ...(showStandaloneKids ? [{ href: "/infantil", label: "Kids", icon: Baby }] : []),
         { href: "/escalas", label: "Cultos e escalas", icon: Calendar },
-        { href: "/disponibilidade", label: "Disponibilidade", icon: CalendarCheck2 },
         { href: "/perfil", label: "Perfil", icon: User },
         ...(isLeader ? [{ href: "/pessoas", label: "Equipe", icon: Users }] : []),
         ...(canAdmin ? [{ href: "/admin", label: "Administração", icon: Settings }] : []),
-        { href: "/guia", label: "Guia", icon: BookOpen },
       ];
 
   return (
@@ -121,7 +120,8 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
       <nav className="flex flex-col gap-1">
         {nav.map(({ href, label, icon: Icon }) => {
           const full = `/${churchSlug}${href}`;
-          const active = href === "" ? pathname === full : pathname.startsWith(full);
+          const pathOnly = full.split("?")[0];
+          const active = href === "" ? pathname === pathOnly : pathname.startsWith(pathOnly);
           return (
             <Link
               key={`${href}-${label}`}
@@ -167,4 +167,3 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
     </aside>
   );
 }
-

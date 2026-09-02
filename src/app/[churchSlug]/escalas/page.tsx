@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -57,7 +57,7 @@ export default async function EscalasPage({
         .eq("church_id", tenant.church.id)
         .gte("starts_at", since.toISOString())
         .order("starts_at")
-        .limit(50),
+        .limit(200),
       supabase
         .from("assignments")
         .select("event_id, role_name, status, assignment_ministry:ministries(name), assignment_department:departments(name)")
@@ -77,6 +77,20 @@ export default async function EscalasPage({
   const todos = events ?? [];
   const meus = todos.filter((e) => myByEvent.has(e.id));
   const visiveis = verMinhas ? meus : todos;
+  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const groupedEvents = Object.entries(
+    visiveis.reduce<Record<string, { label: string; events: typeof visiveis }>>((groups, event) => {
+      const date = new Date(event.starts_at);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const group = groups[monthKey] ?? {
+        label: new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(date),
+        events: [],
+      };
+      group.events.push(event);
+      groups[monthKey] = group;
+      return groups;
+    }, {})
+  );
 
   return (
     <div className="space-y-6">
@@ -125,7 +139,23 @@ export default async function EscalasPage({
       </div>
 
       <div className="space-y-3">
-        {visiveis.map((e) => {
+        {groupedEvents.map(([monthKey, group]) => {
+          const startsWithinThirtyDays = group.events.some(
+            (event) => new Date(event.starts_at).getTime() <= thirtyDaysFromNow.getTime()
+          );
+          return (
+            <details key={monthKey} open={startsWithinThirtyDays} className="group overflow-hidden rounded-3xl border bg-card/40">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+                <span>
+                  <span className="block font-semibold capitalize">{group.label}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {group.events.length} {group.events.length === 1 ? "evento" : "eventos"}
+                  </span>
+                </span>
+                <ChevronDown className="size-5 text-muted-foreground transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="divide-y border-t">
+        {group.events.map((e) => {
           const type = e.event_types as unknown as { name: string } | null;
           const dept = e.departments as unknown as { name: string } | null;
           const campus = e.campuses as unknown as { name: string } | null;
@@ -149,28 +179,19 @@ export default async function EscalasPage({
                 eventTitle: e.title,
               }}
             >
-              <Card className="rounded-3xl transition-colors hover:bg-accent/40">
-                <CardContent className="space-y-2 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {formatEventDate(e.starts_at)} · {formatEventTime(e.starts_at)}
-                      </p>
-                      <p className="mt-0.5 truncate text-lg font-semibold tracking-tight">
-                        {e.title}
-                      </p>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {[type?.name, context].filter(Boolean).join(" · ") || "—"}
-                      </p>
-                    </div>
-                    {dept?.name && (
-                      <Badge variant="secondary" className="shrink-0 rounded-full">
-                        {dept.name}
-                      </Badge>
-                    )}
-                  </div>
+              <div className="grid min-h-[78px] gap-3 px-4 py-3 transition-colors hover:bg-accent/40 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <span className="block">{formatEventDate(e.starts_at)}</span>
+                  <span className="mt-0.5 block text-foreground">{formatEventTime(e.starts_at)}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold tracking-tight">{e.title}</p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {[type?.name, context, dept?.name].filter(Boolean).join(" · ") || "—"}
+                  </p>
+                </div>
                   {mine && (
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:max-w-[24rem] sm:justify-end">
                       {mine.map((assignment, index) => {
                         const serviceArea =
                           firstRelated(assignment.assignment_department)?.name ??
@@ -191,9 +212,12 @@ export default async function EscalasPage({
                       })}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+              </div>
             </FutureEventLink>
+          );
+        })}
+              </div>
+            </details>
           );
         })}
         {eventsError ? (
