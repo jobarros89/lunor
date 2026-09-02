@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { loadOperationalSummary } from "@/lib/operational-summary-server";
 import { ASSIGNMENT_STATUS_BADGE, ASSIGNMENT_STATUS_LABELS, formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
+import { resolveServiceWindow, timeLabel } from "@/lib/service-window";
 import { Badge } from "@/components/ui/badge";
 import { QuickConfirm } from "@/components/escalas/quick-confirm";
 import { OperationalSummarySection } from "@/components/home/operational-summary";
@@ -16,19 +17,28 @@ type AssignmentEvent = {
   id: string;
   title: string;
   starts_at: string;
+  ends_at: string | null;
   location: string | null;
   service_period: string | null;
   campuses: RelatedName;
 };
 type HomeAssignment = {
   id: string;
+  ministry_id: string;
   role_name: string;
   status: string;
   arrival_time: string | null;
+  release_time: string | null;
   items_to_bring: string | null;
   events: AssignmentEvent | AssignmentEvent[];
   ministries: RelatedName;
   departments: RelatedName;
+};
+type ServiceWindowRow = {
+  event_id: string;
+  ministry_id: string;
+  arrival_at: string | null;
+  release_at: string | null;
 };
 
 function firstRelated<T>(value: T | T[] | null | undefined): T | null {
@@ -62,6 +72,10 @@ function homeEventContext(event: AssignmentEvent | null) {
   }) || null;
 }
 
+function pairKey(eventId: string, ministryId: string) {
+  return `${eventId}:${ministryId}`;
+}
+
 export default async function HomePage({ params }: { params: Promise<{ churchSlug: string }> }) {
   const { churchSlug } = await params;
   const tenant = await getTenant(churchSlug);
@@ -78,10 +92,15 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
     : Promise.resolve(null);
 
   const nowIso = new Date().toISOString();
-  const [{ data: myEscalas }, { data: nextChurchEvent }, operationalSummary] = await Promise.all([
+  const [
+    { data: myEscalas },
+    { data: nextChurchEvent },
+    { data: serviceWindows },
+    operationalSummary,
+  ] = await Promise.all([
     supabase
       .from("assignments")
-      .select("id, role_name, status, arrival_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, location, service_period, campuses(name))")
+      .select("id, ministry_id, role_name, status, arrival_time, release_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, ends_at, location, service_period, campuses(name))")
       .eq("church_id", tenant.church.id)
       .eq("user_id", tenant.userId)
       .neq("status", "substituido")
@@ -90,16 +109,40 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
       .limit(8),
     supabase
       .from("events")
-      .select("id, title, starts_at, location, service_period, campuses(name)")
+      .select("id, title, starts_at, ends_at, location, service_period, campuses(name)")
       .eq("church_id", tenant.church.id)
       .gte("starts_at", nowIso)
       .order("starts_at")
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("event_ministry_windows")
+      .select("event_id, ministry_id, arrival_at, release_at, events!inner(starts_at)")
+      .eq("church_id", tenant.church.id)
+      .gte("events.starts_at", nowIso),
     operationalSummaryPromise,
   ]);
   const { data: anuncios } = await supabase.rpc("anuncios_infantil", { p_church: tenant.church.id });
   const escalas = (myEscalas ?? []) as unknown as HomeAssignment[];
+  const windowByPair = new Map<string, ServiceWindowRow>();
+  for (const window of (serviceWindows ?? []) as unknown as ServiceWindowRow[]) {
+    windowByPair.set(pairKey(window.event_id, window.ministry_id), window);
+  }
+
+  function serviceWindowFor(assignment: HomeAssignment) {
+    const event = firstRelated(assignment.events);
+    if (!event) return null;
+    const teamWindow = windowByPair.get(pairKey(event.id, assignment.ministry_id));
+    return resolveServiceWindow({
+      eventStart: event.starts_at,
+      eventEnd: event.ends_at,
+      teamArrival: teamWindow?.arrival_at,
+      teamRelease: teamWindow?.release_at,
+      assignmentArrival: assignment.arrival_time,
+      assignmentRelease: assignment.release_time,
+    });
+  }
+
   const nextAssignedEvent = firstRelated(escalas[0]?.events);
   const nextEvent =
     (nextChurchEvent as unknown as AssignmentEvent | null) ?? nextAssignedEvent;
@@ -107,6 +150,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
     ? escalas.filter((assignment) => firstRelated(assignment.events)?.id === nextEvent.id)
     : [];
   const heroAssignment = nextEventAssignments[0];
+  const heroServiceWindow = heroAssignment ? serviceWindowFor(heroAssignment) : null;
   const nextMinistries = uniqueNames(nextEventAssignments.map((assignment) => firstRelated(assignment.ministries)?.name));
   const serviceSummary = joinPtBr(uniqueNames(nextEventAssignments.map(assignmentServiceLabel)));
   const nextContext = homeEventContext(nextEvent);
@@ -114,9 +158,8 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const day = nextDate ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit" }).format(nextDate) : "—";
   const month = nextDate ? new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(nextDate).replace(".", "") : "sem data";
   const weekday = nextDate ? new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(nextDate) : "Próximo encontro";
-  const arrival = heroAssignment?.arrival_time
-    ? new Date(heroAssignment.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-    : null;
+  const arrival = timeLabel(heroServiceWindow?.arrivalAt);
+  const release = timeLabel(heroServiceWindow?.releaseAt);
   const agendaAssignments = heroAssignment && nextEvent
     ? escalas.filter((assignment) => firstRelated(assignment.events)?.id !== nextEvent.id)
     : escalas;
@@ -155,7 +198,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
             <div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="font-editorial text-5xl leading-none tracking-[-0.05em]">{day}</span>
               <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{month} · {weekday}</span>
-              <span className="text-sm font-medium">{nextEvent ? formatEventTime(nextEvent.starts_at) : "Tudo começa aqui"}</span>
+              <span className="text-sm font-medium">{nextEvent ? `Culto ${formatEventTime(nextEvent.starts_at)}` : "Tudo começa aqui"}</span>
             </div>
           </div>
 
@@ -176,6 +219,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
               <span className="font-medium">{serviceSummary}</span>
               {nextMinistries.length > 0 && <span><span className="text-muted-foreground">Equipe</span> <strong>{joinPtBr(nextMinistries)}</strong></span>}
               {arrival && <span><span className="text-muted-foreground">Chegada</span> <strong>{arrival}</strong></span>}
+              {release && <span><span className="text-muted-foreground">Saída</span> <strong>{release}</strong></span>}
               {nextContext && <span><span className="text-muted-foreground">Local</span> <strong>{nextContext}</strong></span>}
               {heroAssignment.items_to_bring && <span><span className="text-muted-foreground">Levar</span> <strong>{heroAssignment.items_to_bring}</strong></span>}
             </div>
@@ -214,12 +258,17 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
               if (!ev) return null;
               const pendente = a.status === "convidado";
               const context = homeEventContext(ev);
+              const window = serviceWindowFor(a);
+              const effectiveArrival = timeLabel(window?.arrivalAt);
+              const effectiveRelease = timeLabel(window?.releaseAt);
               return (
                 <div key={a.id} className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 py-5">
                   <span className="font-editorial text-3xl text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
                   <Link href={`/${churchSlug}/escalas/${ev.id}`} className="min-w-0 hover:opacity-65">
                     <p className="truncate font-medium">{ev.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{formatEventDate(ev.starts_at)} · {formatEventTime(ev.starts_at)}{context ? ` · ${context}` : ""} · {assignmentServiceLabel(a)}{a.arrival_time ? ` · chegada ${new Date(a.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatEventDate(ev.starts_at)} · {effectiveArrival ? `chegada ${effectiveArrival}` : formatEventTime(ev.starts_at)} · culto {formatEventTime(ev.starts_at)}{effectiveRelease ? ` · saída ${effectiveRelease}` : ""}{context ? ` · ${context}` : ""} · {assignmentServiceLabel(a)}
+                    </p>
                   </Link>
                   {pendente ? <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={ev.id} assignmentId={a.id} /> : (
                     <Badge className={`shrink-0 rounded-none border-0 ${ASSIGNMENT_STATUS_BADGE[a.status] ?? ""}`}>{ASSIGNMENT_STATUS_LABELS[a.status] ?? a.status}</Badge>
