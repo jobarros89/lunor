@@ -58,7 +58,7 @@ export default async function LouvorPage({
   const louvor = await getLouvorMinistry(tenant.church.id);
   if (!louvor) redirect(`/${churchSlug}`);
   if (query.aba === "disponibilidade") {
-    redirect(`/${churchSlug}/disponibilidade?ministry=${louvor.id}`);
+    redirect(`/${churchSlug}/louvor/disponibilidade`);
   }
 
   const supabase = await createClient();
