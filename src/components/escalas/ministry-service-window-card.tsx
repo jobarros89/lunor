@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Clock3 } from "lucide-react";
 import { toast } from "sonner";
 import { saveMinistryServiceWindow } from "@/lib/actions/service-window";
-import { timeLabel } from "@/lib/service-window";
+import { timeLabel, toWallTimeInput } from "@/lib/service-window";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,13 +15,6 @@ type WindowData = {
   release_at: string | null;
   notes: string | null;
 } | null;
-
-function toLocalInput(iso: string | null | undefined) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 export function MinistryServiceWindowCard({
   churchSlug,
@@ -45,8 +38,8 @@ export function MinistryServiceWindowCard({
   canManage: boolean;
 }) {
   const [pending, startTransition] = useTransition();
-  const [arrivalAt, setArrivalAt] = useState(toLocalInput(window?.arrival_at));
-  const [releaseAt, setReleaseAt] = useState(toLocalInput(window?.release_at));
+  const [arrivalAt, setArrivalAt] = useState(toWallTimeInput(window?.arrival_at));
+  const [releaseAt, setReleaseAt] = useState(toWallTimeInput(window?.release_at));
   const [notes, setNotes] = useState(window?.notes ?? "");
 
   const eventRange = useMemo(() => {
