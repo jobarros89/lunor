@@ -84,7 +84,7 @@ describe("visão consolidada de disponibilidade da equipe", () => {
   it("usa o campus e o período específicos antes dos padrões gerais", () => {
     const result = buildTeamAvailabilityOverview({
       ministryId,
-      members: [members[0]],
+      members: [members[0]!],
       events,
       eventEntries: [],
       calendarEntries: [
