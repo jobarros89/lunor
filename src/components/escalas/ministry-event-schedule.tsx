@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { LoadError } from "@/components/shell/load-error";
 import { AssignmentManager, type AssignmentRow } from "@/components/escalas/assignment-manager";
 import { MyAssignmentCard } from "@/components/escalas/my-assignment-card";
+import { MinistryServiceWindowCard } from "@/components/escalas/ministry-service-window-card";
 import { ASSIGNMENT_STATUS_BADGE, ASSIGNMENT_STATUS_LABELS } from "@/lib/escalas";
 
 function firstRelated<T>(value: T | T[] | null | undefined): T | null {
@@ -53,6 +54,7 @@ export async function MinistryEventSchedule({
   const [
     { data: event, error: eventError },
     { data: assignments, error: assignmentsError },
+    { data: serviceWindow, error: serviceWindowError },
   ] = await Promise.all([
     supabase
       .from("events")
@@ -62,14 +64,22 @@ export async function MinistryEventSchedule({
       .maybeSingle(),
     supabase
       .from("assignments")
-      .select("id, user_id, role_name, status, arrival_time, items_to_bring, profiles!assignments_user_id_fkey(full_name), leader:profiles!assignments_leader_id_fkey(full_name)")
+      .select("id, user_id, role_name, status, arrival_time, release_time, items_to_bring, profiles!assignments_user_id_fkey(full_name), leader:profiles!assignments_leader_id_fkey(full_name)")
       .eq("church_id", tenant.church.id)
       .eq("event_id", eventId)
       .eq("ministry_id", ministryId)
       .order("created_at"),
+    supabase
+      .from("event_ministry_windows")
+      .select("arrival_at, release_at, notes")
+      .eq("church_id", tenant.church.id)
+      .eq("event_id", eventId)
+      .eq("ministry_id", ministryId)
+      .maybeSingle(),
   ]);
 
   if (eventError) console.error(`${ministryName}: evento da escala`, eventError);
+  if (serviceWindowError) console.error(`${ministryName}: janela de serviço`, serviceWindowError);
   if (!event) notFound();
 
   const assignmentIds = (assignments ?? []).map((item) => item.id);
@@ -242,7 +252,7 @@ export async function MinistryEventSchedule({
           <div className="flex items-start gap-3">
             <Clock3 className="mt-0.5 size-5 text-muted-foreground" />
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Horário</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Horário do culto</p>
               <p className="mt-0.5 font-medium">{formatEventTime(event.starts_at)}{event.ends_at ? ` – ${formatEventTime(event.ends_at)}` : ""}</p>
             </div>
           </div>
@@ -255,6 +265,18 @@ export async function MinistryEventSchedule({
           </div>
         </CardContent>
       </Card>
+
+      <MinistryServiceWindowCard
+        churchSlug={churchSlug}
+        churchId={tenant.church.id}
+        eventId={eventId}
+        ministryId={ministryId}
+        ministryName={ministryName}
+        eventStartsAt={event.starts_at}
+        eventEndsAt={event.ends_at}
+        window={serviceWindow}
+        canManage={canManage}
+      />
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label={`Métricas da escala de ${ministryName}`}>
         <SmallMetric icon={Users} value={rows.length} label="Escalados" />
@@ -273,6 +295,11 @@ export async function MinistryEventSchedule({
           roleName={assignment.role_name}
           status={assignment.status}
           arrivalTime={assignment.arrival_time}
+          releaseTime={assignment.release_time}
+          teamArrivalTime={serviceWindow?.arrival_at ?? null}
+          teamReleaseTime={serviceWindow?.release_at ?? null}
+          eventStartsAt={event.starts_at}
+          eventEndsAt={event.ends_at}
           itemsToBring={assignment.items_to_bring}
           equipments={(equipByAssignment.get(assignment.id) ?? []).map((item) => item.name)}
           leaderName={(assignment.leader as unknown as { full_name: string } | null)?.full_name ?? null}
