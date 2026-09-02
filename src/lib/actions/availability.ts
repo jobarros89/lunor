@@ -265,6 +265,103 @@ export async function clearMyCalendarAvailability(raw: unknown): Promise<ActionR
   return { ok: true, data: undefined };
 }
 
+const submitCalendarMonthSchema = z
+  .object({
+    churchSlug: z.string().min(2),
+    churchId: z.string().uuid(),
+    ministryId: z.string().uuid().nullable(),
+    campusId: z.string().uuid().nullable(),
+    month: z.string().regex(/^\d{4}-\d{2}$/),
+    period: periodSchema,
+    entries: z
+      .array(
+        z.object({
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          status: statusSchema,
+        })
+      )
+      .max(31),
+  })
+  .superRefine(({ month, entries }, ctx) => {
+    const dates = entries.map((entry) => entry.date);
+    if (dates.some((date) => !date.startsWith(`${month}-`))) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Há datas fora do mês selecionado",
+        path: ["entries"],
+      });
+    }
+    if (new Set(dates).size !== dates.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Há datas duplicadas",
+        path: ["entries"],
+      });
+    }
+  });
+
+function nextCalendarMonth(month: string) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const next = new Date(Date.UTC(year, monthNumber, 1));
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}-01`;
+}
+
+export async function submitMyCalendarAvailability(raw: unknown): Promise<ActionResult> {
+  const parsed = submitCalendarMonthSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Disponibilidade mensal inválida",
+    };
+  }
+
+  const d = parsed.data;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sua sessão expirou" };
+
+  const monthStart = `${d.month}-01`;
+  const baseDelete = supabase
+    .from("member_availability_calendar")
+    .delete()
+    .eq("church_id", d.churchId)
+    .eq("user_id", user.id)
+    .eq("period", d.period)
+    .gte("availability_date", monthStart)
+    .lt("availability_date", nextCalendarMonth(d.month));
+  const ministryDelete = scopeNullable(baseDelete, "ministry_id", d.ministryId);
+  const { error: deleteError } = await scopeNullable(ministryDelete, "campus_id", d.campusId);
+
+  if (deleteError) {
+    console.error("submitMyCalendarAvailability/delete:", deleteError);
+    return { ok: false, error: "Não foi possível atualizar a disponibilidade do mês" };
+  }
+
+  if (d.entries.length > 0) {
+    const { error: insertError } = await supabase.from("member_availability_calendar").insert(
+      d.entries.map((entry) => ({
+        church_id: d.churchId,
+        ministry_id: d.ministryId,
+        campus_id: d.campusId,
+        user_id: user.id,
+        availability_date: entry.date,
+        period: d.period,
+        status: entry.status,
+      }))
+    );
+
+    if (insertError) {
+      console.error("submitMyCalendarAvailability/insert:", insertError);
+      return { ok: false, error: "Não foi possível enviar a disponibilidade do mês" };
+    }
+  }
+
+  revalidateAvailability(d.churchSlug);
+  return { ok: true, data: undefined };
+}
+
 const recurringSchema = z.object({
   churchSlug: z.string().min(2),
   churchId: z.string().uuid(),
