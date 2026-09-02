@@ -49,7 +49,7 @@ export function MyAssignmentCard({
   releaseTime?: string | null;
   teamArrivalTime?: string | null;
   teamReleaseTime?: string | null;
-  eventStartsAt: string;
+  eventStartsAt?: string;
   eventEndsAt?: string | null;
   itemsToBring: string | null;
   equipments: string[];
@@ -70,18 +70,24 @@ export function MyAssignmentCard({
     };
   }, [churchId, assignmentId]);
 
-  const serviceWindow = useMemo(
-    () =>
-      resolveServiceWindow({
+  const serviceWindow = useMemo(() => {
+    if (eventStartsAt) {
+      return resolveServiceWindow({
         eventStart: eventStartsAt,
         eventEnd: eventEndsAt,
         teamArrival: teamArrivalTime,
         teamRelease: teamReleaseTime,
         assignmentArrival: arrivalTime,
         assignmentRelease: releaseTime,
-      }),
-    [arrivalTime, eventEndsAt, eventStartsAt, releaseTime, teamArrivalTime, teamReleaseTime]
-  );
+      });
+    }
+    return {
+      arrivalAt: arrivalTime ?? teamArrivalTime ?? null,
+      releaseAt: releaseTime ?? teamReleaseTime ?? eventEndsAt ?? null,
+      arrivalSource: arrivalTime ? "assignment" as const : teamArrivalTime ? "ministry" as const : null,
+      releaseSource: releaseTime ? "assignment" as const : teamReleaseTime ? "ministry" as const : eventEndsAt ? "event" as const : null,
+    };
+  }, [arrivalTime, eventEndsAt, eventStartsAt, releaseTime, teamArrivalTime, teamReleaseTime]);
 
   function respond(response: "confirmar" | "nao_posso" | "falar_lider") {
     startTransition(async () => {
@@ -126,13 +132,15 @@ export function MyAssignmentCard({
             <p><span className="text-muted-foreground">Onde vai servir:</span>{" "}<span className="font-medium">{servingArea}</span></p>
           )}
           <p><span className="text-muted-foreground">Função:</span>{" "}<span className="font-medium">{roleName}</span></p>
-          <p>
-            <span className="text-muted-foreground">Chegada:</span>{" "}
-            <span className="font-medium">{arrivalLabel}</span>
-            {serviceWindow.arrivalSource === "assignment" && (
-              <span className="ml-1 text-xs text-muted-foreground">(ajuste individual)</span>
-            )}
-          </p>
+          {arrivalLabel && (
+            <p>
+              <span className="text-muted-foreground">Chegada:</span>{" "}
+              <span className="font-medium">{arrivalLabel}</span>
+              {serviceWindow.arrivalSource === "assignment" && (
+                <span className="ml-1 text-xs text-muted-foreground">(ajuste individual)</span>
+              )}
+            </p>
+          )}
           {releaseLabel && (
             <p>
               <span className="text-muted-foreground">Saída prevista:</span>{" "}
@@ -142,11 +150,13 @@ export function MyAssignmentCard({
               )}
             </p>
           )}
-          <p>
-            <span className="text-muted-foreground">Culto:</span>{" "}
-            <span className="font-medium">{timeLabel(eventStartsAt)}</span>
-            {eventEndsAt && <span className="font-medium"> – {timeLabel(eventEndsAt)}</span>}
-          </p>
+          {eventStartsAt && (
+            <p>
+              <span className="text-muted-foreground">Culto:</span>{" "}
+              <span className="font-medium">{timeLabel(eventStartsAt)}</span>
+              {eventEndsAt && <span className="font-medium"> – {timeLabel(eventEndsAt)}</span>}
+            </p>
+          )}
           {leaderName && <p><span className="text-muted-foreground">Líder:</span>{" "}<span className="font-medium">{leaderName}</span></p>}
           {itemsToBring && <p><span className="text-muted-foreground">Levar:</span>{" "}<span className="font-medium">{itemsToBring}</span></p>}
           {equipments.length > 0 && (
