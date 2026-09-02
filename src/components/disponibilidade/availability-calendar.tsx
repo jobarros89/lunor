@@ -2,13 +2,10 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
+import { Check, CheckCircle2, ChevronLeft, ChevronRight, RotateCcw, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import {
-  clearMyCalendarAvailability,
-  clearMyRecurringAvailability,
-  setMyCalendarAvailability,
-  setMyRecurringAvailability,
+  submitMyCalendarAvailability,
   type AvailabilityPeriod,
   type AvailabilityStatus,
 } from "@/lib/actions/availability";
@@ -18,13 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export type CalendarAvailabilityEntry = {
   date: string;
-  period: AvailabilityPeriod;
-  status: AvailabilityStatus;
-  campusId: string | null;
-};
-
-export type RecurringAvailabilityEntry = {
-  weekday: number;
   period: AvailabilityPeriod;
   status: AvailabilityStatus;
   campusId: string | null;
@@ -43,16 +33,6 @@ const periodOptions: Array<{ value: AvailabilityPeriod; label: string }> = [
 ];
 
 const weekdayLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-const weekdayLongLabels = [
-  "Domingo",
-  "Segunda-feira",
-  "Terça-feira",
-  "Quarta-feira",
-  "Quinta-feira",
-  "Sexta-feira",
-  "Sábado",
-];
-
 function pad(value: number) {
   return String(value).padStart(2, "0");
 }
@@ -87,7 +67,6 @@ export function AvailabilityCalendar({
   scopeLabel,
   initialMonth,
   entries,
-  recurring,
   campuses,
 }: {
   churchSlug: string;
@@ -96,7 +75,6 @@ export function AvailabilityCalendar({
   scopeLabel: string;
   initialMonth: string;
   entries: CalendarAvailabilityEntry[];
-  recurring: RecurringAvailabilityEntry[];
   campuses: AvailabilityCampus[];
 }) {
   const router = useRouter();
@@ -108,14 +86,18 @@ export function AvailabilityCalendar({
 
   const campusKey = campusId ?? "all";
 
-  const entryMap = useMemo(
-    () => new Map(entries.map((entry) => [`${entry.campusId ?? "all"}:${entry.date}:${entry.period}`, entry.status])),
+  const initialEntryMap = useMemo(
+    () =>
+      new Map(
+        entries.map((entry) => [
+          `${entry.campusId ?? "all"}:${entry.date}:${entry.period}`,
+          entry.status,
+        ])
+      ),
     [entries]
   );
-  const recurringMap = useMemo(
-    () => new Map(recurring.map((entry) => [`${entry.campusId ?? "all"}:${entry.weekday}:${entry.period}`, entry.status])),
-    [recurring]
-  );
+  const [savedMap, setSavedMap] = useState(() => new Map(initialEntryMap));
+  const [draftMap, setDraftMap] = useState(() => new Map(initialEntryMap));
 
   const { year, monthIndex } = monthParts(monthKey);
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
@@ -126,83 +108,65 @@ export function AvailabilityCalendar({
   }).format(new Date(year, monthIndex, 1));
 
   const selectedStatus = selectedDate
-    ? entryMap.get(`${campusKey}:${selectedDate}:${period}`) ?? null
+    ? draftMap.get(`${campusKey}:${selectedDate}:${period}`) ?? null
     : null;
 
-  function saveDate(status: AvailabilityStatus) {
+  const monthPrefix = `${monthKey}-`;
+  const scopeEntries = (source: Map<string, AvailabilityStatus>) =>
+    [...source.entries()]
+      .filter(([key]) => {
+        const [entryCampus, date, entryPeriod] = key.split(":");
+        return entryCampus === campusKey && date.startsWith(monthPrefix) && entryPeriod === period;
+      })
+      .sort(([left], [right]) => left.localeCompare(right));
+
+  const monthEntries = scopeEntries(draftMap);
+  const monthDirty =
+    JSON.stringify(monthEntries) !== JSON.stringify(scopeEntries(savedMap));
+  const availableCount = monthEntries.filter(([, status]) => status === "available").length;
+  const unavailableCount = monthEntries.filter(([, status]) => status === "unavailable").length;
+
+  function markDate(status: AvailabilityStatus) {
     if (!selectedDate) return;
-    startTransition(async () => {
-      const result = await setMyCalendarAvailability({
-        churchSlug,
-        churchId,
-        ministryId,
-        campusId,
-        date: selectedDate,
-        period,
-        status,
-      });
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Disponibilidade salva");
-      router.refresh();
+    setDraftMap((current) => {
+      const next = new Map(current);
+      next.set(`${campusKey}:${selectedDate}:${period}`, status);
+      return next;
     });
   }
 
   function clearDate() {
     if (!selectedDate) return;
-    startTransition(async () => {
-      const result = await clearMyCalendarAvailability({
-        churchSlug,
-        churchId,
-        ministryId,
-        campusId,
-        date: selectedDate,
-        period,
-      });
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      router.refresh();
+    setDraftMap((current) => {
+      const next = new Map(current);
+      next.delete(`${campusKey}:${selectedDate}:${period}`);
+      return next;
     });
   }
 
-  function saveRecurring(weekday: number, status: AvailabilityStatus) {
+  function submitMonth() {
     startTransition(async () => {
-      const result = await setMyRecurringAvailability({
+      const result = await submitMyCalendarAvailability({
         churchSlug,
         churchId,
         ministryId,
         campusId,
-        weekday,
+        month: monthKey,
         period,
-        status,
+        entries: monthEntries.map(([key, status]) => ({
+          date: key.split(":")[1],
+          status,
+        })),
       });
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Padrão semanal salvo");
-      router.refresh();
-    });
-  }
 
-  function clearRecurring(weekday: number) {
-    startTransition(async () => {
-      const result = await clearMyRecurringAvailability({
-        churchSlug,
-        churchId,
-        ministryId,
-        campusId,
-        weekday,
-        period,
-      });
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
+
+      setSavedMap(new Map(draftMap));
+      setSelectedDate(null);
+      toast.success("Disponibilidade do mês enviada");
       router.refresh();
     });
   }
@@ -216,7 +180,7 @@ export function AvailabilityCalendar({
           </p>
           <h2 className="mt-1 text-xl font-semibold tracking-tight">Meu calendário</h2>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Marque quando pode ou não pode servir, mesmo que o culto ainda não tenha sido criado.
+            Marque sua disponibilidade dia a dia. As alterações só serão enviadas quando você confirmar o mês.
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
@@ -288,7 +252,7 @@ export function AvailabilityCalendar({
             {Array.from({ length: daysInMonth }).map((_, index) => {
               const day = index + 1;
               const key = dateKey(year, monthIndex, day);
-              const status = entryMap.get(`${campusKey}:${key}:${period}`) ?? null;
+              const status = draftMap.get(`${campusKey}:${key}:${period}`) ?? null;
               const selected = selectedDate === key;
               return (
                 <button
@@ -337,7 +301,7 @@ export function AvailabilityCalendar({
                   type="button"
                   variant="outline"
                   disabled={pending}
-                  onClick={() => saveDate("available")}
+                  onClick={() => markDate("available")}
                   className={cn(
                     "h-11 rounded-xl",
                     selectedStatus === "available" && "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-600"
@@ -349,7 +313,7 @@ export function AvailabilityCalendar({
                   type="button"
                   variant="outline"
                   disabled={pending}
-                  onClick={() => saveDate("unavailable")}
+                  onClick={() => markDate("unavailable")}
                   className={cn(
                     "h-11 rounded-xl",
                     selectedStatus === "unavailable" && "border-rose-600 bg-rose-600 text-white hover:bg-rose-600"
@@ -365,65 +329,47 @@ export function AvailabilityCalendar({
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl">
-        <CardHeader>
-          <CardTitle className="text-base">Padrão semanal</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Use como base recorrente. Uma marcação específica no calendário pode substituir este padrão.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {weekdayLongLabels.map((label, weekday) => {
-            const status = recurringMap.get(`${campusKey}:${weekday}:${period}`) ?? null;
-            return (
-              <div key={label} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border p-3">
-                <div className="min-w-[110px]">
-                  <p className="text-sm font-medium">{label}</p>
-                  <p className="text-xs text-muted-foreground">{statusLabel(status)}</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={pending}
-                    onClick={() => saveRecurring(weekday, "available")}
-                    className={cn(status === "available" && "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-600")}
-                    aria-label={`${label}: disponível`}
-                  >
-                    <Check className="size-3.5" />
-                    <span className="hidden sm:inline">Disponível</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={pending}
-                    onClick={() => saveRecurring(weekday, "unavailable")}
-                    className={cn(status === "unavailable" && "border-rose-600 bg-rose-600 text-white hover:bg-rose-600")}
-                    aria-label={`${label}: não disponível`}
-                  >
-                    <X className="size-3.5" />
-                    <span className="hidden sm:inline">Não disponível</span>
-                  </Button>
-                  {status && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      disabled={pending}
-                      onClick={() => clearRecurring(weekday)}
-                      aria-label={`${label}: limpar padrão`}
-                    >
-                      <RotateCcw className="size-3.5" />
-                    </Button>
-                  )}
-                </div>
+
+      <div className="rounded-3xl border p-4">
+        {!monthDirty && monthEntries.length > 0 ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3" role="status">
+              <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <div>
+                <p className="text-sm font-medium">Disponibilidade de {monthLabel} enviada</p>
+                <p className="text-xs text-muted-foreground">
+                  {availableCount} dia{availableCount === 1 ? "" : "s"} disponível{availableCount === 1 ? "" : "is"}
+                  {" · "}
+                  {unavailableCount} indisponível{unavailableCount === 1 ? "" : "is"}
+                </p>
               </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+            </div>
+            <p className="text-xs text-muted-foreground">A liderança já pode consultar o resultado.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium">
+                {monthDirty ? "Alterações ainda não enviadas" : "Marque os dias do mês"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {monthDirty
+                  ? `${availableCount} disponível${availableCount === 1 ? "" : "is"} · ${unavailableCount} indisponível${unavailableCount === 1 ? "" : "is"}`
+                  : "Depois, confirme para enviar à liderança."}
+              </p>
+            </div>
+            <Button
+              type="button"
+              disabled={pending || !monthDirty}
+              onClick={submitMonth}
+              className="h-11 w-full rounded-full px-5 sm:w-auto"
+            >
+              <Send className="size-4" />
+              {pending ? "Enviando…" : "Confirmar disponibilidade do mês"}
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
