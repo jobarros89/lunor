@@ -524,7 +524,7 @@ export function AvailabilityPanel({
                 O calendário mensal aparece em cada evento. Uma resposta específica do evento tem prioridade.
               </p>
             </div>
-            <label className="w-full shrink-0 sm:w-48">
+            <label className="w-48 max-w-full shrink-0 self-start">
               <span className="mb-1 block text-xs font-medium text-muted-foreground">Mês e ano</span>
               <Input
                 type="month"
@@ -657,7 +657,7 @@ export function AvailabilityPanel({
                 Escolha cultos já criados. A equipe do {ministryName} responderá antes da montagem da escala.
               </p>
             </div>
-            <label className="w-full shrink-0 sm:w-48">
+            <label className="w-48 max-w-full shrink-0 self-start">
               <span className="mb-1 block text-xs font-medium text-muted-foreground">Mês e ano</span>
               <Input
                 type="month"
