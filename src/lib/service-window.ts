@@ -34,10 +34,23 @@ export function resolveServiceWindow(input: ServiceWindowInput): EffectiveServic
   return { arrivalAt, releaseAt, arrivalSource, releaseSource };
 }
 
+/**
+ * O LUNOR hoje persiste os horários operacionais como "wall time" em UTC.
+ * Usar getters UTC mantém 09:00 como 09:00 tanto no SSR quanto no navegador,
+ * evitando que o cliente aplique o fuso local uma segunda vez.
+ */
 export function timeLabel(iso: string | null | undefined) {
   if (!iso) return null;
-  return new Date(iso).toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+}
+
+export function toWallTimeInput(iso: string | null | undefined) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
 }
