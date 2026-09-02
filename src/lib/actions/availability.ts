@@ -395,6 +395,31 @@ export async function submitMyCalendarAvailability(raw: unknown): Promise<Action
     }
   }
 
+  if (d.ministryId) {
+    const { error: submissionError } = await supabase
+      .from("member_availability_month_submissions")
+      .upsert(
+        {
+          church_id: d.churchId,
+          ministry_id: d.ministryId,
+          campus_id: d.campusId,
+          user_id: user.id,
+          month_start: monthStart,
+          period: d.period,
+          submitted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "church_id,ministry_id,user_id,campus_id,month_start,period",
+        }
+      );
+
+    if (submissionError) {
+      console.error("submitMyCalendarAvailability/submission:", submissionError);
+      return { ok: false, error: "As datas foram salvas, mas não foi possível confirmar o mês" };
+    }
+  }
+
   revalidateAvailability(d.churchSlug);
   return { ok: true, data: undefined };
 }
