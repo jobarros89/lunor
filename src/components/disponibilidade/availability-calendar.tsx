@@ -338,9 +338,9 @@ export function AvailabilityCalendar({
               <div>
                 <p className="text-sm font-medium">Disponibilidade de {monthLabel} enviada</p>
                 <p className="text-xs text-muted-foreground">
-                  {availableCount} dia{availableCount === 1 ? "" : "s"} disponível{availableCount === 1 ? "" : "is"}
+                  {availableCount} {availableCount === 1 ? "dia disponível" : "dias disponíveis"}
                   {" · "}
-                  {unavailableCount} indisponível{unavailableCount === 1 ? "" : "is"}
+                  {unavailableCount} {unavailableCount === 1 ? "dia indisponível" : "dias indisponíveis"}
                 </p>
               </div>
             </div>
@@ -354,7 +354,7 @@ export function AvailabilityCalendar({
               </p>
               <p className="text-xs text-muted-foreground">
                 {monthDirty
-                  ? `${availableCount} disponível${availableCount === 1 ? "" : "is"} · ${unavailableCount} indisponível${unavailableCount === 1 ? "" : "is"}`
+                  ? `${availableCount} ${availableCount === 1 ? "dia disponível" : "dias disponíveis"} · ${unavailableCount} ${unavailableCount === 1 ? "dia indisponível" : "dias indisponíveis"}`
                   : "Depois, confirme para enviar à liderança."}
               </p>
             </div>
