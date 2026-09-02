@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import DisponibilidadePage from "../../disponibilidade/page";
 import { getTenant } from "@/lib/tenant";
 import { getLouvorMinistry } from "@/lib/louvor-server";
 
@@ -12,5 +13,9 @@ export default async function LouvorAvailabilityPage({
   const louvor = await getLouvorMinistry(tenant.church.id);
 
   if (!louvor) redirect(`/${churchSlug}`);
-  redirect(`/${churchSlug}/disponibilidade?ministry=${louvor.id}`);
+
+  return DisponibilidadePage({
+    params: Promise.resolve({ churchSlug }),
+    searchParams: Promise.resolve({ ministry: louvor.id, module: "louvor" }),
+  });
 }
