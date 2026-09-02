@@ -323,25 +323,43 @@ export async function submitMyCalendarAvailability(raw: unknown): Promise<Action
   if (!user) return { ok: false, error: "Sua sessão expirou" };
 
   const monthStart = `${d.month}-01`;
-  const baseDelete = supabase
+  const baseSelect = supabase
     .from("member_availability_calendar")
-    .delete()
+    .select("id, availability_date, status")
     .eq("church_id", d.churchId)
     .eq("user_id", user.id)
     .eq("period", d.period)
     .gte("availability_date", monthStart)
     .lt("availability_date", nextCalendarMonth(d.month));
-  const ministryDelete = scopeNullable(baseDelete, "ministry_id", d.ministryId);
-  const { error: deleteError } = await scopeNullable(ministryDelete, "campus_id", d.campusId);
+  const ministrySelect = scopeNullable(baseSelect, "ministry_id", d.ministryId);
+  const { data: existingRows, error: selectError } = await scopeNullable(
+    ministrySelect,
+    "campus_id",
+    d.campusId
+  );
 
-  if (deleteError) {
-    console.error("submitMyCalendarAvailability/delete:", deleteError);
-    return { ok: false, error: "Não foi possível atualizar a disponibilidade do mês" };
+  if (selectError) {
+    console.error("submitMyCalendarAvailability/select:", selectError);
+    return { ok: false, error: "Não foi possível carregar a disponibilidade do mês" };
   }
 
-  if (d.entries.length > 0) {
-    const { error: insertError } = await supabase.from("member_availability_calendar").insert(
-      d.entries.map((entry) => ({
+  const existingByDate = new Map(
+    (existingRows ?? []).map((row) => [row.availability_date, row])
+  );
+  const desiredDates = new Set(d.entries.map((entry) => entry.date));
+  const writeResults = await Promise.all(
+    d.entries.map((entry) => {
+      const current = existingByDate.get(entry.date);
+      if (current) {
+        if (current.status === entry.status) return Promise.resolve({ error: null });
+        return supabase
+          .from("member_availability_calendar")
+          .update({ status: entry.status })
+          .eq("id", current.id)
+          .eq("user_id", user.id);
+      }
+
+      return supabase.from("member_availability_calendar").insert({
         church_id: d.churchId,
         ministry_id: d.ministryId,
         campus_id: d.campusId,
@@ -349,12 +367,31 @@ export async function submitMyCalendarAvailability(raw: unknown): Promise<Action
         availability_date: entry.date,
         period: d.period,
         status: entry.status,
-      }))
-    );
+      });
+    })
+  );
+  const writeError = writeResults.find((result) => result.error)?.error;
 
-    if (insertError) {
-      console.error("submitMyCalendarAvailability/insert:", insertError);
-      return { ok: false, error: "Não foi possível enviar a disponibilidade do mês" };
+  if (writeError) {
+    console.error("submitMyCalendarAvailability/write:", writeError);
+    return { ok: false, error: "Não foi possível enviar a disponibilidade do mês" };
+  }
+
+  const staleIds = (existingRows ?? [])
+    .filter((row) => !desiredDates.has(row.availability_date))
+    .map((row) => row.id);
+
+  if (staleIds.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("member_availability_calendar")
+      .delete()
+      .eq("church_id", d.churchId)
+      .eq("user_id", user.id)
+      .in("id", staleIds);
+
+    if (deleteError) {
+      console.error("submitMyCalendarAvailability/delete:", deleteError);
+      return { ok: false, error: "Não foi possível limpar as datas removidas" };
     }
   }
 
