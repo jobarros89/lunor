@@ -34,8 +34,6 @@ export default async function DisponibilidadePage({
   const since = new Date();
   since.setHours(0, 0, 0, 0);
   const initialMonth = `${since.getFullYear()}-${String(since.getMonth() + 1).padStart(2, "0")}-01`;
-  const nextMonthDate = new Date(since.getFullYear(), since.getMonth() + 1, 1);
-  const nextMonth = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, "0")}-01`;
 
   const [eventResult, requestResult, calendarResult, campusResult] = await Promise.all([
     active
@@ -90,7 +88,7 @@ export default async function DisponibilidadePage({
   const eventIds = eventRows.map((event) => event.id);
   const requestIds = requestRows.map((request) => request.id);
 
-  const [myResult, requestEventsResult, allResult, membersResult] = active
+  const [myResult, requestEventsResult, allResult, membersResult, assignmentsResult] = active
     ? await Promise.all([
         eventIds.length && requestIds.length
           ? supabase
@@ -137,6 +135,16 @@ export default async function DisponibilidadePage({
                 profiles: { full_name: string; avatar_url: string | null };
               }>,
             }),
+        active.canManage && eventIds.length
+          ? supabase
+              .from("assignments")
+              .select("event_id, user_id, role_name")
+              .eq("church_id", tenant.church.id)
+              .eq("ministry_id", active.id)
+              .in("event_id", eventIds)
+          : Promise.resolve({
+              data: [] as Array<{ event_id: string; user_id: string; role_name: string }>,
+            }),
       ])
     : [
         {
@@ -151,6 +159,7 @@ export default async function DisponibilidadePage({
             profiles: { full_name: string; avatar_url: string | null };
           }>,
         },
+        { data: [] as Array<{ event_id: string; user_id: string; role_name: string }> },
       ];
 
   const myByRequestEvent = new Map(
@@ -176,45 +185,6 @@ export default async function DisponibilidadePage({
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   const teamUserIds = teamMembers.map((member) => member.userId);
-  const [teamMonthResult, teamSubmissionsResult] =
-    active?.canManage && teamUserIds.length > 0
-      ? await Promise.all([
-          supabase
-            .from("member_availability_calendar")
-            .select("user_id, availability_date, status")
-            .eq("church_id", tenant.church.id)
-            .eq("ministry_id", active.id)
-            .in("user_id", teamUserIds)
-            .gte("availability_date", initialMonth)
-            .lt("availability_date", nextMonth)
-            .limit(5000),
-          supabase
-            .from("member_availability_month_submissions")
-            .select("user_id, submitted_at")
-            .eq("church_id", tenant.church.id)
-            .eq("ministry_id", active.id)
-            .eq("month_start", initialMonth)
-            .in("user_id", teamUserIds),
-        ])
-      : [
-          { data: [] as Array<{ user_id: string; availability_date: string; status: string }> },
-          { data: [] as Array<{ user_id: string; submitted_at: string }> },
-        ];
-
-  const submittedByUser = new Map<string, string>();
-  for (const row of teamSubmissionsResult.data ?? []) {
-    const previous = submittedByUser.get(row.user_id);
-    if (!previous || row.submitted_at > previous) submittedByUser.set(row.user_id, row.submitted_at);
-  }
-  const datesByUser = new Map<string, Map<string, AvailabilityStatus>>();
-  for (const row of teamMonthResult.data ?? []) {
-    const dates = datesByUser.get(row.user_id) ?? new Map<string, AvailabilityStatus>();
-    dates.set(row.availability_date, row.status as AvailabilityStatus);
-    datesByUser.set(row.user_id, dates);
-  }
-  const confirmedMembers = teamMembers.filter((member) => submittedByUser.has(member.userId));
-  const pendingMembers = teamMembers.filter((member) => !submittedByUser.has(member.userId));
-
   const finalEventDate = eventRows.at(-1)?.starts_at.slice(0, 10) ?? initialMonth;
   const teamCalendarResult =
     active?.canManage && teamUserIds.length > 0 && eventIds.length > 0
@@ -278,6 +248,11 @@ export default async function DisponibilidadePage({
         month: "long",
         year: "numeric",
       }),
+      serviceRoles: Object.fromEntries(
+        (assignmentsResult.data ?? [])
+          .filter((assignment) => assignment.event_id === event.id)
+          .map((assignment) => [assignment.user_id, assignment.role_name])
+      ),
       context: eventContextLabel({
         campusName: campus?.name,
         servicePeriod: event.service_period,
@@ -352,83 +327,6 @@ export default async function DisponibilidadePage({
             entries={calendarEntries}
             campuses={campusResult.data ?? []}
           />
-
-          {active.canManage ? (
-            <section className="space-y-4 rounded-3xl border bg-card p-5 sm:p-6">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Visão da liderança
-                </p>
-                <h2 className="mt-2 text-xl font-semibold">Disponibilidade mensal da equipe</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Resultado de {new Date(initialMonth + "T12:00:00").toLocaleDateString("pt-BR", {
-                    month: "long",
-                    year: "numeric",
-                  })}. Esta visão existe mesmo sem eventos criados.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border p-4">
-                  <p className="text-sm text-muted-foreground">Confirmaram</p>
-                  <p className="mt-1 text-3xl font-semibold">{confirmedMembers.length}</p>
-                </div>
-                <div className="rounded-2xl border p-4">
-                  <p className="text-sm text-muted-foreground">Pendentes</p>
-                  <p className="mt-1 text-3xl font-semibold">{pendingMembers.length}</p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {confirmedMembers.map((member) => {
-                  const dates = [...(datesByUser.get(member.userId)?.entries() ?? [])];
-                  const available = dates
-                    .filter(([, status]) => status === "available")
-                    .map(([date]) => new Date(date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit" }));
-                  const unavailable = dates
-                    .filter(([, status]) => status === "unavailable")
-                    .map(([date]) => new Date(date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit" }));
-                  return (
-                    <div key={member.userId} className="rounded-2xl border p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="font-medium">{member.name}</p>
-                          <p className="text-xs capitalize text-muted-foreground">{member.role}</p>
-                        </div>
-                        <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-500">
-                          Confirmado
-                        </span>
-                      </div>
-                      <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                        <p>
-                          <span className="text-muted-foreground">Disponível:</span>{" "}
-                          {available.length ? `dias ${available.join(", ")}` : "nenhum dia"}
-                        </p>
-                        <p>
-                          <span className="text-muted-foreground">Indisponível:</span>{" "}
-                          {unavailable.length ? `dias ${unavailable.join(", ")}` : "nenhum dia"}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-                {confirmedMembers.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-                    Nenhum integrante confirmou a disponibilidade deste mês.
-                  </div>
-                ) : null}
-              </div>
-
-              {pendingMembers.length > 0 ? (
-                <div className="rounded-2xl bg-muted/40 p-4">
-                  <p className="text-sm font-medium">Ainda não confirmaram</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {pendingMembers.map((member) => member.name).join(", ")}
-                  </p>
-                </div>
-              ) : null}
-            </section>
-          ) : null}
 
           <AvailabilityPanel
             churchSlug={churchSlug}
