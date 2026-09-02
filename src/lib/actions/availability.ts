@@ -265,6 +265,140 @@ export async function clearMyCalendarAvailability(raw: unknown): Promise<ActionR
   return { ok: true, data: undefined };
 }
 
+const submitCalendarMonthSchema = z
+  .object({
+    churchSlug: z.string().min(2),
+    churchId: z.string().uuid(),
+    ministryId: z.string().uuid().nullable(),
+    campusId: z.string().uuid().nullable(),
+    month: z.string().regex(/^\d{4}-\d{2}$/),
+    period: periodSchema,
+    entries: z
+      .array(
+        z.object({
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+          status: statusSchema,
+        })
+      )
+      .max(31),
+  })
+  .superRefine(({ month, entries }, ctx) => {
+    const dates = entries.map((entry) => entry.date);
+    if (dates.some((date) => !date.startsWith(`${month}-`))) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Há datas fora do mês selecionado",
+        path: ["entries"],
+      });
+    }
+    if (new Set(dates).size !== dates.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Há datas duplicadas",
+        path: ["entries"],
+      });
+    }
+  });
+
+function nextCalendarMonth(month: string) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  const next = new Date(Date.UTC(year, monthNumber, 1));
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}-01`;
+}
+
+export async function submitMyCalendarAvailability(raw: unknown): Promise<ActionResult> {
+  const parsed = submitCalendarMonthSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Disponibilidade mensal inválida",
+    };
+  }
+
+  const d = parsed.data;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sua sessão expirou" };
+
+  const monthStart = `${d.month}-01`;
+  const baseSelect = supabase
+    .from("member_availability_calendar")
+    .select("id, availability_date, status")
+    .eq("church_id", d.churchId)
+    .eq("user_id", user.id)
+    .eq("period", d.period)
+    .gte("availability_date", monthStart)
+    .lt("availability_date", nextCalendarMonth(d.month));
+  const ministrySelect = scopeNullable(baseSelect, "ministry_id", d.ministryId);
+  const { data: existingRows, error: selectError } = await scopeNullable(
+    ministrySelect,
+    "campus_id",
+    d.campusId
+  );
+
+  if (selectError) {
+    console.error("submitMyCalendarAvailability/select:", selectError);
+    return { ok: false, error: "Não foi possível carregar a disponibilidade do mês" };
+  }
+
+  const existingByDate = new Map(
+    (existingRows ?? []).map((row) => [row.availability_date, row])
+  );
+  const desiredDates = new Set(d.entries.map((entry) => entry.date));
+  const writeResults = await Promise.all(
+    d.entries.map((entry) => {
+      const current = existingByDate.get(entry.date);
+      if (current) {
+        if (current.status === entry.status) return Promise.resolve({ error: null });
+        return supabase
+          .from("member_availability_calendar")
+          .update({ status: entry.status })
+          .eq("id", current.id)
+          .eq("user_id", user.id);
+      }
+
+      return supabase.from("member_availability_calendar").insert({
+        church_id: d.churchId,
+        ministry_id: d.ministryId,
+        campus_id: d.campusId,
+        user_id: user.id,
+        availability_date: entry.date,
+        period: d.period,
+        status: entry.status,
+      });
+    })
+  );
+  const writeError = writeResults.find((result) => result.error)?.error;
+
+  if (writeError) {
+    console.error("submitMyCalendarAvailability/write:", writeError);
+    return { ok: false, error: "Não foi possível enviar a disponibilidade do mês" };
+  }
+
+  const staleIds = (existingRows ?? [])
+    .filter((row) => !desiredDates.has(row.availability_date))
+    .map((row) => row.id);
+
+  if (staleIds.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("member_availability_calendar")
+      .delete()
+      .eq("church_id", d.churchId)
+      .eq("user_id", user.id)
+      .in("id", staleIds);
+
+    if (deleteError) {
+      console.error("submitMyCalendarAvailability/delete:", deleteError);
+      return { ok: false, error: "Não foi possível limpar as datas removidas" };
+    }
+  }
+
+  revalidateAvailability(d.churchSlug);
+  return { ok: true, data: undefined };
+}
+
 const recurringSchema = z.object({
   churchSlug: z.string().min(2),
   churchId: z.string().uuid(),
