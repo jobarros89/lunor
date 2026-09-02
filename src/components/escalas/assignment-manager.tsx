@@ -272,7 +272,7 @@ export function AssignmentManager({
                 </div>
               )}
 
-              {a.status !== "substituido" && (
+              {false && a.status !== "substituido" && (
                 <div className="flex flex-wrap items-center gap-1.5">
                   {a.equipments.map((eq) => (
                     <button
