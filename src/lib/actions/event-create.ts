@@ -27,6 +27,16 @@ export async function createEventWithContext(raw: unknown): Promise<ActionResult
   const parsed = eventSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const d = parsed.data;
+  const startsAt = new Date(d.startsAt);
+  const endsAt = d.endsAt ? new Date(d.endsAt) : null;
+
+  if (Number.isNaN(startsAt.getTime()) || (endsAt && Number.isNaN(endsAt.getTime()))) {
+    return { ok: false, error: "Data ou horário inválido" };
+  }
+  if (endsAt && endsAt <= startsAt) {
+    return { ok: false, error: "O horário de término precisa ser posterior ao horário de início" };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -113,14 +123,23 @@ export async function createEventWithContext(raw: unknown): Promise<ActionResult
       location: d.location || campusName || null,
       map_url: d.mapUrl || null,
       script: d.script || null,
-      starts_at: new Date(d.startsAt).toISOString(),
-      ends_at: d.endsAt ? new Date(d.endsAt).toISOString() : null,
+      starts_at: startsAt.toISOString(),
+      ends_at: endsAt?.toISOString() ?? null,
       created_by: user.id,
     })
     .select("id")
     .single();
 
-  if (error || !created) return { ok: false, error: "Sem permissão para criar eventos" };
+  if (error || !created) {
+    console.error("createEventWithContext:", error);
+    if (error?.code === "42501") {
+      return { ok: false, error: "Você não tem permissão para criar este evento" };
+    }
+    if (error?.message?.includes("events_time_order")) {
+      return { ok: false, error: "O horário de término precisa ser posterior ao horário de início" };
+    }
+    return { ok: false, error: "Não foi possível criar o evento" };
+  }
 
   revalidatePath(`/${d.churchSlug}/escalas`);
   revalidatePath(`/${d.churchSlug}/louvor/escalas`);

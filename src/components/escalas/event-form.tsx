@@ -62,6 +62,9 @@ export function EventForm({
   function submit() {
     if (v.title.length < 2) return toast.error("Dê um título ao evento");
     if (!v.startsAt) return toast.error("Escolha a data e hora de início");
+    if (v.endsAt && new Date(v.endsAt) <= new Date(v.startsAt)) {
+      return toast.error("O horário de término precisa ser posterior ao horário de início");
+    }
     startTransition(async () => {
       const result = await createEventWithContext({
         churchSlug,
