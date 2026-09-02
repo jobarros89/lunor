@@ -40,6 +40,13 @@ export default async function SessaoInfantilPage({
     .eq("active", true)
     .maybeSingle();
   if (!vinculo && !tenant.isCoord) redirect(`/${churchSlug}`);
+  const { data: canOperate } = await supabase.rpc("can_operate_kids", {
+    p_church: tenant.church.id,
+    p_ministry: ministry.id,
+    p_event: eventId,
+  });
+  if (!canOperate) redirect(`/${churchSlug}/infantil`);
+
   const podeLiberar =
     tenant.isCoord || vinculo?.role === "gerente" || vinculo?.role === "lider";
 
@@ -237,3 +244,4 @@ export default async function SessaoInfantilPage({
     </div>
   );
 }
+

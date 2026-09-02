@@ -121,6 +121,14 @@ describe("Infantil — parede e retirada autorizada (migration 23)", () => {
         .select("id")
         .single()
     ).data!.id;
+    await admin.from("assignments").insert({
+      church_id: churchId,
+      ministry_id: infantilId,
+      event_id: eventId,
+      user_id: await uid(infVol),
+      role_name: "Recepção Kids",
+      status: "confirmado",
+    });
 
     // o voluntário de plantão faz o check-in
     checkinId = (
@@ -156,10 +164,11 @@ describe("Infantil — parede e retirada autorizada (migration 23)", () => {
     expect((co.data ?? []).length).toBe(1);
   });
 
-  it("voluntário NÃO edita a ficha da criança (só liderança)", async () => {
-    await infVol.from("children").update({ full_name: "Alterado" }).eq("id", childId);
+  it("voluntário escalado edita dados operacionais durante a sessão", async () => {
+    const update = await infVol.from("children").update({ full_name: "Alterado" }).eq("id", childId);
+    expect(update.error).toBeNull();
     const { data } = await admin.from("children").select("full_name").eq("id", childId).single();
-    expect(data!.full_name).toBe("Joãozinho");
+    expect(data!.full_name).toBe("Alterado");
   });
 
   it("BLOQUEIA retirada por pessoa não autorizada", async () => {
@@ -213,6 +222,14 @@ describe("Infantil — parede e retirada autorizada (migration 23)", () => {
         .select("id")
         .single()
     ).data!.id;
+    await admin.from("assignments").insert({
+      church_id: churchId,
+      ministry_id: infantilId,
+      event_id: ev2,
+      user_id: await uid(infVol),
+      role_name: "Recepção Kids",
+      status: "confirmado",
+    });
     const ci = (
       await infVol
         .from("child_checkins")
@@ -244,6 +261,14 @@ describe("Infantil — parede e retirada autorizada (migration 23)", () => {
         .select("id")
         .single()
     ).data!.id;
+    await admin.from("assignments").insert({
+      church_id: churchId,
+      ministry_id: infantilId,
+      event_id: pageEventId,
+      user_id: await uid(infVol),
+      role_name: "Recepção Kids",
+      status: "confirmado",
+    });
     const pageCheckinId = (
       await infVol
         .from("child_checkins")
@@ -301,6 +326,14 @@ describe("Infantil — parede e retirada autorizada (migration 23)", () => {
         .select("id")
         .single()
     ).data!.id;
+    await admin.from("assignments").insert({
+      church_id: churchId,
+      ministry_id: infantilId,
+      event_id: ev3,
+      user_id: await uid(infVol),
+      role_name: "Recepção Kids",
+      status: "confirmado",
+    });
     const ci = (
       await infVol
         .from("child_checkins")

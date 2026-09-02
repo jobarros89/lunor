@@ -113,8 +113,8 @@
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  html { @apply max-w-full overflow-x-clip font-sans; -webkit-tap-highlight-color: transparent; }
-  body { @apply max-w-full overflow-x-clip bg-background text-foreground; font-feature-settings: "cv11", "ss01"; letter-spacing: -0.01em; }
+  html { @apply max-w-full overflow-x-clip font-sans; min-height: 100dvh; -webkit-tap-highlight-color: transparent; }
+  body { @apply max-w-full overflow-x-clip bg-background text-foreground; min-height: 100dvh; font-feature-settings: "cv11", "ss01"; letter-spacing: -0.01em; }
   ::selection { background: color-mix(in oklab, var(--accent) 78%, white); color: #111; }
   h1 { text-wrap: balance; letter-spacing: -0.035em; }
   h2 { text-wrap: balance; letter-spacing: -0.025em; }
@@ -173,3 +173,4 @@
 @media (prefers-reduced-motion: no-preference) {
   a, button { transition-duration: 180ms; }
 }
+

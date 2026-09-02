@@ -96,6 +96,15 @@ describe("Kids — histórico de check-in/reentrada", () => {
         .single()
     ).data!.id;
 
+    await admin.from("assignments").insert({
+      church_id: churchId,
+      ministry_id: kidsId,
+      event_id: eventId,
+      user_id: await uid(volunteer),
+      role_name: "Recepção Kids",
+      status: "confirmado",
+    });
+
     const created = await leader.rpc("create_child_with_primary_guardian", {
       p_church: churchId,
       p_ministry: kidsId,
@@ -188,3 +197,4 @@ describe("Kids — histórico de check-in/reentrada", () => {
     expect(data).toHaveLength(1);
   });
 });
+

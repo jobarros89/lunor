@@ -109,6 +109,15 @@ describe("Kids V1 hardening", () => {
         .single()
     ).data!.id;
 
+    await admin.from("assignments").insert({
+      church_id: churchId,
+      ministry_id: kidsId,
+      event_id: eventId,
+      user_id: await uid(volunteer),
+      role_name: "Recepção Kids",
+      status: "confirmado",
+    });
+
     otherEventId = (
       await coordOther
         .from("events")
@@ -147,6 +156,7 @@ describe("Kids V1 hardening", () => {
       p_full_name: "Criança Negada",
       p_birth_date: "2021-01-01",
       p_guardian_name: "Responsável Negado",
+      p_event: eventId,
     });
     expect(denied.error).not.toBeNull();
 
@@ -158,6 +168,7 @@ describe("Kids V1 hardening", () => {
       p_guardian_name: "Responsável Permitido",
       p_guardian_phone: "21999999999",
       p_guardian_relationship: "mãe",
+      p_event: eventId,
     });
     expect(allowed.error).toBeNull();
     childId = allowed.data as string;
@@ -273,3 +284,4 @@ describe("Kids V1 hardening", () => {
     expect(checkout.error).toBeNull();
   });
 });
+

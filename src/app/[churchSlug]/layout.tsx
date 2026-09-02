@@ -40,7 +40,7 @@ export default async function TenantLayout({ children, params }: { children: Rea
   const { active, options } = await getActiveMinistry(churchSlug);
   const activeMinistryNavigation = ministryNavigation(active);
   const hasLouvor = options.some(isLouvorMinistry);
-  const hasKids = options.some(isKidsMinistry);
+  const hasKids = tenant.isGuardian || options.some(isKidsMinistry);
   const supabase = await createClient();
   const [{ count: escalasPending }, { data: kidsNotices }] = await Promise.all([
     supabase
@@ -56,10 +56,10 @@ export default async function TenantLayout({ children, params }: { children: Rea
   const initials = tenant.profile.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
 
   return (
-    <div className="min-h-dvh w-full max-w-full overflow-x-clip">
+    <div className="relative h-dvh w-full max-w-full overflow-hidden md:h-auto md:min-h-dvh md:overflow-x-clip">
       <SessionKeeper />
-      <Sidebar churchSlug={churchSlug} churchName={tenant.church.name} canAdmin={tenant.isCoord} isLeader={tenant.isLeader} activeMinistryNavigation={activeMinistryNavigation} hasKids={hasKids} escalasPending={escalasPending ?? 0} />
-      <div className="tenant-shell min-w-0 md:pl-60">
+      <Sidebar churchSlug={churchSlug} churchName={tenant.church.name} canAdmin={tenant.isCoord} isLeader={tenant.isLeader} activeMinistryNavigation={activeMinistryNavigation} hasKids={hasKids} escalasPending={escalasPending ?? 0} guardianOnly={tenant.guardianOnly} />
+      <div className="tenant-shell h-full min-w-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] md:h-auto md:overflow-visible md:pl-60">
         <header className="sticky top-0 z-30 w-full max-w-full overflow-x-clip border-b border-foreground/10 bg-background/88 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
           <div className="mx-auto flex h-16 w-full min-w-0 max-w-7xl items-center gap-1 px-[max(0.75rem,env(safe-area-inset-left))] sm:gap-3 sm:px-4 md:px-8">
             <BrandLockup compact className="shrink-0 md:hidden" />
@@ -92,7 +92,9 @@ export default async function TenantLayout({ children, params }: { children: Rea
         hasLouvor={hasLouvor}
         hasKids={hasKids}
         escalasPending={escalasPending ?? 0}
+        guardianOnly={tenant.guardianOnly}
       />
     </div>
   );
 }
+

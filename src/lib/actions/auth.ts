@@ -24,9 +24,14 @@ const signUpSchema = credentialsSchema.extend({
     error: "Você precisa aceitar os Termos de Uso e a Política de Privacidade",
   }),
   intent: z.enum(["criar", "entrar", "convite", "direto"]).default("direto"),
+  familyToken: z.union([
+    z.string().regex(/^[a-f0-9]{48}$/i),
+    z.literal(""),
+  ]).default(""),
 });
 
 const SIGNUP_INTENT_COOKIE = "lunor_signup_intent";
+const FAMILY_INVITE_COOKIE = "lunor_family_invite";
 
 async function requestOrigin(): Promise<string> {
   const h = await headers();
@@ -82,12 +87,22 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
     fullName: formData.get("fullName"),
     legalAccepted: formData.get("legalAccepted"),
     intent: formData.get("intent") ?? "direto",
+    familyToken: formData.get("familyToken") ?? "",
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
   const cookieStore = await cookies();
+  if (parsed.data.familyToken) {
+    cookieStore.set(FAMILY_INVITE_COOKIE, parsed.data.familyToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+  }
   if (parsed.data.intent !== "direto") {
     cookieStore.set(SIGNUP_INTENT_COOKIE, parsed.data.intent, {
       httpOnly: true,

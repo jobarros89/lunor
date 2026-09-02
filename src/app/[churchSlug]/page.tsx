@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowRight, Baby, BarChart3, BookOpen, ChevronRight, Megaphone, Music, Settings, ShieldCheck, Users } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
@@ -90,6 +91,8 @@ function homeEventContext(event: AssignmentEvent | null) {
 export default async function HomePage({ params }: { params: Promise<{ churchSlug: string }> }) {
   const { churchSlug } = await params;
   const tenant = await getTenant(churchSlug);
+  if (tenant.guardianOnly) redirect(`/${churchSlug}/infantil`);
+
   const isPlatformAdmin = await checkPlatformAdmin();
   const { options: meusSetores } = await getActiveMinistry(churchSlug);
   const temInfantil = meusSetores.some((m) =>
@@ -279,3 +282,4 @@ function ActionRow({ href, label, description, icon }: { href: string; label: st
 function NavRow({ href, icon, title, description }: { href: string; icon: ReactNode; title: string; description: string }) {
   return <Link href={href} className="group flex items-center gap-4 border-foreground/15 px-1 py-5 sm:border-r sm:px-5"><span>{icon}</span><span className="min-w-0 flex-1"><span className="block font-medium">{title}</span><span className="block text-xs text-muted-foreground">{description}</span></span><ChevronRight className="size-4 transition-transform group-hover:translate-x-1" /></Link>;
 }
+

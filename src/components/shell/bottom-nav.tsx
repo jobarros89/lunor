@@ -10,29 +10,36 @@ export function BottomNav({
   hasLouvor = false,
   hasKids = false,
   escalasPending = 0,
+  guardianOnly = false,
 }: {
   churchSlug: string;
   hasLouvor?: boolean;
   hasKids?: boolean;
   escalasPending?: number;
+  guardianOnly?: boolean;
 }) {
   const pathname = usePathname();
-  const items = [
-    { href: "", label: "Início", icon: Home, badge: 0 },
-    ...(hasLouvor
-      ? [{ href: "/louvor", label: "Louvor", icon: Music2, badge: 0 }]
-      : []),
-    ...(hasKids
-      ? [{ href: "/infantil", label: "Kids", icon: Baby, badge: 0 }]
-      : []),
-    { href: "/escalas", label: "Escalas", icon: Calendar, badge: escalasPending },
-    { href: "/perfil", label: "Perfil", icon: User, badge: 0 },
-  ];
+  const items = guardianOnly
+    ? [
+        { href: "/infantil", label: "Meus filhos", icon: Baby, badge: 0 },
+        { href: "/perfil", label: "Perfil", icon: User, badge: 0 },
+      ]
+    : [
+        { href: "", label: "Início", icon: Home, badge: 0 },
+        ...(hasLouvor
+          ? [{ href: "/louvor", label: "Louvor", icon: Music2, badge: 0 }]
+          : []),
+        ...(hasKids
+          ? [{ href: "/infantil", label: "Kids", icon: Baby, badge: 0 }]
+          : []),
+        { href: "/escalas", label: "Escalas", icon: Calendar, badge: escalasPending },
+        { href: "/perfil", label: "Perfil", icon: User, badge: 0 },
+      ];
 
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-foreground/12 bg-background/96 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 [backface-visibility:hidden] [transform:translateZ(0)] border-t border-foreground/12 bg-background/96 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
     >
       <div className="mx-auto grid h-16 w-full grid-flow-col auto-cols-fr items-center gap-1 px-2">
         {items.map(({ href, label, icon: Icon, badge }) => {
@@ -66,3 +73,4 @@ export function BottomNav({
     </nav>
   );
 }
+

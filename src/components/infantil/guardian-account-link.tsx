@@ -2,13 +2,14 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Link2, Unlink } from "lucide-react";
+import { Copy, Link2, Send, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   linkGuardianAccount,
   unlinkGuardianAccount,
 } from "@/lib/actions/guardian-account";
+import { createGuardianInvite } from "@/lib/actions/guardian-family";
 
 type Guardian = {
   id: string;
@@ -38,6 +39,7 @@ export function GuardianAccountLink({
   const [guardianId, setGuardianId] = useState("");
   const [userId, setUserId] = useState("");
   const [pending, startTransition] = useTransition();
+  const [inviteUrls, setInviteUrls] = useState<Record<string, string>>({});
 
   const unlinked = useMemo(
     () => guardians.filter((guardian) => !guardian.userId),
@@ -71,6 +73,26 @@ export function GuardianAccountLink({
       setGuardianId("");
       setUserId("");
       router.refresh();
+    });
+  }
+
+  function createInvite(guardian: Guardian) {
+    startTransition(async () => {
+      const result = await createGuardianInvite({
+        churchSlug,
+        guardianId: guardian.id,
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      setInviteUrls((current) => ({ ...current, [guardian.id]: result.data.url }));
+      try {
+        await navigator.clipboard.writeText(result.data.url);
+        toast.success("Convite familiar copiado");
+      } catch {
+        toast.success("Convite familiar criado");
+      }
     });
   }
 
@@ -141,6 +163,55 @@ export function GuardianAccountLink({
         </p>
       )}
 
+      {unlinked.length > 0 && (
+        <div className="space-y-2 rounded-2xl border p-4">
+          <div>
+            <p className="text-sm font-medium">Acesso da família</p>
+            <p className="text-xs text-muted-foreground">
+              O convite cria uma conta restrita somente às crianças vinculadas ao responsável.
+            </p>
+          </div>
+          {unlinked.map((guardian) => (
+            <div key={guardian.id} className="space-y-2 rounded-xl bg-muted/40 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-medium">{guardian.fullName}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => createInvite(guardian)}
+                  className="rounded-full"
+                >
+                  <Send className="size-4" />
+                  Gerar convite
+                </Button>
+              </div>
+              {inviteUrls[guardian.id] && (
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={inviteUrls[guardian.id]}
+                    className="h-10 min-w-0 flex-1 rounded-xl border bg-background px-3 text-xs"
+                    aria-label={`Convite de ${guardian.fullName}`}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-10 rounded-full"
+                    onClick={() => navigator.clipboard.writeText(inviteUrls[guardian.id])}
+                    aria-label="Copiar convite"
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {linked.length > 0 && (
         <div className="space-y-2">
           {linked.map((guardian) => (
@@ -172,3 +243,4 @@ export function GuardianAccountLink({
     </div>
   );
 }
+

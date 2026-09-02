@@ -106,13 +106,21 @@ function OwnerWizard({ churchId, churchName }: Props) {
 
 function MemberWizard({ churchId, churchName, ministries }: Props) {
   const [step, setStep] = useState(0);
-  const [ministryIds, setMinistryIds] = useState<string[]>(ministries[0] ? [ministries[0].id] : []);
+  const [ministryIds, setMinistryIds] = useState<string[]>([]);
   const [phone, setPhone] = useState("");
   const [departments, setDepartments] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
   const toggle = (list: string[], value: string, setter: (value: string[]) => void) => setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
   const finish = () => startTransition(async () => {
-    const result = await completeMemberOnboarding({ churchId, ministryIds, phone, departments });
+    const selectedMinistryNames = ministries
+      .filter((ministry) => ministryIds.includes(ministry.id))
+      .map((ministry) => ministry.name);
+    const result = await completeMemberOnboarding({
+      churchId,
+      ministryIds,
+      phone,
+      departments: [...new Set([...departments, ...selectedMinistryNames])],
+    });
     if (result && !result.ok) toast.error(result.error);
   });
 
@@ -141,3 +149,4 @@ function MemberWizard({ churchId, churchName, ministries }: Props) {
     </Card>
   </div>;
 }
+

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const INVITE_COOKIE = "lunor_invite";
 const SIGNUP_INTENT_COOKIE = "lunor_signup_intent";
+const FAMILY_INVITE_COOKIE = "lunor_family_invite";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -11,6 +12,20 @@ export async function resolveAuthenticatedDestination(
   fallbackPath = "/"
 ): Promise<string> {
   const cookieStore = await cookies();
+  const familyToken = cookieStore.get(FAMILY_INVITE_COOKIE)?.value;
+
+  if (familyToken) {
+    const { data: churchSlug, error } = await supabase.rpc("redeem_guardian_invite", {
+      p_token: familyToken,
+    });
+
+    cookieStore.delete(FAMILY_INVITE_COOKIE);
+    if (!error && churchSlug) {
+      cookieStore.delete(SIGNUP_INTENT_COOKIE);
+      return `/${churchSlug}/infantil`;
+    }
+  }
+
   const inviteCode = cookieStore.get(INVITE_COOKIE)?.value;
 
   if (inviteCode) {
@@ -37,3 +52,4 @@ export async function resolveAuthenticatedDestination(
 
   return fallbackPath;
 }
+

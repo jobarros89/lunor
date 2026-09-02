@@ -24,11 +24,18 @@ function SignupForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const intent = searchParams.get("intencao");
+  const familyToken = searchParams.get("familia") ?? "";
   const normalizedIntent = intent === "criar" || intent === "entrar" || intent === "convite" ? intent : "direto";
   const passwordReady = password.length >= 8;
 
   const copy =
-    intent === "criar"
+    familyToken
+      ? {
+          title: "Acesse o Kids da sua família",
+          description:
+            "Crie sua conta para ver somente seus filhos e acompanhar check-in e check-out.",
+        }
+      : intent === "criar"
       ? {
           title: "Crie sua conta",
           description:
@@ -69,6 +76,7 @@ function SignupForm() {
       <CardContent>
         <form action={onSubmit} className="space-y-4">
           <input type="hidden" name="intent" value={normalizedIntent} />
+          <input type="hidden" name="familyToken" value={familyToken} />
           <div className="space-y-2">
             <Label htmlFor="fullName">Nome completo</Label>
             <Input
@@ -175,3 +183,4 @@ export default function SignupPage() {
     </Suspense>
   );
 }
+

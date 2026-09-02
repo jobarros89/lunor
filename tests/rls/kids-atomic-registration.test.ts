@@ -38,6 +38,7 @@ describe("Kids — cadastro atômico e autorização", () => {
   let churchMemberOutsideKids: SupabaseClient;
   let churchId: string;
   let kidsId: string;
+  let eventId: string;
   const run = Date.now();
 
   beforeAll(async () => {
@@ -80,6 +81,23 @@ describe("Kids — cadastro atômico e autorização", () => {
         role: "voluntario",
       },
     ]);
+
+    eventId = (await leader.from("events").insert({
+      church_id: churchId,
+      ministry_id: kidsId,
+      title: "Operação Kids",
+      starts_at: new Date(Date.now() - 60_000).toISOString(),
+      ends_at: new Date(Date.now() + 60 * 60_000).toISOString(),
+    }).select("id").single()).data!.id;
+
+    await admin.from("assignments").insert({
+      church_id: churchId,
+      ministry_id: kidsId,
+      event_id: eventId,
+      user_id: await uid(volunteer),
+      role_name: "Recepção Kids",
+      status: "confirmado",
+    });
   });
 
   it("liderança cria criança, responsável e autorização principal juntos", async () => {
@@ -127,6 +145,7 @@ describe("Kids — cadastro atômico e autorização", () => {
         p_guardian_name: "Responsável Levi",
         p_guardian_phone: "21988887777",
         p_guardian_relationship: "pai",
+        p_event: eventId,
       }
     );
 
@@ -155,6 +174,7 @@ describe("Kids — cadastro atômico e autorização", () => {
         p_full_name: "Cadastro Indevido",
         p_birth_date: "2021-01-01",
         p_guardian_name: "Responsável Indevido",
+        p_event: eventId,
       }
     );
     expect(error).not.toBeNull();
@@ -188,3 +208,4 @@ describe("Kids — cadastro atômico e autorização", () => {
     expect(after.count).toBe(before.count);
   });
 });
+
