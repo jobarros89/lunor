@@ -62,6 +62,98 @@ export async function setMyAvailability(raw: unknown): Promise<ActionResult> {
   return { ok: true, data: undefined };
 }
 
+const submitAvailabilitySchema = z
+  .object({
+    churchSlug: z.string().min(2),
+    churchId: z.string().uuid(),
+    ministryId: z.string().uuid(),
+    requestId: z.string().uuid(),
+    responses: z
+      .array(
+        z.object({
+          eventId: z.string().uuid(),
+          status: statusSchema,
+        })
+      )
+      .min(1, "Responda pelo menos um culto")
+      .max(30),
+  })
+  .superRefine(({ responses }, ctx) => {
+    if (new Set(responses.map((response) => response.eventId)).size !== responses.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Há cultos duplicados na resposta",
+        path: ["responses"],
+      });
+    }
+  });
+
+export async function submitMyAvailability(raw: unknown): Promise<ActionResult> {
+  const parsed = submitAvailabilitySchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Dados de disponibilidade inválidos",
+    };
+  }
+
+  const d = parsed.data;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sua sessão expirou" };
+
+  const [{ data: request, error: requestError }, { data: requestEvents, error: eventsError }] =
+    await Promise.all([
+      supabase
+        .from("availability_requests")
+        .select("id")
+        .eq("id", d.requestId)
+        .eq("church_id", d.churchId)
+        .eq("ministry_id", d.ministryId)
+        .is("closed_at", null)
+        .maybeSingle(),
+      supabase
+        .from("availability_request_events")
+        .select("event_id")
+        .eq("request_id", d.requestId)
+        .eq("church_id", d.churchId)
+        .eq("ministry_id", d.ministryId),
+    ]);
+
+  const allowedEventIds = new Set((requestEvents ?? []).map((row) => row.event_id));
+  const hasInvalidEvent = d.responses.some((response) => !allowedEventIds.has(response.eventId));
+
+  if (requestError || eventsError || !request || hasInvalidEvent) {
+    return {
+      ok: false,
+      error: "Esta solicitação não está mais disponível",
+    };
+  }
+
+  const { error } = await supabase.from("member_availability").upsert(
+    d.responses.map((response) => ({
+      church_id: d.churchId,
+      ministry_id: d.ministryId,
+      event_id: response.eventId,
+      user_id: user.id,
+      request_id: d.requestId,
+      status: response.status,
+      source: "leader_request",
+    })),
+    { onConflict: "ministry_id,event_id,user_id" }
+  );
+
+  if (error) {
+    console.error("submitMyAvailability:", error);
+    return { ok: false, error: "Não foi possível enviar sua disponibilidade" };
+  }
+
+  revalidateAvailability(d.churchSlug);
+  return { ok: true, data: undefined };
+}
+
 const clearSchema = availabilitySchema.omit({ status: true });
 
 export async function clearMyAvailability(raw: unknown): Promise<ActionResult> {
