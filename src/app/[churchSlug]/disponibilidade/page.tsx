@@ -43,7 +43,7 @@ export default async function DisponibilidadePage({
           .from("events")
           .select("id, title, starts_at, location, campus_id, service_period, campuses(name)")
           .eq("church_id", tenant.church.id)
-          .eq("ministry_id", active.id)
+          .or(`ministry_id.eq.${active.id},ministry_id.is.null`)
           .gte("starts_at", since.toISOString())
           .order("starts_at")
           .limit(40)
