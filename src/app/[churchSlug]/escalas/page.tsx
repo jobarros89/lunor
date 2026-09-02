@@ -16,6 +16,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FutureEventLink } from "@/components/escalas/event-delete-control";
 import { cn } from "@/lib/utils";
 
+type RelatedName = { name: string } | { name: string }[] | null;
+type MyAssignment = {
+  event_id: string;
+  role_name: string;
+  status: string;
+  assignment_ministry: RelatedName;
+  assignment_department: RelatedName;
+};
+
+function firstRelated(value: RelatedName) {
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
 export default async function EscalasPage({
   params,
   searchParams,
@@ -47,13 +60,19 @@ export default async function EscalasPage({
         .limit(50),
       supabase
         .from("assignments")
-        .select("event_id, role_name, status")
+        .select("event_id, role_name, status, assignment_ministry:ministries(name), assignment_department:departments(name)")
         .eq("church_id", tenant.church.id)
         .eq("user_id", tenant.userId),
     ]);
   if (eventsError) console.error("escalas:", eventsError);
 
-  const myByEvent = new Map((myAssignments ?? []).map((a) => [a.event_id, a]));
+  const myByEvent = new Map<string, MyAssignment[]>();
+  for (const assignment of (myAssignments ?? []) as unknown as MyAssignment[]) {
+    myByEvent.set(assignment.event_id, [
+      ...(myByEvent.get(assignment.event_id) ?? []),
+      assignment,
+    ]);
+  }
 
   const todos = events ?? [];
   const meus = todos.filter((e) => myByEvent.has(e.id));
@@ -151,15 +170,25 @@ export default async function EscalasPage({
                     )}
                   </div>
                   {mine && (
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="rounded-full">
-                        Você: {mine.role_name}
-                      </Badge>
-                      <Badge
-                        className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[mine.status]}`}
-                      >
-                        {ASSIGNMENT_STATUS_LABELS[mine.status]}
-                      </Badge>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {mine.map((assignment, index) => {
+                        const serviceArea =
+                          firstRelated(assignment.assignment_department)?.name ??
+                          firstRelated(assignment.assignment_ministry)?.name ??
+                          "Equipe";
+                        return (
+                          <span key={`${assignment.event_id}-${assignment.role_name}-${index}`} className="inline-flex items-center gap-2">
+                            <Badge variant="secondary" className="rounded-full">
+                              {serviceArea} · {assignment.role_name}
+                            </Badge>
+                            <Badge
+                              className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[assignment.status] ?? ""}`}
+                            >
+                              {ASSIGNMENT_STATUS_LABELS[assignment.status] ?? assignment.status}
+                            </Badge>
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
