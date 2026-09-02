@@ -24,7 +24,7 @@ export default async function DisponibilidadePage({
   searchParams,
 }: {
   params: Promise<{ churchSlug: string }>;
-  searchParams: Promise<{ ministry?: string }>;
+  searchParams: Promise<{ ministry?: string; module?: "louvor" | "kids" }>;
 }) {
   const [{ churchSlug }, query] = await Promise.all([params, searchParams]);
   const tenant = await getTenant(churchSlug);
@@ -273,6 +273,11 @@ export default async function DisponibilidadePage({
       title: event.title,
       dateLabel: formatEventDate(event.starts_at),
       timeLabel: formatEventTime(event.starts_at),
+      monthKey: event.starts_at.slice(0, 7),
+      monthLabel: new Date(event.starts_at).toLocaleDateString("pt-BR", {
+        month: "long",
+        year: "numeric",
+      }),
       context: eventContextLabel({
         campusName: campus?.name,
         servicePeriod: event.service_period,
@@ -316,12 +321,18 @@ export default async function DisponibilidadePage({
     <div className="space-y-8">
       <header>
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          {active?.canManage ? "Visão da liderança" : "Área pessoal"}
+{query.module && active
+            ? `${query.module === "kids" ? "Kids" : "Louvor"} · Disponibilidade`
+            : active?.canManage
+              ? "Visão da liderança"
+              : "Área pessoal"}
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          {active?.canManage
-            ? `Disponibilidade da equipe · ${active.name}`
-            : "Minha disponibilidade"}
+{query.module && active
+            ? `Disponibilidade do ${active.name}`
+            : active?.canManage
+              ? `Disponibilidade da equipe · ${active.name}`
+              : "Minha disponibilidade"}
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
           {active?.canManage

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, CheckCircle2, Clock3, Pencil, Send, X } from "lucide-react";
+import { Check, CheckCircle2, ChevronDown, Clock3, Pencil, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   createAvailabilityRequest,
@@ -22,6 +22,8 @@ export type AvailabilityEvent = {
   dateLabel: string;
   timeLabel: string;
   context: string;
+  monthKey: string;
+  monthLabel: string;
   team: TeamMemberAvailability[] | null;
 };
 
@@ -332,26 +334,93 @@ function TeamStatusGroup({
   );
 }
 
-function TeamAvailabilityCard({ event }: { event: AvailabilityEvent }) {
+function TeamAvailabilityCard({
+  event,
+  selected,
+  selectionMode,
+  onSelect,
+}: {
+  event: AvailabilityEvent;
+  selected: boolean;
+  selectionMode: boolean;
+  onSelect: (eventId: string) => void;
+}) {
   const team = event.team ?? [];
   const available = team.filter((member) => member.status === "available");
   const unavailable = team.filter((member) => member.status === "unavailable");
   const unanswered = team.filter((member) => member.status === null);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const held = useRef(false);
+
+  function startHold() {
+    held.current = false;
+    holdTimer.current = setTimeout(() => {
+      held.current = true;
+      onSelect(event.id);
+    }, 550);
+  }
+
+  function cancelHold() {
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+  }
 
   return (
-    <Card className="rounded-3xl">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">{event.title}</CardTitle>
-        <p className="text-xs text-muted-foreground">
-          {event.dateLabel} · {event.timeLabel}{event.context ? ` · ${event.context}` : ""}
-        </p>
-      </CardHeader>
-      <CardContent className="grid gap-3 lg:grid-cols-3">
+    <details
+      className={cn(
+        "group rounded-2xl border bg-card transition-colors",
+        selected && "border-emerald-500/70 bg-emerald-500/5"
+      )}
+    >
+      <summary
+        className="flex min-h-16 cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden"
+        onPointerDown={startHold}
+        onPointerUp={cancelHold}
+        onPointerCancel={cancelHold}
+        onPointerLeave={cancelHold}
+        onClick={(eventClick) => {
+          if (held.current || selectionMode) {
+            eventClick.preventDefault();
+            if (!held.current) onSelect(event.id);
+            held.current = false;
+          }
+        }}
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            "flex size-5 shrink-0 items-center justify-center rounded-full border",
+            selected && "border-emerald-500 bg-emerald-500 text-white"
+          )}
+        >
+          {selected ? <Check className="size-3" /> : null}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{event.title}</span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {event.dateLabel} · {event.timeLabel}{event.context ? ` · ${event.context}` : ""}
+          </span>
+        </span>
+        <span className="hidden shrink-0 items-center gap-3 text-xs sm:flex">
+          <span className="text-emerald-600 dark:text-emerald-400">{available.length} disponíveis</span>
+          <span className="text-rose-600 dark:text-rose-400">{unavailable.length} não disponíveis</span>
+          <span className="text-muted-foreground">{unanswered.length} pendentes</span>
+        </span>
+        <span className="flex shrink-0 gap-1 text-xs sm:hidden" aria-label={`${available.length} disponíveis, ${unavailable.length} não disponíveis e ${unanswered.length} pendentes`}>
+          <span className="text-emerald-600 dark:text-emerald-400">{available.length}</span>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-rose-600 dark:text-rose-400">{unavailable.length}</span>
+          <span className="text-muted-foreground">· {unanswered.length}</span>
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+      </summary>
+
+      <div className="grid gap-3 border-t p-3 lg:grid-cols-3">
         <TeamStatusGroup title="Disponíveis" members={available} tone="available" />
         <TeamStatusGroup title="Não disponíveis" members={unavailable} tone="unavailable" />
         <TeamStatusGroup title="Não responderam" members={unanswered} tone="pending" />
-      </CardContent>
-    </Card>
+      </div>
+    </details>
   );
 }
 
@@ -377,9 +446,28 @@ export function AvailabilityPanel({
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [openMonths, setOpenMonths] = useState<string[]>(() =>
+    events[0]?.monthKey ? [events[0].monthKey] : []
+  );
   const byId = new Map(events.map((event) => [event.id, event]));
   const requestedIds = new Set(requests.flatMap((request) => request.eventIds));
   const requestableEvents = events.filter((event) => !requestedIds.has(event.id));
+  const groupedEvents = Object.entries(
+    events.reduce<Record<string, { label: string; events: AvailabilityEvent[] }>>((groups, event) => {
+      const group = groups[event.monthKey] ?? { label: event.monthLabel, events: [] };
+      group.events.push(event);
+      groups[event.monthKey] = group;
+      return groups;
+    }, {})
+  );
+
+  function toggleMonth(monthKey: string) {
+    setOpenMonths((current) =>
+      current.includes(monthKey)
+        ? current.filter((key) => key !== monthKey)
+        : [...current, monthKey]
+    );
+  }
 
   function toggleEvent(eventId: string) {
     setSelected((current) =>
@@ -428,9 +516,58 @@ export function AvailabilityPanel({
 
           {events.length > 0 ? (
             <div className="space-y-3">
-              {events.map((event) => (
-                <TeamAvailabilityCard key={event.id} event={event} />
-              ))}
+              <p className="px-1 text-xs text-muted-foreground sm:hidden">
+                Segure um culto para selecionar.
+              </p>
+              {groupedEvents.map(([monthKey, group]) => {
+                const isOpen = openMonths.includes(monthKey);
+                return (
+                  <section key={monthKey} className="overflow-hidden rounded-3xl border bg-card/30">
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      onClick={() => toggleMonth(monthKey)}
+                      className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                    >
+                      <span>
+                        <span className="block font-semibold capitalize">{group.label}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {group.events.length} {group.events.length === 1 ? "culto" : "cultos"}
+                        </span>
+                      </span>
+                      <ChevronDown className={cn("size-5 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
+                    </button>
+                    {isOpen ? (
+                      <div className="space-y-2 border-t p-2">
+                        {group.events.map((event) => (
+                          <TeamAvailabilityCard
+                            key={event.id}
+                            event={event}
+                            selected={selected.includes(event.id)}
+                            selectionMode={selected.length > 0}
+                            onSelect={toggleEvent}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </section>
+                );
+              })}
+              {selected.length > 0 ? (
+                <div className="sticky bottom-20 z-20 flex items-center justify-between gap-3 rounded-2xl border bg-background/95 p-3 shadow-lg backdrop-blur md:bottom-4">
+                  <p className="text-sm font-medium">
+                    {selected.length} {selected.length === 1 ? "culto selecionado" : "cultos selecionados"}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" onClick={() => document.getElementById("availability-request-form")?.scrollIntoView({ behavior: "smooth" })}>
+                      Solicitar
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setSelected([])}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : (
             <Card className="rounded-3xl">
@@ -476,7 +613,7 @@ export function AvailabilityPanel({
       )}
 
       {canManage && (
-        <Card className="rounded-3xl border-t">
+        <Card id="availability-request-form" className="rounded-3xl border-t">
           <CardHeader>
             <CardTitle className="text-lg">Solicitar disponibilidade</CardTitle>
             <p className="text-sm text-muted-foreground">

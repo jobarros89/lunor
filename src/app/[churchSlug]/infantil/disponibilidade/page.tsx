@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import DisponibilidadePage from "../../disponibilidade/page";
 import { getTenant } from "@/lib/tenant";
 import { getInfantilMinistry } from "@/lib/infantil";
 
@@ -12,5 +13,9 @@ export default async function KidsAvailabilityPage({
   const kids = await getInfantilMinistry(tenant.church.id);
 
   if (!kids) redirect(`/${churchSlug}/infantil`);
-  redirect(`/${churchSlug}/disponibilidade?ministry=${kids.id}`);
+
+  return DisponibilidadePage({
+    params: Promise.resolve({ churchSlug }),
+    searchParams: Promise.resolve({ ministry: kids.id, module: "kids" }),
+  });
 }
