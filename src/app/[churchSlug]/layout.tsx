@@ -27,11 +27,14 @@ function isLouvorMinistry(ministry: { name: string; slug: string }) {
   return slug === "louvor" || name.includes("louvor");
 }
 
-function ministryNavigation(ministry: { name: string; slug: string } | null) {
+function ministryNavigation(ministry: { id: string; name: string; slug: string } | null) {
   if (!ministry) return null;
-  if (isLouvorMinistry(ministry)) return { href: "/louvor", label: "Louvor", module: "louvor" as const };
-  if (isKidsMinistry(ministry)) return { href: "/infantil", label: "Kids", module: "infantil" as const };
-  return null;
+  if (isLouvorMinistry(ministry) || isKidsMinistry(ministry)) return null;
+  return {
+    href: `/disponibilidade?ministry=${ministry.id}`,
+    label: ministry.name,
+    module: "generic" as const,
+  };
 }
 
 export default async function TenantLayout({ children, params }: { children: React.ReactNode; params: Promise<{ churchSlug: string }> }) {
@@ -58,7 +61,7 @@ export default async function TenantLayout({ children, params }: { children: Rea
   return (
     <div className="relative h-dvh w-full max-w-full overflow-hidden md:h-auto md:min-h-dvh md:overflow-x-clip">
       <SessionKeeper />
-      <Sidebar churchSlug={churchSlug} churchName={tenant.church.name} canAdmin={tenant.isCoord} isLeader={tenant.isLeader} activeMinistryNavigation={activeMinistryNavigation} hasKids={hasKids} escalasPending={escalasPending ?? 0} guardianOnly={tenant.guardianOnly} />
+      <Sidebar churchSlug={churchSlug} churchName={tenant.church.name} canAdmin={tenant.isCoord} isLeader={tenant.isLeader} activeMinistryNavigation={activeMinistryNavigation} hasLouvor={hasLouvor} hasKids={hasKids} escalasPending={escalasPending ?? 0} guardianOnly={tenant.guardianOnly} />
       <div className="tenant-shell h-full min-w-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] md:h-auto md:overflow-visible md:pl-60">
         <header className="sticky top-0 z-30 w-full max-w-full overflow-x-clip border-b border-foreground/10 bg-background/88 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
           <div className="mx-auto flex h-16 w-full min-w-0 max-w-7xl items-center gap-1 px-[max(0.75rem,env(safe-area-inset-left))] sm:gap-3 sm:px-4 md:px-8">
@@ -97,4 +100,3 @@ export default async function TenantLayout({ children, params }: { children: Rea
     </div>
   );
 }
-

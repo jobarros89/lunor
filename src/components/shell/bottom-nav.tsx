@@ -60,7 +60,7 @@ export function BottomNav({
               )}
             >
               <Icon className="size-[21px] shrink-0" strokeWidth={active ? 2.35 : 1.8} />
-              <span className="sr-only">{label}</span>
+              <span className="mt-1 max-w-full truncate text-[9px] font-medium leading-none">{label}</span>
               {badge > 0 && (
                 <span className="absolute right-1 top-0.5 flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-4 text-white">
                   {badge > 9 ? "9+" : badge}
@@ -73,4 +73,3 @@ export function BottomNav({
     </nav>
   );
 }
-

@@ -1,12 +1,8 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, Baby, BarChart3, BookOpen, ChevronRight, Megaphone, Music, Settings, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, Megaphone } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
-import { getActiveMinistry } from "@/lib/ministry";
-import { checkPlatformAdmin } from "@/lib/platform";
 import { createClient } from "@/lib/supabase/server";
-import { InviteLink } from "@/components/invite-link";
 import { ASSIGNMENT_STATUS_BADGE, ASSIGNMENT_STATUS_LABELS, formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
 import { Badge } from "@/components/ui/badge";
@@ -45,38 +41,13 @@ function joinPtBr(values: string[]) {
   return `${values.slice(0, -1).join(", ")} e ${values.at(-1)}`;
 }
 
-function roleWithArticle(role: string) {
-  const feminine = /^(dire[cç][aã]o|recep[cç][aã]o|lideran[cç]a|intercess[aã]o|m[ií]dia|proje[cç][aã]o|log[ií]stica|produ[cç][aã]o)/i.test(role);
-  return `${feminine ? "na" : "no"} ${role}`;
-}
-
-function describeService(assignments: HomeAssignment[]) {
-  const roles = uniqueNames(assignments.map((assignment) => assignment.role_name));
-  const departments = uniqueNames(assignments.map((assignment) => firstRelated(assignment.departments)?.name));
-
-  if (departments.length === 1) {
-    const department = departments[0];
-    const relevantRoles = roles.filter((role) => role.toLocaleLowerCase("pt-BR") !== department.toLocaleLowerCase("pt-BR"));
-    if (relevantRoles.length === 0) return `Você serve no ${department}`;
-    if (relevantRoles.length === 1) return `Você serve no ${department} como ${relevantRoles[0]}`;
-    return `Você serve no ${department} como ${joinPtBr(relevantRoles)}`;
+function assignmentServiceLabel(assignment: HomeAssignment) {
+  const department = firstRelated(assignment.departments)?.name?.trim();
+  const role = assignment.role_name?.trim();
+  if (department && role && department.toLocaleLowerCase("pt-BR") !== role.toLocaleLowerCase("pt-BR")) {
+    return `${department} · ${role}`;
   }
-
-  if (departments.length > 1) {
-    return `Você serve em ${joinPtBr(departments)}`;
-  }
-
-  if (roles.length === 0) return "Você serve neste encontro";
-  if (roles.length === 1) {
-    const role = roles[0];
-    if (/^(baixo|guitarra|viol[aã]o|teclado|piano|bateria|percuss[aã]o|sax|saxofone|violino|cello|violoncelo)$/i.test(role)) {
-      return `Você serve tocando ${role}`;
-    }
-    if (/^vocal$/i.test(role)) return "Você serve fazendo Vocal";
-    return `Você serve ${roleWithArticle(role)}`;
-  }
-
-  return `Você serve ${joinPtBr(roles.map(roleWithArticle))}`;
+  return role || department || "Equipe";
 }
 
 function homeEventContext(event: AssignmentEvent | null) {
@@ -93,15 +64,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const tenant = await getTenant(churchSlug);
   if (tenant.guardianOnly) redirect(`/${churchSlug}/infantil`);
 
-  const isPlatformAdmin = await checkPlatformAdmin();
-  const { options: meusSetores } = await getActiveMinistry(churchSlug);
-  const temInfantil = meusSetores.some((m) =>
-    ["infantil", "kids", "criancas", "crianças"].includes(m.slug.toLocaleLowerCase("pt-BR"))
-    || /(infantil|kids|crian[cç]as)/i.test(m.name)
-  );
-  const temLouvor = meusSetores.some((m) => m.slug === "louvor" || /louvor/i.test(m.name));
   const supabase = await createClient();
-  const isAdmin = tenant.role === "admin";
 
   const nowIso = new Date().toISOString();
   const [{ data: myEscalas }, { data: nextChurchEvent }] = await Promise.all([
@@ -124,10 +87,6 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
       .maybeSingle(),
   ]);
   const { data: anuncios } = await supabase.rpc("anuncios_infantil", { p_church: tenant.church.id });
-  const { data: inviteCode } = isAdmin
-    ? await supabase.rpc("get_church_invite_code", { p_church: tenant.church.id })
-    : { data: null };
-
   const escalas = (myEscalas ?? []) as unknown as HomeAssignment[];
   const nextAssignedEvent = firstRelated(escalas[0]?.events);
   const nextEvent =
@@ -137,7 +96,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
     : [];
   const heroAssignment = nextEventAssignments[0];
   const nextMinistries = uniqueNames(nextEventAssignments.map((assignment) => firstRelated(assignment.ministries)?.name));
-  const serviceSummary = describeService(nextEventAssignments);
+  const serviceSummary = joinPtBr(uniqueNames(nextEventAssignments.map(assignmentServiceLabel)));
   const nextContext = homeEventContext(nextEvent);
   const nextDate = nextEvent ? new Date(nextEvent.starts_at) : null;
   const day = nextDate ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit" }).format(nextDate) : "—";
@@ -146,8 +105,9 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const arrival = heroAssignment?.arrival_time
     ? new Date(heroAssignment.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
     : null;
-  const canAdmin = tenant.isCoord;
-  const showManage = canAdmin || tenant.isLeader || temInfantil;
+  const agendaAssignments = heroAssignment && nextEvent
+    ? escalas.filter((assignment) => firstRelated(assignment.events)?.id !== nextEvent.id)
+    : escalas;
 
   return (
     <div className="lunor-home min-w-0 space-y-12 overflow-x-clip pb-8">
@@ -223,17 +183,17 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         </div>
       </section>
 
-      <section className="grid gap-12 lg:grid-cols-[1.15fr_0.85fr]">
+      <section className="max-w-4xl">
         <div>
           <div className="flex items-end justify-between border-b border-foreground/25 pb-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Sua agenda</p>
               <h2 className="mt-2 text-2xl font-medium tracking-tight">Onde você vai servir</h2>
             </div>
-            <span className="text-xs text-muted-foreground">{escalas.length} próximas</span>
+            <span className="text-xs text-muted-foreground">{agendaAssignments.length} próximas</span>
           </div>
           <div className="divide-y divide-foreground/15">
-            {escalas.map((a, index) => {
+            {agendaAssignments.map((a, index) => {
               const ev = firstRelated(a.events);
               if (!ev) return null;
               const pendente = a.status === "convidado";
@@ -243,7 +203,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
                   <span className="font-editorial text-3xl text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
                   <Link href={`/${churchSlug}/escalas/${ev.id}`} className="min-w-0 hover:opacity-65">
                     <p className="truncate font-medium">{ev.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{formatEventDate(ev.starts_at)} · {formatEventTime(ev.starts_at)}{context ? ` · ${context}` : ""} · {a.role_name}{a.arrival_time ? ` · chegada ${new Date(a.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{formatEventDate(ev.starts_at)} · {formatEventTime(ev.starts_at)}{context ? ` · ${context}` : ""} · {assignmentServiceLabel(a)}{a.arrival_time ? ` · chegada ${new Date(a.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</p>
                   </Link>
                   {pendente ? <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={ev.id} assignmentId={a.id} /> : (
                     <Badge className={`shrink-0 rounded-none border-0 ${ASSIGNMENT_STATUS_BADGE[a.status] ?? ""}`}>{ASSIGNMENT_STATUS_LABELS[a.status] ?? a.status}</Badge>
@@ -251,53 +211,10 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
                 </div>
               );
             })}
-            {escalas.length === 0 && <p className="py-7 text-sm text-muted-foreground">Nenhuma escala agendada por enquanto.</p>}
-          </div>
-        </div>
-
-        <div>
-          <div className="border-b border-foreground/25 pb-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Atalhos</p>
-            <h2 className="mt-2 text-2xl font-medium tracking-tight">Continue o preparo</h2>
-          </div>
-          <div className="divide-y divide-foreground/15">
-            {temLouvor && <ActionRow href={`/${churchSlug}/louvor`} label="Repertório" description="Músicas, cifras e arranjos" icon={<Music className="size-4" />} />}
-            {tenant.isLeader && <ActionRow href={`/${churchSlug}/pessoas`} label="Equipe" description="Pessoas, aptidões e ministérios" icon={<Users className="size-4" />} />}
-            {tenant.isLeader && <ActionRow href={`/${churchSlug}/distribuicao`} label="Radar de carga" description="Cuide da frequência e do revezamento" icon={<BarChart3 className="size-4" />} />}
-            {temInfantil && <ActionRow href={`/${churchSlug}/infantil`} label="Kids" description="Check-in e retirada segura" icon={<Baby className="size-4" />} />}
+            {agendaAssignments.length === 0 && <p className="py-7 text-sm text-muted-foreground">{heroAssignment ? "Nenhuma outra escala agendada por enquanto." : "Nenhuma escala agendada por enquanto."}</p>}
           </div>
         </div>
       </section>
-
-      {showManage && (
-        <section>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Organização</p>
-          <div className="mt-4 grid border-y border-foreground/20 sm:grid-cols-2 lg:grid-cols-3">
-            {isAdmin && <NavRow href={`/${churchSlug}/guia`} icon={<BookOpen className="size-4" />} title="Guia de uso" description="Comece por aqui" />}
-            {canAdmin && <NavRow href={`/${churchSlug}/admin`} icon={<Settings className="size-4" />} title="Administração" description="Ministérios e configurações" />}
-            {isPlatformAdmin && <NavRow href="/painel" icon={<ShieldCheck className="size-4" />} title="Plataforma" description="Igrejas, equipes e logs" />}
-          </div>
-        </section>
-      )}
-
-      {isAdmin && inviteCode && (
-        <section className="flex min-w-0 flex-col justify-between gap-5 overflow-hidden border border-zinc-200 border-l-4 border-l-[#6e5ce6] bg-white px-6 py-6 text-zinc-950 dark:border-white/15 dark:border-l-[#6e5ce6] dark:bg-[#151518] dark:text-white sm:flex-row sm:items-center">
-          <div>
-            <p className="font-medium">Convide sua equipe</p>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Envie um link. A pessoa cria a conta e entra na igreja automaticamente.</p>
-          </div>
-          <InviteLink inviteCode={inviteCode} />
-        </section>
-      )}
     </div>
   );
 }
-
-function ActionRow({ href, label, description, icon }: { href: string; label: string; description: string; icon: ReactNode }) {
-  return <Link href={href} className="group flex items-center gap-4 py-5 hover:opacity-65"><span className="flex size-9 items-center justify-center border border-foreground/25">{icon}</span><span className="min-w-0 flex-1"><span className="block font-medium">{label}</span><span className="mt-0.5 block text-xs text-muted-foreground">{description}</span></span><ArrowRight className="size-4 transition-transform group-hover:translate-x-1" /></Link>;
-}
-
-function NavRow({ href, icon, title, description }: { href: string; icon: ReactNode; title: string; description: string }) {
-  return <Link href={href} className="group flex items-center gap-4 border-foreground/15 px-1 py-5 sm:border-r sm:px-5"><span>{icon}</span><span className="min-w-0 flex-1"><span className="block font-medium">{title}</span><span className="block text-xs text-muted-foreground">{description}</span></span><ChevronRight className="size-4 transition-transform group-hover:translate-x-1" /></Link>;
-}
-

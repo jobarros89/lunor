@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
@@ -24,12 +25,14 @@ export default async function DisponibilidadePage({
   searchParams,
 }: {
   params: Promise<{ churchSlug: string }>;
-  searchParams: Promise<{ ministry?: string; module?: "louvor" | "kids" }>;
+  searchParams: Promise<{ ministry?: string; module?: "louvor" | "kids"; view?: "mine" | "team" }>;
 }) {
   const [{ churchSlug }, query] = await Promise.all([params, searchParams]);
   const tenant = await getTenant(churchSlug);
-  const { active: cookieActive, options } = await getActiveMinistry(churchSlug);
-  const active = options.find((option) => option.id === query.ministry) ?? cookieActive;
+  const { options } = await getActiveMinistry(churchSlug);
+  const active = query.ministry
+    ? options.find((option) => option.id === query.ministry) ?? null
+    : null;
   const supabase = await createClient();
   const since = new Date();
   since.setHours(0, 0, 0, 0);
@@ -44,7 +47,7 @@ export default async function DisponibilidadePage({
           .or(`ministry_id.eq.${active.id},ministry_id.is.null`)
           .gte("starts_at", since.toISOString())
           .order("starts_at")
-          .limit(40)
+          .limit(200)
       : Promise.resolve({ data: [] }),
     active
       ? supabase
@@ -292,6 +295,56 @@ export default async function DisponibilidadePage({
     }))
     .filter((request) => request.eventIds.length > 0);
 
+  if (!active) {
+    return (
+      <div className="space-y-6">
+        <header>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Disponibilidade
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Escolha o ministério</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Cada equipe mantém sua própria disponibilidade. Escolha onde você vai informar ou consultar as respostas.
+          </p>
+        </header>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {options.map((option) => {
+            const isLouvor = option.slug === "louvor" || /louvor/i.test(option.name);
+            const isKids = ["kids", "infantil", "criancas", "crianças"].includes(option.slug.toLocaleLowerCase("pt-BR"))
+              || /(kids|infantil|crian[cç]as)/i.test(option.name);
+            const href = isLouvor
+              ? `/${churchSlug}/louvor/disponibilidade`
+              : isKids
+                ? `/${churchSlug}/infantil/disponibilidade`
+                : `/${churchSlug}/disponibilidade?ministry=${option.id}`;
+            return (
+              <Link key={option.id} href={href} className="rounded-2xl border bg-card p-4 transition-colors hover:bg-accent/40">
+                <span className="font-medium">{option.name}</span>
+                <span className="mt-1 block text-sm text-muted-foreground">
+                  {option.canManage ? "Minha disponibilidade e visão da equipe" : "Minha disponibilidade"}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+        {options.length === 0 && (
+          <p className="rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">
+            Você ainda não participa de um ministério com disponibilidade ativa.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  const view = active.canManage && query.view !== "mine" ? "team" : "mine";
+  const availabilityPath = query.module === "louvor"
+    ? `/${churchSlug}/louvor/disponibilidade`
+    : query.module === "kids"
+      ? `/${churchSlug}/infantil/disponibilidade`
+      : `/${churchSlug}/disponibilidade?ministry=${active.id}`;
+  const viewHref = (nextView: "mine" | "team") =>
+    `${availabilityPath}${availabilityPath.includes("?") ? "&" : "?"}view=${nextView}`;
+
   return (
     <div className="space-y-8">
       <header>
@@ -316,7 +369,26 @@ export default async function DisponibilidadePage({
         </p>
       </header>
 
-      {active ? (
+      {active.canManage && (
+        <nav className="inline-flex rounded-full border p-1" aria-label="Visão da disponibilidade">
+          <Link
+            href={viewHref("mine")}
+            aria-current={view === "mine" ? "page" : undefined}
+            className={`flex min-h-10 items-center rounded-full px-4 text-sm font-medium transition-colors ${view === "mine" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Minha disponibilidade
+          </Link>
+          <Link
+            href={viewHref("team")}
+            aria-current={view === "team" ? "page" : undefined}
+            className={`flex min-h-10 items-center rounded-full px-4 text-sm font-medium transition-colors ${view === "team" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Equipe
+          </Link>
+        </nav>
+      )}
+
+      {view === "mine" ? (
         <div className="space-y-8">
           <AvailabilityCalendar
             churchSlug={churchSlug}
@@ -328,20 +400,28 @@ export default async function DisponibilidadePage({
             campuses={campusResult.data ?? []}
           />
 
-          <AvailabilityPanel
-            churchSlug={churchSlug}
-            churchId={tenant.church.id}
-            ministryId={active.id}
-            ministryName={active.name}
-            canManage={active.canManage}
-            events={events}
-            requests={requests}
-          />
+          {requests.length > 0 && (
+            <AvailabilityPanel
+              churchSlug={churchSlug}
+              churchId={tenant.church.id}
+              ministryId={active.id}
+              ministryName={active.name}
+              canManage={false}
+              events={events}
+              requests={requests}
+            />
+          )}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          Você ainda não participa de um ministério com disponibilidade ativa.
-        </p>
+        <AvailabilityPanel
+          churchSlug={churchSlug}
+          churchId={tenant.church.id}
+          ministryId={active.id}
+          ministryName={active.name}
+          canManage
+          events={events}
+          requests={requests}
+        />
       )}
     </div>
   );
