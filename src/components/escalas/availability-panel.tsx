@@ -441,13 +441,20 @@ export function AvailabilityPanel({
   const [pending, startTransition] = useTransition();
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
+  const initialEventMonth =
+    events[0]?.monthKey ?? new Date().toISOString().slice(0, 7);
   const [selected, setSelected] = useState<string[]>([]);
+  const [teamMonth, setTeamMonth] = useState(initialEventMonth);
+  const [requestMonth, setRequestMonth] = useState(initialEventMonth);
   const [openMonths, setOpenMonths] = useState<string[]>(() =>
     events[0]?.monthKey ? [events[0].monthKey] : []
   );
   const byId = new Map(events.map((event) => [event.id, event]));
   const requestedIds = new Set(requests.flatMap((request) => request.eventIds));
   const requestableEvents = events.filter((event) => !requestedIds.has(event.id));
+  const filteredRequestableEvents = requestableEvents.filter(
+    (event) => event.monthKey === requestMonth
+  );
   const groupedEvents = Object.entries(
     events.reduce<Record<string, { label: string; events: AvailabilityEvent[] }>>((groups, event) => {
       const group = groups[event.monthKey] ?? { label: event.monthLabel, events: [] };
@@ -500,14 +507,32 @@ export function AvailabilityPanel({
     <div className="space-y-8">
       {canManage && (
         <section className="space-y-3">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-              Equipe · {ministryName}
-            </p>
-            <h2 className="mt-1 text-xl font-semibold tracking-tight">Disponibilidade para montar a escala</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              O calendário mensal aparece em cada evento. Uma resposta específica do evento tem prioridade.
-            </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                Equipe · {ministryName}
+              </p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight">Disponibilidade para montar a escala</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                O calendário mensal aparece em cada evento. Uma resposta específica do evento tem prioridade.
+              </p>
+            </div>
+            <label className="w-full shrink-0 sm:w-48">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">Mês e ano</span>
+              <Input
+                type="month"
+                value={teamMonth}
+                onChange={(event) => {
+                  const month = event.target.value;
+                  setTeamMonth(month);
+                  setOpenMonths((current) =>
+                    current.includes(month) ? current : [...current, month]
+                  );
+                }}
+                className="h-11 rounded-xl"
+                aria-label="Mês e ano da disponibilidade da equipe"
+              />
+            </label>
           </div>
 
           {events.length > 0 ? (
@@ -515,7 +540,9 @@ export function AvailabilityPanel({
               <p className="px-1 text-xs text-muted-foreground sm:hidden">
                 Segure um culto para selecionar.
               </p>
-              {groupedEvents.map(([monthKey, group]) => {
+              {groupedEvents
+                .filter(([monthKey]) => monthKey === teamMonth)
+                .map(([monthKey, group]) => {
                 const isOpen = openMonths.includes(monthKey);
                 return (
                   <section key={monthKey} className="overflow-hidden rounded-3xl border bg-card/30">
@@ -549,6 +576,11 @@ export function AvailabilityPanel({
                   </section>
                 );
               })}
+              {!groupedEvents.some(([monthKey]) => monthKey === teamMonth) ? (
+                <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Nenhum culto encontrado neste mês.
+                </div>
+              ) : null}
               {selected.length > 0 ? (
                 <div className="sticky bottom-20 z-20 flex items-center justify-between gap-3 rounded-2xl border bg-background/95 p-3 shadow-lg backdrop-blur md:bottom-4">
                   <p className="text-sm font-medium">
@@ -619,6 +651,16 @@ export function AvailabilityPanel({
           <CardContent className="space-y-4">
             {requestableEvents.length > 0 ? (
               <>
+                <label className="block w-full sm:w-48">
+                  <span className="mb-1 block text-xs font-medium text-muted-foreground">Mês e ano dos cultos</span>
+                  <Input
+                    type="month"
+                    value={requestMonth}
+                    onChange={(event) => setRequestMonth(event.target.value)}
+                    className="h-11 rounded-xl"
+                    aria-label="Mês e ano dos cultos para solicitar disponibilidade"
+                  />
+                </label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Input
                     value={title}
@@ -636,7 +678,7 @@ export function AvailabilityPanel({
                 </div>
 
                 <div className="space-y-2">
-                  {requestableEvents.map((event) => (
+                  {filteredRequestableEvents.map((event) => (
                     <label
                       key={event.id}
                       className={cn(
@@ -658,6 +700,11 @@ export function AvailabilityPanel({
                       </span>
                     </label>
                   ))}
+                  {filteredRequestableEvents.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed p-5 text-center text-sm text-muted-foreground">
+                      Nenhum culto disponível para solicitação neste mês.
+                    </p>
+                  ) : null}
                 </div>
 
                 <Button
