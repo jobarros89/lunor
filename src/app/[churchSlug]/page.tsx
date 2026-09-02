@@ -103,26 +103,39 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const supabase = await createClient();
   const isAdmin = tenant.role === "admin";
 
-  const { data: myEscalas } = await supabase
-    .from("assignments")
-    .select("id, role_name, status, arrival_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, location, service_period, campuses(name))")
-    .eq("church_id", tenant.church.id)
-    .eq("user_id", tenant.userId)
-    .neq("status", "substituido")
-    .gte("events.starts_at", new Date().toISOString())
-    .order("starts_at", { ascending: true, referencedTable: "events" })
-    .limit(8);
+  const nowIso = new Date().toISOString();
+  const [{ data: myEscalas }, { data: nextChurchEvent }] = await Promise.all([
+    supabase
+      .from("assignments")
+      .select("id, role_name, status, arrival_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, location, service_period, campuses(name))")
+      .eq("church_id", tenant.church.id)
+      .eq("user_id", tenant.userId)
+      .neq("status", "substituido")
+      .gte("events.starts_at", nowIso)
+      .order("starts_at", { ascending: true, referencedTable: "events" })
+      .limit(8),
+    supabase
+      .from("events")
+      .select("id, title, starts_at, location, service_period, campuses(name)")
+      .eq("church_id", tenant.church.id)
+      .gte("starts_at", nowIso)
+      .order("starts_at")
+      .limit(1)
+      .maybeSingle(),
+  ]);
   const { data: anuncios } = await supabase.rpc("anuncios_infantil", { p_church: tenant.church.id });
   const { data: inviteCode } = isAdmin
     ? await supabase.rpc("get_church_invite_code", { p_church: tenant.church.id })
     : { data: null };
 
   const escalas = (myEscalas ?? []) as unknown as HomeAssignment[];
-  const nextAssignment = escalas[0];
-  const nextEvent = firstRelated(nextAssignment?.events);
+  const nextAssignedEvent = firstRelated(escalas[0]?.events);
+  const nextEvent =
+    (nextChurchEvent as unknown as AssignmentEvent | null) ?? nextAssignedEvent;
   const nextEventAssignments = nextEvent
     ? escalas.filter((assignment) => firstRelated(assignment.events)?.id === nextEvent.id)
     : [];
+  const heroAssignment = nextEventAssignments[0];
   const nextMinistries = uniqueNames(nextEventAssignments.map((assignment) => firstRelated(assignment.ministries)?.name));
   const serviceSummary = describeService(nextEventAssignments);
   const nextContext = homeEventContext(nextEvent);
@@ -130,8 +143,8 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const day = nextDate ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit" }).format(nextDate) : "—";
   const month = nextDate ? new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(nextDate).replace(".", "") : "sem data";
   const weekday = nextDate ? new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(nextDate) : "Próximo encontro";
-  const arrival = nextAssignment?.arrival_time
-    ? new Date(nextAssignment.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+  const arrival = heroAssignment?.arrival_time
+    ? new Date(heroAssignment.arrival_time).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
     : null;
   const canAdmin = tenant.isCoord;
   const showManage = canAdmin || tenant.isLeader || temInfantil;
@@ -154,10 +167,10 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
       <section className="lunor-prism relative overflow-hidden rounded-[24px] border border-foreground/10 shadow-sm">
         <div className="relative z-10 px-6 pt-8 md:px-10 md:pt-10 lg:px-12 lg:pt-12">
           <div className="flex flex-wrap items-center gap-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em]">{nextAssignment ? "Meu domingo" : "Próximo culto"}</p>
-            {nextAssignment && (
-              <Badge className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[nextAssignment.status] ?? ""}`}>
-                {ASSIGNMENT_STATUS_LABELS[nextAssignment.status] ?? nextAssignment.status}
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em]">{heroAssignment ? "Meu próximo serviço" : "Próximo culto"}</p>
+            {heroAssignment && (
+              <Badge className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[heroAssignment.status] ?? ""}`}>
+                {ASSIGNMENT_STATUS_LABELS[heroAssignment.status] ?? heroAssignment.status}
               </Badge>
             )}
           </div>
@@ -174,32 +187,37 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
             </div>
           </div>
 
-          {nextAssignment?.status === "convidado" && nextEvent && (
+          {heroAssignment?.status === "convidado" && nextEvent && (
             <div className="mt-6 max-w-sm">
-              <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={nextEvent.id} assignmentId={nextAssignment.id} />
+              <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={nextEvent.id} assignmentId={heroAssignment.id} />
             </div>
           )}
 
-          {!nextAssignment && (
+          {!heroAssignment && !nextEvent && (
             <p className="mt-6 max-w-md text-sm leading-relaxed text-muted-foreground">Prepare o coração. Prepare o time. Prepare o ambiente.</p>
           )}
         </div>
 
         <div className="relative z-10 mt-10 border-t border-foreground/10 bg-background/20 px-6 py-5 backdrop-blur-sm md:px-10 lg:flex lg:items-center lg:justify-between lg:gap-8 lg:px-12">
-          {nextAssignment ? (
+          {heroAssignment ? (
             <div className="flex min-w-0 flex-1 flex-wrap gap-x-5 gap-y-2 text-sm">
               <span className="font-medium">{serviceSummary}</span>
               {nextMinistries.length > 0 && <span><span className="text-muted-foreground">Equipe</span> <strong>{joinPtBr(nextMinistries)}</strong></span>}
               {arrival && <span><span className="text-muted-foreground">Chegada</span> <strong>{arrival}</strong></span>}
               {nextContext && <span><span className="text-muted-foreground">Local</span> <strong>{nextContext}</strong></span>}
-              {nextAssignment.items_to_bring && <span><span className="text-muted-foreground">Levar</span> <strong>{nextAssignment.items_to_bring}</strong></span>}
+              {heroAssignment.items_to_bring && <span><span className="text-muted-foreground">Levar</span> <strong>{heroAssignment.items_to_bring}</strong></span>}
+            </div>
+          ) : nextEvent ? (
+            <div className="flex min-w-0 flex-1 flex-wrap gap-x-5 gap-y-2 text-sm">
+              <span className="font-medium">Próximo culto cadastrado</span>
+              {nextContext && <span><span className="text-muted-foreground">Local</span> <strong>{nextContext}</strong></span>}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Seu próximo compromisso vai aparecer aqui.</p>
           )}
 
           <Link href={nextEvent ? `/${churchSlug}/escalas/${nextEvent.id}` : `/${churchSlug}/escalas`} className="mt-4 flex min-h-12 w-full items-center justify-between rounded-md bg-[#6e5ce6] px-5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:mt-0 lg:w-[240px] lg:shrink-0">
-            {nextEvent ? "Abrir meu preparo" : "Ver escalas"}
+            {nextEvent ? (heroAssignment ? "Abrir meu preparo" : "Ver culto") : "Ver escalas"}
             <ArrowRight className="size-5" />
           </Link>
         </div>
