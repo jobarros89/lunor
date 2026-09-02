@@ -108,7 +108,7 @@ export async function loadOperationalSummary({
         .eq("ministry_id", ministryId)
         .in("event_id", eventIds),
       supabase
-        .from("member_availability_event")
+        .from("member_availability")
         .select("event_id, user_id, status")
         .eq("church_id", churchId)
         .eq("ministry_id", ministryId)
