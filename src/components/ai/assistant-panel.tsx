@@ -34,12 +34,32 @@ type AssistantResponse = {
   error?: string;
 };
 
-const SUGGESTIONS = [
+const DEFAULT_SUGGESTIONS = [
   "O que precisa da minha atenção nos próximos cultos?",
   "Quem confirmou o próximo culto?",
   "Quem está indisponível para o próximo culto?",
   "Me ajude a montar a próxima escala.",
 ];
+
+const WORSHIP_SUGGESTIONS = [
+  "Analise o repertório do próximo culto.",
+  "Quais músicas estamos repetindo mais?",
+  "Sugira 4 músicas do nosso acervo para o próximo culto.",
+  "Quais músicas estão sem tom, BPM ou compasso?",
+];
+
+function isWorshipMinistry(name: string) {
+  const normalized = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+  return (
+    normalized.includes("louvor") ||
+    normalized.includes("worship") ||
+    normalized.includes("musica")
+  );
+}
 
 function proposalKey(proposal: AssignmentProposal) {
   return `${proposal.eventId}:${proposal.userId}:${proposal.roleName.toLocaleLowerCase("pt-BR")}`;
@@ -74,6 +94,8 @@ export function AssistantPanel({
   const [confirming, setConfirming] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
   const [proposalErrors, setProposalErrors] = useState<Record<string, string>>({});
+  const worshipMode = isWorshipMinistry(ministryName);
+  const suggestions = worshipMode ? WORSHIP_SUGGESTIONS : DEFAULT_SUGGESTIONS;
 
   async function ask(text: string) {
     const clean = text.trim();
@@ -168,7 +190,7 @@ export function AssistantPanel({
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              {SUGGESTIONS.map((suggestion) => (
+              {suggestions.map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"
@@ -188,7 +210,7 @@ export function AssistantPanel({
         <div className="space-y-3 rounded-2xl border border-[#6e5ce6]/20 bg-[#6e5ce6]/5 p-4">
           <p className="text-sm font-medium">Como posso ajudar com {ministryName}?</p>
           <div className="flex flex-wrap gap-2">
-            {SUGGESTIONS.map((suggestion) => (
+            {suggestions.map((suggestion) => (
               <button
                 key={suggestion}
                 type="button"
@@ -318,7 +340,11 @@ export function AssistantPanel({
           <textarea
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
-            placeholder="Ex.: Quem posso escalar para baixo domingo?"
+            placeholder={
+              worshipMode
+                ? "Ex.: Analise o repertório do próximo culto."
+                : "Ex.: O que precisa da minha atenção no próximo culto?"
+            }
             rows={2}
             maxLength={1500}
             className="min-h-12 flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
@@ -336,7 +362,9 @@ export function AssistantPanel({
       </form>
 
       <p className="text-center text-xs text-muted-foreground">
-        O assistente consulta dados e pode preparar sugestões. Uma escala só é gravada depois de você confirmar explicitamente.
+        {worshipMode
+          ? "No Louvor, o assistente consulta o acervo e os repertórios reais. Nesta fase, ele analisa e sugere sem alterar o repertório automaticamente."
+          : "O assistente consulta dados e pode preparar sugestões. Alterações só são gravadas depois de uma confirmação explícita."}
       </p>
     </div>
   );

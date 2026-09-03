@@ -11,6 +11,10 @@ import {
   isScheduleDraft,
   type ScheduleDraft,
 } from "@/lib/ai/schedule-draft";
+import {
+  analyzeWorshipSetlist,
+  getWorshipLibraryInsights,
+} from "@/lib/ai/worship";
 
 const INTERNAL_TOOLS: LunorAiTool[] = [
   {
@@ -76,6 +80,46 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: "get_worship_library_insights",
+    description:
+      "Consulta o acervo ativo do Louvor com tom, BPM, compasso, materiais e uso recente. Use para analisar repetição, metadados faltantes ou sugerir repertório somente com músicas reais do acervo. Não altera dados.",
+    parameters: {
+      type: "object",
+      properties: {
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 100,
+          description: "Máximo de músicas retornadas. Padrão: 40.",
+        },
+        historyDays: {
+          type: "integer",
+          minimum: 14,
+          maximum: 365,
+          description: "Janela de histórico para uso das músicas. Padrão: 120 dias.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "analyze_worship_setlist",
+    description:
+      "Analisa o repertório real de um culto do Louvor: sequência, tons efetivos, BPM, compasso, repetição recente e mudanças entre músicas. Não altera o repertório.",
+    parameters: {
+      type: "object",
+      properties: {
+        eventId: {
+          type: "string",
+          format: "uuid",
+          description: "ID do culto cujo repertório será analisado.",
+        },
+      },
+      required: ["eventId"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 const candidatesSchema = z.object({
@@ -91,6 +135,13 @@ const proposalSchema = z.object({
 const draftSchema = z.object({
   eventId: z.string().uuid(),
   maxRoles: z.number().int().min(1).max(20).optional(),
+});
+const worshipLibrarySchema = z.object({
+  limit: z.number().int().min(1).max(100).optional(),
+  historyDays: z.number().int().min(14).max(365).optional(),
+});
+const worshipSetlistSchema = z.object({
+  eventId: z.string().uuid(),
 });
 
 export function internalAiTools(): LunorAiTool[] {
@@ -124,6 +175,15 @@ export async function executeInternalAiTool(
         maxRoles: input.maxRoles ?? 12,
       });
     }
+    case "get_worship_library_insights": {
+      const input = worshipLibrarySchema.parse(args);
+      return getWorshipLibraryInsights(context, {
+        limit: input.limit ?? 40,
+        historyDays: input.historyDays ?? 120,
+      });
+    }
+    case "analyze_worship_setlist":
+      return analyzeWorshipSetlist(context, worshipSetlistSchema.parse(args));
     default:
       throw new Error("unknown_internal_tool");
   }
