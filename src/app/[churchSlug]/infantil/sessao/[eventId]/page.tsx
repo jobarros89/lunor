@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getInfantilMinistry, formatAge, suggestClass, type ChildClass } from "@/lib/infantil";
 import { formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
+import { kidsPrintSettingsFromRow } from "@/lib/kids-print-settings";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Guardian, SessionChild } from "@/components/infantil/session-child";
 import { ReceptionSearch } from "@/components/infantil/reception-search";
@@ -56,6 +57,7 @@ export default async function SessaoInfantilPage({
     { data: children },
     { data: checkins },
     { data: deliveryRows },
+    { data: printSettingsRow },
   ] = await Promise.all([
     supabase
       .from("events")
@@ -80,10 +82,18 @@ export default async function SessaoInfantilPage({
       .eq("event_id", eventId)
       .order("checked_in_at", { ascending: true }),
     supabase.rpc("child_page_delivery_status", { p_event: eventId }),
+    supabase
+      .from("kids_print_settings")
+      .select(
+        "print_mode, label_width_mm, label_height_mm, margin_mm, orientation, copies, qr_enabled"
+      )
+      .eq("ministry_id", ministry.id)
+      .maybeSingle(),
   ]);
 
   if (!event) notFound();
 
+  const printSettings = kidsPrintSettingsFromRow(printSettingsRow);
   const campus = event.campuses as unknown as { name: string } | null;
   const eventContext = eventContextLabel({
     campusName: campus?.name,
@@ -226,6 +236,7 @@ export default async function SessaoInfantilPage({
           eventTitle={event.title}
           eventContext={eventContext}
           podeLiberar={podeLiberar}
+          printSettings={printSettings}
         />
       ) : (
         <Card className="rounded-3xl">
@@ -244,4 +255,3 @@ export default async function SessaoInfantilPage({
     </div>
   );
 }
-

@@ -2,7 +2,8 @@
 
 import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { qrSvgMarkup } from "@/lib/qr";
+import { printKidsLabel } from "@/lib/kids-label-print";
+import type { KidsPrintSettings } from "@/lib/kids-print-settings";
 
 const PROD_ORIGIN = "https://lunorservice.com";
 
@@ -19,6 +20,7 @@ export function PrintLabelButton({
   pickupToken,
   eventTitle,
   eventContext,
+  printSettings,
 }: {
   churchName: string;
   childName: string;
@@ -32,69 +34,28 @@ export function PrintLabelButton({
   pickupToken: string;
   eventTitle: string;
   eventContext: string;
+  printSettings: KidsPrintSettings;
 }) {
   function printLabel() {
-    const popup = window.open("", "_blank", "width=620,height=560");
-    if (!popup) return;
-
-    const restriction = restrictedPickupNames.length
-      ? `Não entregar para: ${restrictedPickupNames.join(", ")}`
-      : "";
     const currentUrl = `${window.location.origin.replace(/\/$/, "")}/q/${pickupToken}`;
     const pickupUrl = new TextEncoder().encode(currentUrl).length <= 78
       ? currentUrl
       : `${PROD_ORIGIN}/q/${pickupToken}`;
-    const qr = qrSvgMarkup(pickupUrl, 3, 4);
 
-    popup.document.write(`<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <title>Etiqueta ${escapeHtml(code)}</title>
-  <style>
-    @page { size: 62mm 50mm; margin: 2.5mm; }
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; margin: 0; color: #111; }
-    .label { border: 1px solid #111; border-radius: 8px; padding: 7px; }
-    .church { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-    .brand { font-size: 8px; margin-top: 1px; color: #444; text-transform: uppercase; letter-spacing: .1em; }
-    .name { font-size: 18px; line-height: 1.05; font-weight: 800; margin-top: 5px; }
-    .meta { font-size: 10px; margin-top: 3px; }
-    .meta strong { font-weight: 700; }
-    .event { font-size: 9px; margin-top: 3px; color: #333; }
-    .security { display: flex; align-items: end; justify-content: space-between; gap: 8px; margin-top: 6px; padding-top: 5px; border-top: 1px solid #bbb; }
-    .security-copy { min-width: 0; }
-    .qr { width: 54px; height: 54px; flex: 0 0 54px; }
-    .qr svg { display: block; width: 100%; height: 100%; }
-    .security-label { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
-    .code { font-size: 27px; line-height: 1; font-weight: 900; letter-spacing: .12em; }
-    .alert { margin-top: 5px; border: 2px solid #111; border-radius: 5px; padding: 4px 5px; font-size: 9px; font-weight: 700; line-height: 1.2; }
-    .attention { margin-top: 3px; border: 1px solid #555; border-radius: 5px; padding: 3px 5px; font-size: 8px; line-height: 1.2; }
-  </style>
-</head>
-<body>
-  <div class="label">
-    <div class="church">${escapeHtml(churchName)}</div>
-    <div class="brand">LUNOR Kids</div>
-    <div class="name">${escapeHtml(childName)}</div>
-    <div class="meta"><strong>Idade / Sala:</strong> ${escapeHtml(childAge)}${className ? ` · ${escapeHtml(className)}` : " · Turma não definida"}</div>
-    <div class="meta"><strong>Responsável:</strong> ${escapeHtml(guardianName ?? "Não informado")}</div>
-    <div class="event">${escapeHtml(eventTitle)}${eventContext ? ` · ${escapeHtml(eventContext)}` : ""}</div>
-    ${allergies ? `<div class="alert">⚠ ALERTA DE ALERGIA: ${escapeHtml(allergies)}</div>` : ""}
-    ${restriction ? `<div class="alert">RESTRIÇÃO DE SAÍDA: ${escapeHtml(restriction)}</div>` : ""}
-    ${specialNeeds ? `<div class="attention"><strong>ATENÇÃO ESPECIAL:</strong> ${escapeHtml(specialNeeds)}</div>` : ""}
-    <div class="security">
-      <div class="security-copy">
-        <div class="security-label">Código de segurança</div>
-        <div class="code">${escapeHtml(code)}</div>
-      </div>
-      <div class="qr">${qr}</div>
-    </div>
-  </div>
-  <script>window.onload = () => { window.print(); window.close(); };</script>
-</body>
-</html>`);
-    popup.document.close();
+    printKidsLabel(printSettings, {
+      churchName,
+      childName,
+      childAge,
+      className,
+      guardianName,
+      restrictedPickupNames,
+      allergies,
+      specialNeeds,
+      code,
+      pickupUrl,
+      eventTitle,
+      eventContext,
+    });
   }
 
   return (
@@ -108,17 +69,4 @@ export function PrintLabelButton({
       Etiqueta
     </Button>
   );
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>'"]/g, (char) => {
-    const entities: Record<string, string> = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      "'": "&#39;",
-      '"': "&quot;",
-    };
-    return entities[char] ?? char;
-  });
 }
