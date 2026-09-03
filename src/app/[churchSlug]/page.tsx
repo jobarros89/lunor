@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Megaphone } from "lucide-react";
@@ -5,6 +6,7 @@ import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
 import { loadOperationalSummary } from "@/lib/operational-summary-server";
+import type { OperationalSummary } from "@/lib/operational-summary";
 import { ASSIGNMENT_STATUS_BADGE, ASSIGNMENT_STATUS_LABELS, formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
 import { resolveServiceWindow, timeLabel } from "@/lib/service-window";
@@ -76,6 +78,34 @@ function pairKey(eventId: string, ministryId: string) {
   return `${eventId}:${ministryId}`;
 }
 
+async function DeferredOperationalSummary({
+  churchSlug,
+  summaryPromise,
+}: {
+  churchSlug: string;
+  summaryPromise: Promise<OperationalSummary | null>;
+}) {
+  const summary = await summaryPromise;
+  if (!summary) return null;
+  return <OperationalSummarySection churchSlug={churchSlug} summary={summary} />;
+}
+
+function OperationalSummaryFallback() {
+  return (
+    <section className="space-y-4" aria-label="Carregando resumo operacional">
+      <div className="border-b border-foreground/20 pb-3">
+        <div className="h-3 w-44 rounded bg-muted" />
+        <div className="mt-3 h-7 w-72 max-w-full rounded bg-muted" />
+      </div>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="h-[84px] rounded-2xl border bg-card/40" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default async function HomePage({ params }: { params: Promise<{ churchSlug: string }> }) {
   const { churchSlug } = await params;
   const tenant = await getTenant(churchSlug);
@@ -83,7 +113,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
 
   const supabase = await createClient();
   const { active: activeMinistry } = await getActiveMinistry(churchSlug);
-  const operationalSummaryPromise = activeMinistry?.canManage
+  const operationalSummaryPromise: Promise<OperationalSummary | null> = activeMinistry?.canManage
     ? loadOperationalSummary({
         churchId: tenant.church.id,
         ministryId: activeMinistry.id,
@@ -97,7 +127,6 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
     { data: nextChurchEvent },
     { data: serviceWindows },
     { data: anuncios },
-    operationalSummary,
   ] = await Promise.all([
     supabase
       .from("assignments")
@@ -122,7 +151,6 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
       .eq("church_id", tenant.church.id)
       .gte("events.starts_at", nowIso),
     supabase.rpc("anuncios_infantil", { p_church: tenant.church.id }),
-    operationalSummaryPromise,
   ]);
   const escalas = (myEscalas ?? []) as unknown as HomeAssignment[];
   const windowByPair = new Map<string, ServiceWindowRow>();
@@ -240,8 +268,13 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         </div>
       </section>
 
-      {operationalSummary && (
-        <OperationalSummarySection churchSlug={churchSlug} summary={operationalSummary} />
+      {activeMinistry?.canManage && (
+        <Suspense fallback={<OperationalSummaryFallback />}>
+          <DeferredOperationalSummary
+            churchSlug={churchSlug}
+            summaryPromise={operationalSummaryPromise}
+          />
+        </Suspense>
       )}
 
       <section className="max-w-4xl">
