@@ -4,6 +4,7 @@ export type ShellNavItemId =
   | "kids"
   | "ministry"
   | "escalas"
+  | "assistente"
   | "perfil"
   | "pessoas"
   | "admin";
@@ -60,10 +61,13 @@ export function buildShellNavigation({
         ]
       : []),
     { id: "escalas", href: "/escalas", label: "Cultos e escalas" },
-    { id: "perfil", href: "/perfil", label: "Perfil" },
     ...(isLeader
-      ? [{ id: "pessoas" as const, href: "/pessoas", label: "Equipe" }]
+      ? [
+          { id: "assistente" as const, href: "/assistente", label: "Assistente LUNOR" },
+          { id: "pessoas" as const, href: "/pessoas", label: "Equipe" },
+        ]
       : []),
+    { id: "perfil", href: "/perfil", label: "Perfil" },
     ...(canAdmin
       ? [{ id: "admin" as const, href: "/admin", label: "Administração" }]
       : []),

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Baby, Calendar, ChevronRight, Home, Music2, Settings, User, Users } from "lucide-react";
+import { Baby, Calendar, ChevronRight, Home, Music2, Settings, Sparkles, User, Users } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
@@ -30,6 +30,7 @@ const ICONS: Record<ShellNavItemId, React.ComponentType<{ className?: string }>>
   kids: Baby,
   ministry: Users,
   escalas: Calendar,
+  assistente: Sparkles,
   perfil: User,
   pessoas: Users,
   admin: Settings,
@@ -98,17 +99,19 @@ export default async function MaisPage({
       <div className="grid gap-3 sm:grid-cols-2">
         {nav.map((item) => {
           const Icon = ICONS[item.id];
-          const description = item.id === "pessoas"
-            ? "Pessoas, funções e permissões da equipe"
-            : item.id === "admin"
-              ? "Configurações, campi, convite e gestão da igreja"
-              : item.id === "perfil"
-                ? "Perfil, notificações e seus dados"
-                : item.id === "escalas"
-                  ? "Cultos, convites e suas próximas escalas"
-                  : item.id === "ministry"
-                    ? "Disponibilidade e visão do ministério ativo"
-                    : `Abrir ${item.label}`;
+          const description = item.id === "assistente"
+            ? "Pergunte sobre cultos, confirmações, pendências e disponibilidade"
+            : item.id === "pessoas"
+              ? "Pessoas, funções e permissões da equipe"
+              : item.id === "admin"
+                ? "Configurações, campi, convite e gestão da igreja"
+                : item.id === "perfil"
+                  ? "Perfil, notificações e seus dados"
+                  : item.id === "escalas"
+                    ? "Cultos, convites e suas próximas escalas"
+                    : item.id === "ministry"
+                      ? "Disponibilidade e visão do ministério ativo"
+                      : `Abrir ${item.label}`;
 
           return (
             <Link key={`${item.id}-${item.href}`} href={`/${churchSlug}${item.href}`} className="block">
