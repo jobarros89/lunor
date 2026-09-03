@@ -36,7 +36,7 @@ export default async function AssistantPage({
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">Assistente LUNOR</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Pergunte sobre próximos cultos, confirmações, pendências e disponibilidade da equipe.
+          Um único copiloto para a operação da igreja. O contexto atual é {ministry.name}, mas você pode perguntar sobre outros módulos e ministérios que gerencia.
         </p>
       </header>
 
