@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import { Baby, Calendar, ChevronRight, Home, Music2, Settings, Sparkles, User, Users } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
+import { serverEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { buildShellNavigation, type ShellNavItemId } from "@/lib/shell-navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InviteLink } from "@/components/invite-link";
+import { PushToggle } from "@/components/push/push-toggle";
 
 function isKidsMinistry(ministry: { name: string; slug: string }) {
   const slug = ministry.slug.toLocaleLowerCase("pt-BR");
@@ -64,6 +66,10 @@ export default async function MaisPage({
     isLeader: tenant.isLeader,
     canAdmin: tenant.isCoord,
   });
+  const visibleNav = nav.filter(
+    (item) => !(["louvor", "kids", "assistente"] as ShellNavItemId[]).includes(item.id)
+  );
+  const vapidPublicKey = serverEnv("NEXT_PUBLIC_VAPID_PUBLIC_KEY");
 
   const supabase = await createClient();
   const { data: inviteCode } = tenant.role === "admin"
@@ -74,13 +80,26 @@ export default async function MaisPage({
     <div className="space-y-6">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Navegação
+          Mais
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Todos os acessos</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Mais opções</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          No mobile, nada fica exclusivo do menu lateral da versão web.
+          Acesse configurações, perfil e recursos complementares do LUNOR.
         </p>
       </div>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-base font-semibold">Notificações no celular</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Ative os avisos do LUNOR neste aparelho para receber informações importantes.
+          </p>
+        </div>
+        <PushToggle
+          churchId={tenant.church.id}
+          vapidPublicKey={vapidPublicKey}
+        />
+      </section>
 
       {tenant.role === "admin" && inviteCode && (
         <Card className="rounded-3xl border-[#6e5ce6]/35 bg-[#6e5ce6]/8">
@@ -97,21 +116,19 @@ export default async function MaisPage({
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {nav.map((item) => {
+        {visibleNav.map((item) => {
           const Icon = ICONS[item.id];
-          const description = item.id === "assistente"
-            ? "Pergunte sobre cultos, confirmações, pendências e disponibilidade"
-            : item.id === "pessoas"
-              ? "Pessoas, funções e permissões da equipe"
-              : item.id === "admin"
-                ? "Configurações, campi, convite e gestão da igreja"
-                : item.id === "perfil"
-                  ? "Perfil, notificações e seus dados"
-                  : item.id === "escalas"
-                    ? "Cultos, convites e suas próximas escalas"
-                    : item.id === "ministry"
-                      ? "Disponibilidade e visão do ministério ativo"
-                      : `Abrir ${item.label}`;
+          const description = item.id === "pessoas"
+            ? "Pessoas, funções e permissões da equipe"
+            : item.id === "admin"
+              ? "Configurações, campi, convite e gestão da igreja"
+              : item.id === "perfil"
+                ? "Perfil e seus dados"
+                : item.id === "escalas"
+                  ? "Cultos, convites e suas próximas escalas"
+                  : item.id === "ministry"
+                    ? "Disponibilidade e visão do ministério ativo"
+                    : `Abrir ${item.label}`;
 
           return (
             <Link key={`${item.id}-${item.href}`} href={`/${churchSlug}${item.href}`} className="block">
