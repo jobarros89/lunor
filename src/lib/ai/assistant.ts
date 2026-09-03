@@ -64,14 +64,18 @@ async function executeAssistantTool(
   return executeLunorTool(name, args, context);
 }
 
+/**
+ * O binding tradicional do Workers AI espera o tool call anterior serializado
+ * no conteúdo da mensagem `assistant`; a mensagem `tool` seguinte contém apenas
+ * o resultado. Como desabilitamos chamadas paralelas, o caso normal é um único
+ * tool call por rodada.
+ */
 function toolCallMessage(turn: LunorAiTurn) {
-  return JSON.stringify({
-    tool_calls: turn.toolCalls.map((call) => ({
-      id: call.id,
-      name: call.name,
-      arguments: call.arguments,
-    })),
-  });
+  const calls = turn.toolCalls.map((call) => ({
+    name: call.name,
+    arguments: call.arguments,
+  }));
+  return JSON.stringify(calls.length === 1 ? calls[0] : calls);
 }
 
 export async function runLunorAssistant({
@@ -152,8 +156,6 @@ export async function runLunorAssistant({
 
       messages.push({
         role: "tool",
-        name: call.name,
-        ...(call.id ? { tool_call_id: call.id } : {}),
         content: JSON.stringify(payload),
       });
     }

@@ -42,8 +42,23 @@ describe("runLunorAssistant", () => {
     expect(result.answer).toBe("Há 1 culto em atenção.");
     expect(result.usedTools).toEqual(["get_operational_summary"]);
     expect(result.proposals).toEqual([]);
+
     const secondCall = runner.mock.calls[1]?.[0];
-    expect(secondCall.messages.some((message: { role: string }) => message.role === "tool")).toBe(true);
+    const assistantToolCall = secondCall.messages.find(
+      (message: { role: string }) => message.role === "assistant"
+    );
+    const toolResult = secondCall.messages.find(
+      (message: { role: string }) => message.role === "tool"
+    );
+
+    expect(JSON.parse(assistantToolCall.content)).toEqual({
+      name: "get_operational_summary",
+      arguments: { limit: 2 },
+    });
+    expect(toolResult).toEqual({
+      role: "tool",
+      content: JSON.stringify({ ok: true, data: { totals: { eventsAttention: 1 } } }),
+    });
   });
 
   it("não chama ferramenta quando o modelo já tem resposta não factual", async () => {

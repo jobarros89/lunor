@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { runLunorAssistant } from "@/lib/ai/assistant";
+import { runDirectOperationalAnswer } from "@/lib/ai/direct-operational-answer";
 import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
 import { getTenant } from "@/lib/tenant";
@@ -59,15 +60,44 @@ export async function POST(request: Request) {
     return Response.json({ error: "forbidden" }, { status: 403, headers: HEADERS });
   }
 
+  const context = {
+    churchId: tenant.church.id,
+    ministryId: ministry.id,
+    ministryName: ministry.name,
+  };
+
+  // Perguntas operacionais recorrentes dos chips da UI não precisam gastar uma
+  // inferência para descobrir quais ferramentas chamar. Elas continuam usando
+  // os mesmos dados/RLS e funcionam mesmo se o provedor de LLM estiver oscilando.
+  try {
+    const direct = await runDirectOperationalAnswer({
+      question: parsed.data.question,
+      context,
+    });
+    if (direct) {
+      return Response.json(
+        {
+          answer: direct.answer,
+          model: "lunor-deterministic",
+          usedTools: direct.usedTools,
+          proposals: [],
+          scope: { ministryId: ministry.id, ministryName: ministry.name },
+        },
+        { headers: HEADERS }
+      );
+    }
+  } catch (error) {
+    console.error(
+      "lunor direct assistant:",
+      error instanceof Error ? error.message : "unknown_error"
+    );
+  }
+
   try {
     const result = await runLunorAssistant({
       question: parsed.data.question,
       history: parsed.data.history,
-      context: {
-        churchId: tenant.church.id,
-        ministryId: ministry.id,
-        ministryName: ministry.name,
-      },
+      context,
     });
 
     return Response.json(
