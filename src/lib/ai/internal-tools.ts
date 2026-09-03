@@ -20,6 +20,7 @@ import {
   isWorshipSetlistProposal,
   type WorshipSetlistProposal,
 } from "@/lib/ai/worship-setlist-proposal";
+import { getKidsOperationalInsights } from "@/lib/ai/kids";
 
 const INTERNAL_TOOLS: LunorAiTool[] = [
   {
@@ -73,7 +74,11 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
     parameters: {
       type: "object",
       properties: {
-        eventId: { type: "string", format: "uuid", description: "ID do culto que receberá o rascunho." },
+        eventId: {
+          type: "string",
+          format: "uuid",
+          description: "ID do culto que receberá o rascunho.",
+        },
         maxRoles: {
           type: "integer",
           minimum: 1,
@@ -149,6 +154,29 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: "get_kids_operational_insights",
+    description:
+      "Consulta indicadores agregados e protegidos do Kids: operação atual, presença por turma, chamadas pendentes, prontidão cadastral e frequência recente. Nunca retorna nomes, códigos de retirada, telefones nem detalhes médicos de crianças ou responsáveis. Não altera dados.",
+    parameters: {
+      type: "object",
+      properties: {
+        eventId: {
+          type: "string",
+          format: "uuid",
+          description:
+            "Culto específico. Se omitido, usa a sessão atual ou a próxima sessão disponível.",
+        },
+        historyDays: {
+          type: "integer",
+          minimum: 14,
+          maximum: 365,
+          description: "Janela para frequência histórica. Padrão: 90 dias.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
 ];
 
 const candidatesSchema = z.object({
@@ -181,6 +209,10 @@ const worshipSetlistProposalSchema = z.object({
     .refine((songIds) => new Set(songIds).size === songIds.length, {
       message: "As músicas da proposta não podem se repetir",
     }),
+});
+const kidsOperationalSchema = z.object({
+  eventId: z.string().uuid().optional(),
+  historyDays: z.number().int().min(14).max(365).optional(),
 });
 
 export function internalAiTools(): LunorAiTool[] {
@@ -228,6 +260,13 @@ export async function executeInternalAiTool(
         context,
         worshipSetlistProposalSchema.parse(args)
       );
+    case "get_kids_operational_insights": {
+      const input = kidsOperationalSchema.parse(args);
+      return getKidsOperationalInsights(context, {
+        eventId: input.eventId,
+        historyDays: input.historyDays ?? 90,
+      });
+    }
     default:
       throw new Error("unknown_internal_tool");
   }
