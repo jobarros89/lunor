@@ -13,11 +13,16 @@ import {
 const SYSTEM_PROMPT = `Você é o assistente operacional do LUNOR para líderes de igreja.
 Responda em português do Brasil, com clareza e objetividade.
 Use as ferramentas do LUNOR para fatos sobre cultos, escalas, pessoas ou disponibilidade.
-Baseie respostas apenas nos dados retornados pelas ferramentas.
+Baseie respostas factuais atuais nos dados retornados pelas ferramentas.
 "Sem resposta" é diferente de "indisponível".
 O escopo de igreja e ministério é definido pelo servidor.
 As ferramentas desta versão são somente leitura.
 Prefira respostas curtas, salvo quando o usuário pedir detalhes.`;
+
+export type LunorAssistantHistoryItem = {
+  role: "user" | "assistant";
+  content: string;
+};
 
 export type LunorAssistantResult = {
   answer: string;
@@ -50,12 +55,14 @@ function toolCallMessage(turn: LunorAiTurn) {
 
 export async function runLunorAssistant({
   question,
+  history = [],
   context,
   maxToolRounds = 4,
   runner = runLunorAiTurn,
   toolExecutor = executeLunorTool,
 }: {
   question: string;
+  history?: LunorAssistantHistoryItem[];
   context: LunorToolContext;
   maxToolRounds?: number;
   runner?: TurnRunner;
@@ -65,11 +72,16 @@ export async function runLunorAssistant({
   if (!cleanQuestion) throw new Error("assistant_question_empty");
   if (cleanQuestion.length > 1_500) throw new Error("assistant_question_too_large");
 
+  const recentHistory = history
+    .slice(-8)
+    .map((item) => ({ ...item, content: item.content.trim().slice(0, 1_500) }))
+    .filter((item) => item.content.length > 0);
   const messages: LunorAiMessage[] = [
     {
       role: "system",
       content: `${SYSTEM_PROMPT}\n\nEscopo atual: ministério ${context.ministryName}.`,
     },
+    ...recentHistory,
     { role: "user", content: cleanQuestion },
   ];
   const usedTools: string[] = [];
