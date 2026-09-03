@@ -81,7 +81,7 @@ export function AssistantLauncher({
           <AssistantPanel
             churchSlug={churchSlug}
             ministryId={ministryId}
-            ministryName="LUNOR"
+            ministryName={ministryName}
             compact
           />
         </div>
