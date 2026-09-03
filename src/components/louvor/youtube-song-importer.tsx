@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TimeSignaturePicker } from "@/components/louvor/time-signature-picker";
 
 export function YouTubeSongImporter({
   churchId,
@@ -246,17 +247,12 @@ export function YouTubeSongImporter({
                 placeholder="20–300"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="youtube-time-signature">Compasso (opcional)</Label>
-              <Input
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Compasso (opcional)</Label>
+              <TimeSignaturePicker
                 id="youtube-time-signature"
                 value={timeSignature}
-                onChange={(event) => setTimeSignature(event.target.value)}
-                maxLength={5}
-                pattern="(?:[1-9]|[12][0-9]|3[0-2])/(?:1|2|4|8|16|32)"
-                title="Informe um compasso como 4/4, 6/8 ou 12/8"
-                placeholder="Ex.: 4/4 ou 6/8"
-                inputMode="numeric"
+                onChange={setTimeSignature}
               />
             </div>
           </div>
