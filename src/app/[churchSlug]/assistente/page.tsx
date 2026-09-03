@@ -43,7 +43,7 @@ export default async function AssistantPage({
       <AssistantPanel
         churchSlug={churchSlug}
         ministryId={ministry.id}
-        ministryName="LUNOR"
+        ministryName={ministry.name}
       />
 
       <McpAccessCard
