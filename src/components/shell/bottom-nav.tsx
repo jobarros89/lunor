@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Baby, Calendar, Home, Music2, User } from "lucide-react";
+import { Baby, Calendar, Home, Menu, Music2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav({
@@ -33,7 +33,7 @@ export function BottomNav({
           ? [{ href: "/infantil", label: "Kids", icon: Baby, badge: 0 }]
           : []),
         { href: "/escalas", label: "Escalas", icon: Calendar, badge: escalasPending },
-        { href: "/perfil", label: "Perfil", icon: User, badge: 0 },
+        { href: "/mais", label: "Mais", icon: Menu, badge: 0 },
       ];
 
   return (

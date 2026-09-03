@@ -5,10 +5,22 @@ import { usePathname } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 import { Baby, Calendar, Home, Music2, PanelLeftClose, PanelLeftOpen, Settings, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { buildShellNavigation, type ActiveMinistryNavigation, type ShellNavItemId } from "@/lib/shell-navigation";
 import { BrandLockup } from "@/components/brand-lockup";
 import { SIDEBAR_ATTRIBUTE, SIDEBAR_STORAGE_KEY } from "@/components/shell/sidebar-state";
 
 const SIDEBAR_EVENT = "lunor:sidebar-state";
+
+const ICONS: Record<ShellNavItemId, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
+  home: Home,
+  louvor: Music2,
+  kids: Baby,
+  ministry: Users,
+  escalas: Calendar,
+  perfil: User,
+  pessoas: Users,
+  admin: Settings,
+};
 
 function getSidebarSnapshot() {
   return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
@@ -35,7 +47,7 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
   churchName: string;
   canAdmin: boolean;
   isLeader: boolean;
-  activeMinistryNavigation: { href: string; label: string; module: "generic" } | null;
+  activeMinistryNavigation: ActiveMinistryNavigation;
   hasLouvor?: boolean;
   hasKids?: boolean;
   escalasPending?: number;
@@ -59,25 +71,14 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
     window.dispatchEvent(new Event(SIDEBAR_EVENT));
   }
 
-  const ministryItem = activeMinistryNavigation ? {
-    ...activeMinistryNavigation,
-    icon: Users,
-  } : null;
-  const nav = guardianOnly
-    ? [
-        { href: "/infantil", label: "Meus filhos", icon: Baby },
-        { href: "/perfil", label: "Perfil", icon: User },
-      ]
-    : [
-        { href: "", label: "Visão geral", icon: Home },
-        ...(hasLouvor ? [{ href: "/louvor", label: "Louvor", icon: Music2 }] : []),
-        ...(hasKids ? [{ href: "/infantil", label: "Kids", icon: Baby }] : []),
-        ...(ministryItem ? [ministryItem] : []),
-        { href: "/escalas", label: "Cultos e escalas", icon: Calendar },
-        { href: "/perfil", label: "Perfil", icon: User },
-        ...(isLeader ? [{ href: "/pessoas", label: "Equipe", icon: Users }] : []),
-        ...(canAdmin ? [{ href: "/admin", label: "Administração", icon: Settings }] : []),
-      ];
+  const nav = buildShellNavigation({
+    guardianOnly,
+    hasLouvor,
+    hasKids,
+    activeMinistryNavigation,
+    isLeader,
+    canAdmin,
+  });
 
   return (
     <aside
@@ -118,7 +119,8 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
       </div>
 
       <nav className="flex flex-col gap-1">
-        {nav.map(({ href, label, icon: Icon }) => {
+        {nav.map(({ id, href, label }) => {
+          const Icon = ICONS[id];
           const full = `/${churchSlug}${href}`;
           const pathOnly = full.split("?")[0];
           const active = href === "" ? pathname === pathOnly : pathname.startsWith(pathOnly);
@@ -138,7 +140,7 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
             >
               <Icon className="size-4 shrink-0" strokeWidth={1.7} />
               {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
-              {href === "/escalas" && escalasPending > 0 && (
+              {id === "escalas" && escalasPending > 0 && (
                 <span
                   className={cn(
                     "flex min-w-5 items-center justify-center bg-[#d8ff00] px-1.5 text-[10px] font-bold text-black",
