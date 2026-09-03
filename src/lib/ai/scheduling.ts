@@ -213,7 +213,7 @@ export async function loadScheduleCandidates(
 
   const resolved = overview.get(event.id) ?? [];
   const candidates: ScheduleCandidate[] = resolved.map((member) => {
-    const availability = member.status;
+    const availability: ScheduleCandidate["availability"] = member.status ?? "unknown";
     const alreadyAssignedRoles = currentRoles.get(member.userId) ?? [];
     const matchingRoleExperience = experience.get(member.userId) ?? 0;
     const duplicateRole = normalizedRole
