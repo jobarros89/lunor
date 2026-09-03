@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { getLouvorMinistry } from "@/lib/louvor-server";
 import { createClient } from "@/lib/supabase/server";
-import { EventForm } from "@/components/escalas/event-form";
+import { MinistryEventPicker, type MinistryEventPickerRow } from "@/components/escalas/ministry-event-picker";
 
 export default async function NovaEscalaLouvorPage({
   params,
@@ -34,20 +34,13 @@ export default async function NovaEscalaLouvorPage({
 
   if (!canCreate) redirect(`/${churchSlug}/louvor/escalas`);
 
-  const [{ data: eventTypes }, { data: campuses }] = await Promise.all([
-    supabase
-      .from("event_types")
-      .select("id, name")
-      .eq("church_id", tenant.church.id)
-      .order("name"),
-    supabase
-      .from("campuses")
-      .select("id, name")
-      .eq("church_id", tenant.church.id)
-      .eq("active", true)
-      .order("sort_order")
-      .order("name"),
-  ]);
+  const { data: events } = await supabase
+    .from("events")
+    .select("id, title, starts_at, location, service_period, campuses(name)")
+    .eq("church_id", tenant.church.id)
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at")
+    .limit(30);
 
   return (
     <div className="space-y-6">
@@ -63,21 +56,17 @@ export default async function NovaEscalaLouvorPage({
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Louvor
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Nova escala do Louvor</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Adicionar escala do Louvor</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Crie o culto ou evento já dentro do contexto do Louvor e depois monte a equipe.
+          Escolha um culto existente. O horário do Louvor será configurado dentro dele, sem criar um evento duplicado.
         </p>
       </div>
 
-      <EventForm
+      <MinistryEventPicker
         churchSlug={churchSlug}
-        churchId={tenant.church.id}
-        eventTypes={eventTypes ?? []}
-        ministries={[{ id: louvor.id, name: "Louvor" }]}
-        campuses={campuses ?? []}
-        initialMinistryId={louvor.id}
-        fixedMinistryName="Louvor"
-        redirectContext="louvor"
+        ministryName="Louvor"
+        events={(events ?? []) as unknown as MinistryEventPickerRow[]}
+        detailBaseHref={`/${churchSlug}/louvor/escalas`}
       />
     </div>
   );

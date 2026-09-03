@@ -19,14 +19,27 @@ import { cn } from "@/lib/utils";
 type RelatedName = { name: string } | { name: string }[] | null;
 type MyAssignment = {
   event_id: string;
+  ministry_id: string;
   role_name: string;
   status: string;
+  arrival_time: string | null;
+  release_time: string | null;
   assignment_ministry: RelatedName;
   assignment_department: RelatedName;
+};
+type ServiceWindow = {
+  event_id: string;
+  ministry_id: string;
+  arrival_at: string | null;
+  release_at: string | null;
 };
 
 function firstRelated(value: RelatedName) {
   return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+function pairKey(eventId: string, ministryId: string) {
+  return `${eventId}:${ministryId}`;
 }
 
 export default async function EscalasPage({
@@ -47,24 +60,33 @@ export default async function EscalasPage({
   const since = new Date(now);
   since.setHours(0, 0, 0, 0);
 
-  const [{ data: events, error: eventsError }, { data: myAssignments }] =
-    await Promise.all([
-      supabase
-        .from("events")
-        .select(
-          "id, title, location, campus_id, service_period, starts_at, event_types(name), departments(name), campuses(name)"
-        )
-        .eq("church_id", tenant.church.id)
-        .gte("starts_at", since.toISOString())
-        .order("starts_at")
-        .limit(200),
-      supabase
-        .from("assignments")
-        .select("event_id, role_name, status, assignment_ministry:ministries(name), assignment_department:departments(name)")
-        .eq("church_id", tenant.church.id)
-        .eq("user_id", tenant.userId),
-    ]);
+  const [
+    { data: events, error: eventsError },
+    { data: myAssignments },
+    { data: serviceWindows, error: windowsError },
+  ] = await Promise.all([
+    supabase
+      .from("events")
+      .select(
+        "id, title, location, campus_id, service_period, starts_at, event_types(name), departments(name), campuses(name)"
+      )
+      .eq("church_id", tenant.church.id)
+      .gte("starts_at", since.toISOString())
+      .order("starts_at")
+      .limit(200),
+    supabase
+      .from("assignments")
+      .select("event_id, ministry_id, role_name, status, arrival_time, release_time, assignment_ministry:ministries(name), assignment_department:departments(name)")
+      .eq("church_id", tenant.church.id)
+      .eq("user_id", tenant.userId),
+    supabase
+      .from("event_ministry_windows")
+      .select("event_id, ministry_id, arrival_at, release_at, events!inner(starts_at)")
+      .eq("church_id", tenant.church.id)
+      .gte("events.starts_at", since.toISOString()),
+  ]);
   if (eventsError) console.error("escalas:", eventsError);
+  if (windowsError) console.error("escalas: janelas de serviço", windowsError);
 
   const myByEvent = new Map<string, MyAssignment[]>();
   for (const assignment of (myAssignments ?? []) as unknown as MyAssignment[]) {
@@ -73,6 +95,10 @@ export default async function EscalasPage({
       assignment,
     ]);
   }
+  const windowByPair = new Map<string, ServiceWindow>();
+  for (const window of (serviceWindows ?? []) as unknown as ServiceWindow[]) {
+    windowByPair.set(pairKey(window.event_id, window.ministry_id), window);
+  }
 
   const todos = events ?? [];
   const meus = todos.filter((e) => myByEvent.has(e.id));
@@ -80,7 +106,14 @@ export default async function EscalasPage({
   const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   const groupedEvents = Object.entries(
     visiveis.reduce<Record<string, { label: string; events: typeof visiveis }>>((groups, event) => {
-      const date = new Date(event.starts_at);
+      const assignments = myByEvent.get(event.id) ?? [];
+      const effectiveDates = assignments.map((assignment) => {
+        const window = windowByPair.get(pairKey(event.id, assignment.ministry_id));
+        return new Date(assignment.arrival_time ?? window?.arrival_at ?? event.starts_at);
+      });
+      const date = effectiveDates.length > 0
+        ? new Date(Math.min(...effectiveDates.map((item) => item.getTime())))
+        : new Date(event.starts_at);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       const group = groups[monthKey] ?? {
         label: new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(date),
@@ -155,72 +188,97 @@ export default async function EscalasPage({
                 <ChevronDown className="size-5 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
               <div className="divide-y border-t">
-        {group.events.map((e) => {
-          const type = e.event_types as unknown as { name: string } | null;
-          const dept = e.departments as unknown as { name: string } | null;
-          const campus = e.campuses as unknown as { name: string } | null;
-          const context = eventContextLabel({
-            campusName: campus?.name,
-            servicePeriod: e.service_period,
-            fallbackLocation: e.location,
-          });
-          const mine = myByEvent.get(e.id);
-          const canDelete =
-            canDeleteEvents && new Date(e.starts_at).getTime() > now.getTime();
-          return (
-            <FutureEventLink
-              key={e.id}
-              href={`/${churchSlug}/escalas/${e.id}`}
-              canDelete={canDelete}
-              context={{
-                churchSlug,
-                churchId: tenant.church.id,
-                eventId: e.id,
-                eventTitle: e.title,
-              }}
-            >
-              <div className="grid min-h-[78px] gap-3 px-4 py-3 transition-colors hover:bg-accent/40 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <span className="block">{formatEventDate(e.starts_at)}</span>
-                  <span className="mt-0.5 block text-foreground">{formatEventTime(e.starts_at)}</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate font-semibold tracking-tight">{e.title}</p>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {[type?.name, context, dept?.name].filter(Boolean).join(" · ") || "—"}
-                  </p>
-                </div>
-                  {mine && (
-                    <div className="flex flex-wrap items-center gap-1.5 sm:max-w-[24rem] sm:justify-end">
-                      {mine.map((assignment, index) => {
-                        const serviceArea =
-                          firstRelated(assignment.assignment_department)?.name ??
-                          firstRelated(assignment.assignment_ministry)?.name ??
-                          "Equipe";
-                        return (
-                          <span key={`${assignment.event_id}-${assignment.role_name}-${index}`} className="inline-flex items-center gap-2">
-                            <Badge variant="secondary" className="rounded-full">
-                              {serviceArea} · {assignment.role_name}
-                            </Badge>
-                            <Badge
-                              className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[assignment.status] ?? ""}`}
-                            >
-                              {ASSIGNMENT_STATUS_LABELS[assignment.status] ?? assignment.status}
-                            </Badge>
+                {group.events.map((e) => {
+                  const type = e.event_types as unknown as { name: string } | null;
+                  const dept = e.departments as unknown as { name: string } | null;
+                  const campus = e.campuses as unknown as { name: string } | null;
+                  const context = eventContextLabel({
+                    campusName: campus?.name,
+                    servicePeriod: e.service_period,
+                    fallbackLocation: e.location,
+                  });
+                  const mine = myByEvent.get(e.id);
+                  const serviceStarts = (mine ?? []).map((assignment) => {
+                    const window = windowByPair.get(pairKey(e.id, assignment.ministry_id));
+                    return assignment.arrival_time ?? window?.arrival_at ?? e.starts_at;
+                  });
+                  const serviceReleases = (mine ?? [])
+                    .map((assignment) => {
+                      const window = windowByPair.get(pairKey(e.id, assignment.ministry_id));
+                      return assignment.release_time ?? window?.release_at ?? null;
+                    })
+                    .filter((value): value is string => Boolean(value));
+                  const serviceStart = serviceStarts.length > 0
+                    ? new Date(Math.min(...serviceStarts.map((value) => new Date(value).getTime()))).toISOString()
+                    : e.starts_at;
+                  const serviceRelease = serviceReleases.length > 0
+                    ? new Date(Math.max(...serviceReleases.map((value) => new Date(value).getTime()))).toISOString()
+                    : null;
+                  const hasDifferentServiceTime = Boolean(mine) && serviceStart !== e.starts_at;
+                  const canDelete =
+                    canDeleteEvents && new Date(e.starts_at).getTime() > now.getTime();
+                  return (
+                    <FutureEventLink
+                      key={e.id}
+                      href={`/${churchSlug}/escalas/${e.id}`}
+                      canDelete={canDelete}
+                      context={{
+                        churchSlug,
+                        churchId: tenant.church.id,
+                        eventId: e.id,
+                        eventTitle: e.title,
+                      }}
+                    >
+                      <div className="grid min-h-[78px] gap-3 px-4 py-3 transition-colors hover:bg-accent/40 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center">
+                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          <span className="block">{formatEventDate(serviceStart)}</span>
+                          <span className="mt-0.5 block text-foreground">
+                            {formatEventTime(serviceStart)}{mine ? " chegada" : ""}
                           </span>
-                        );
-                      })}
-                    </div>
-                  )}
-              </div>
-            </FutureEventLink>
-          );
-        })}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold tracking-tight">{e.title}</p>
+                          <p className="truncate text-sm text-muted-foreground">
+                            {[
+                              hasDifferentServiceTime ? `Culto ${formatEventTime(e.starts_at)}` : null,
+                              type?.name,
+                              context,
+                              dept?.name,
+                              serviceRelease ? `Saída ${formatEventTime(serviceRelease)}` : null,
+                            ].filter(Boolean).join(" · ") || "—"}
+                          </p>
+                        </div>
+                        {mine && (
+                          <div className="flex flex-wrap items-center gap-1.5 sm:max-w-[24rem] sm:justify-end">
+                            {mine.map((assignment, index) => {
+                              const serviceArea =
+                                firstRelated(assignment.assignment_department)?.name ??
+                                firstRelated(assignment.assignment_ministry)?.name ??
+                                "Equipe";
+                              return (
+                                <span key={`${assignment.event_id}-${assignment.role_name}-${index}`} className="inline-flex items-center gap-2">
+                                  <Badge variant="secondary" className="rounded-full">
+                                    {serviceArea} · {assignment.role_name}
+                                  </Badge>
+                                  <Badge
+                                    className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[assignment.status] ?? ""}`}
+                                  >
+                                    {ASSIGNMENT_STATUS_LABELS[assignment.status] ?? assignment.status}
+                                  </Badge>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </FutureEventLink>
+                  );
+                })}
               </div>
             </details>
           );
         })}
-        {eventsError ? (
+        {eventsError || windowsError ? (
           <LoadError oQue="as escalas" />
         ) : (
           visiveis.length === 0 && (

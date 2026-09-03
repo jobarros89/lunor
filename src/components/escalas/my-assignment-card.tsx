@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { CalendarPlus, Check, MessageCircle, X } from "lucide-react";
 import { respondToAssignment } from "@/lib/actions/assignment-response";
 import { getAssignmentServingArea } from "@/lib/actions/assignment-serving";
+import { resolveServiceWindow, timeLabel } from "@/lib/service-window";
 import {
   ASSIGNMENT_STATUS_BADGE,
   ASSIGNMENT_STATUS_LABELS,
@@ -29,6 +30,11 @@ export function MyAssignmentCard({
   roleName,
   status,
   arrivalTime,
+  releaseTime,
+  teamArrivalTime,
+  teamReleaseTime,
+  eventStartsAt,
+  eventEndsAt,
   itemsToBring,
   equipments,
   leaderName,
@@ -40,6 +46,11 @@ export function MyAssignmentCard({
   roleName: string;
   status: string;
   arrivalTime: string | null;
+  releaseTime?: string | null;
+  teamArrivalTime?: string | null;
+  teamReleaseTime?: string | null;
+  eventStartsAt?: string;
+  eventEndsAt?: string | null;
   itemsToBring: string | null;
   equipments: string[];
   leaderName: string | null;
@@ -58,6 +69,25 @@ export function MyAssignmentCard({
       active = false;
     };
   }, [churchId, assignmentId]);
+
+  const serviceWindow = useMemo(() => {
+    if (eventStartsAt) {
+      return resolveServiceWindow({
+        eventStart: eventStartsAt,
+        eventEnd: eventEndsAt,
+        teamArrival: teamArrivalTime,
+        teamRelease: teamReleaseTime,
+        assignmentArrival: arrivalTime,
+        assignmentRelease: releaseTime,
+      });
+    }
+    return {
+      arrivalAt: arrivalTime ?? teamArrivalTime ?? null,
+      releaseAt: releaseTime ?? teamReleaseTime ?? eventEndsAt ?? null,
+      arrivalSource: arrivalTime ? "assignment" as const : teamArrivalTime ? "ministry" as const : null,
+      releaseSource: releaseTime ? "assignment" as const : teamReleaseTime ? "ministry" as const : eventEndsAt ? "event" as const : null,
+    };
+  }, [arrivalTime, eventEndsAt, eventStartsAt, releaseTime, teamArrivalTime, teamReleaseTime]);
 
   function respond(response: "confirmar" | "nao_posso" | "falar_lider") {
     startTransition(async () => {
@@ -83,6 +113,8 @@ export function MyAssignmentCard({
   }
 
   const canRespond = ["convidado", "confirmado", "falar_lider", "substituicao_solicitada"].includes(status);
+  const arrivalLabel = timeLabel(serviceWindow.arrivalAt);
+  const releaseLabel = timeLabel(serviceWindow.releaseAt);
 
   return (
     <Card className="rounded-3xl border-2 border-foreground/10">
@@ -100,10 +132,29 @@ export function MyAssignmentCard({
             <p><span className="text-muted-foreground">Onde vai servir:</span>{" "}<span className="font-medium">{servingArea}</span></p>
           )}
           <p><span className="text-muted-foreground">Função:</span>{" "}<span className="font-medium">{roleName}</span></p>
-          {arrivalTime && (
+          {arrivalLabel && (
             <p>
               <span className="text-muted-foreground">Chegada:</span>{" "}
-              <span className="font-medium">{new Date(arrivalTime).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+              <span className="font-medium">{arrivalLabel}</span>
+              {serviceWindow.arrivalSource === "assignment" && (
+                <span className="ml-1 text-xs text-muted-foreground">(ajuste individual)</span>
+              )}
+            </p>
+          )}
+          {releaseLabel && (
+            <p>
+              <span className="text-muted-foreground">Saída prevista:</span>{" "}
+              <span className="font-medium">{releaseLabel}</span>
+              {serviceWindow.releaseSource === "assignment" && (
+                <span className="ml-1 text-xs text-muted-foreground">(ajuste individual)</span>
+              )}
+            </p>
+          )}
+          {eventStartsAt && (
+            <p>
+              <span className="text-muted-foreground">Culto:</span>{" "}
+              <span className="font-medium">{timeLabel(eventStartsAt)}</span>
+              {eventEndsAt && <span className="font-medium"> – {timeLabel(eventEndsAt)}</span>}
             </p>
           )}
           {leaderName && <p><span className="text-muted-foreground">Líder:</span>{" "}<span className="font-medium">{leaderName}</span></p>}
