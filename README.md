@@ -1,219 +1,327 @@
-<h1 align="center">Acts</h1>
+<div align="center">
+  <img src="public/icons/lunor-mark-v2.svg" width="92" alt="LUNOR" />
+
+  <h1>LUNOR</h1>
+
+  <p><strong>Presença · preparo · propósito</strong></p>
+
+  <p>
+    A plataforma operacional para igrejas que conecta <strong>liderança, equipes e famílias</strong><br />
+    do planejamento do culto à execução do domingo.
+  </p>
+
+  <p>
+    <a href="https://lunorservice.com"><strong>Acessar o LUNOR</strong></a>
+  </p>
+</div>
 
 <p align="center">
-  <strong>Free, open-source church management software</strong> — scheduling, media &amp; worship teams,
-  volunteers, equipment and ministries. Mobile-first (PWA).<br>
-  <em>Gestão de igreja gratuita e open-source — escalas, equipe de mídia, voluntários e ministérios.</em>
+  <img src="https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/React-19-20232A?logo=react&logoColor=61DAFB" alt="React 19" />
+  <img src="https://img.shields.io/badge/Supabase-Postgres_%2B_RLS-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" />
+  <img src="https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare Workers" />
+  <img src="https://img.shields.io/badge/PWA-mobile--first-5A0FC8" alt="PWA mobile-first" />
+  <img src="https://img.shields.io/badge/Capacitor-8-119EFF?logo=capacitor&logoColor=white" alt="Capacitor 8" />
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1A1A1D" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/Next.js-App_Router-000?logo=nextdotjs&logoColor=white" alt="Next.js">
-  <img src="https://img.shields.io/badge/Supabase-Postgres_%2B_RLS-3ECF8E?logo=supabase&logoColor=white" alt="Supabase">
-  <img src="https://img.shields.io/badge/PWA-installable-5A0FC8" alt="PWA">
-  <img src="https://img.shields.io/badge/PRs-welcome-1A9E5B" alt="PRs welcome">
+  <img src="public/brand/lunor-prism-dark.webp" width="860" alt="Identidade visual LUNOR" />
 </p>
-
-<p align="center">
-  <strong>English</strong> · <a href="#-português">Português 🇧🇷</a>
-</p>
-
-<p align="center">
-  <img src=".github/assets/tour.gif" width="280" alt="Acts product tour — home, schedule, confirm, assisted scheduling, equipment">
-</p>
-
-<p align="center">
-  <img src=".github/assets/inicio.png" width="240" alt="Home — your upcoming schedule">
-  <img src=".github/assets/escalas.png" width="240" alt="Schedule — the service rota with statuses">
-  <img src=".github/assets/escala.png" width="240" alt="Event — confirm your slot and see team status">
-</p>
-<p align="center">
-  <img src=".github/assets/escalacao.png" width="240" alt="Assisted scheduling — who wants to grow">
-  <img src=".github/assets/equipamentos.png" width="240" alt="Equipment — inventory and status">
-  <img src=".github/assets/equipe.png" width="240" alt="Team — roles and skills">
-</p>
-<p align="center"><sub>Real in-app screenshots · Telas reais do app — mobile-first PWA</sub></p>
 
 ---
 
-## What is Acts
+## O que é o LUNOR
 
-Churches coordinate dozens of volunteers across WhatsApp groups and spreadsheets — and
-people forget their slot, leaders have no view of who confirmed, and the same few
-always get overloaded. **Acts** puts all of that in one place, **mobile-first**, with a
-single obsession: **helping the volunteer show up**.
+O **LUNOR** é uma plataforma de operação e gestão ministerial para igrejas.
 
-It was born managing a **media/production team** and grows toward the whole church —
-each ministry as a branch of the same system.
+Ele organiza, em um único ambiente, as informações que normalmente ficam espalhadas entre grupos de WhatsApp, planilhas, formulários, calendários e ferramentas diferentes: **quem vai servir, onde vai servir, quando está disponível, o que precisa preparar e o que precisa acontecer no culto**.
 
-> **Keywords:** church management software · church management system (ChMS) · church CRM ·
-> volunteer scheduling · church scheduling software · worship team · media/production team ·
-> ministry management · service planning · rota · open-source church software ·
-> free church software · PWA · Next.js · Supabase · multi-tenant · RLS.
+O objetivo é simples: reduzir atrito operacional para que líderes tenham visão, voluntários tenham clareza e cada ministério consiga chegar mais preparado ao serviço.
 
-## Features
+> **LUNOR — Presença · preparo · propósito.**
+>
+> Presença para saber quem está disponível. Preparo para organizar pessoas, repertórios e operação. Propósito para manter a tecnologia a serviço daquilo que realmente importa.
 
-- **Scheduling & events** — build the service rota, assign people to roles, attach
-  equipment, and see who **confirmed / pending / requested a swap** at a glance.
-- **One-tap confirmation** — from the home screen, or by adding the schedule to the
-  phone's native **calendar** (`.ics`).
-- **Assisted scheduling** — when assigning, the leader sees each person's **monthly
-  load**, whether they're **unavailable** on that date, their **skills** and their
-  **interests** — an informed decision that stops overloading the same volunteers.
-- **Availability** — volunteers flag when they can't serve, *before* the rota exists.
-- **Skills, interests & training** — the system cross-references *who wants* to serve
-  in an area with *who is already able*, producing a **"who wants to grow"** queue.
-- **Assets / equipment** — inventory, usage history, maintenance and tickets.
-- **People & ministries** — profiles, roles, skills and departments.
-- **Post-service reviews** — structured feedback by criteria.
-- **Worship setlist** — the leader builds the running order from the church's song
-  library (lyrics, key, BPM) and sets the key **for that service**. Publishing
-  notifies everyone assigned and hands the media team the list as plain text for
-  their projection software. Drafts stay invisible until published, so rearranging
-  on a Thursday night doesn't notify anyone. Each song shows **when it was last
-  sung**, so nothing gets overplayed or lost for six months.
-- **Children's ministry check-in** — child records with recorded parental consent,
-  age-based classes, allergies surfaced where volunteers need them, and pickup
-  restricted to **authorized guardians** — enforced by a database trigger, with
-  exceptions requiring a leader and a logged justification.
-- **Data export** — anyone can download their own data; coordinators can export the
-  whole church as JSON. The export runs under the user's own session, so Row Level
-  Security bounds the file automatically.
-- **Ministry scoping** — each ministry is a walled space (schedules, equipment,
-  reviews). A service is one shared event; each ministry builds its own rota.
-  Church coordinators get the consolidated view.
-- **Multi-church (multi-tenant)** — per-church isolation enforced by Row Level Security.
-- **PWA** — installs to the home screen, works like a native app on the phone.
+---
 
-## Roles
+## Uma plataforma, vários ministérios
 
-Two levels, like a real church:
-
-- **Church:** Admin · Coordinator · Member
-- **Ministry:** Manager · Leader · Instructor · Volunteer
-- **Platform:** Super-admin (operates across every church)
-
-## Stack
-
-| Layer | Technology |
+| Área | O que o LUNOR organiza |
 |---|---|
-| Frontend | Next.js (App Router, React Server Components), TypeScript, Tailwind, Base UI |
-| Backend | Supabase (Postgres + **RLS** + Auth + Storage) |
-| Deploy | Cloudflare Workers via OpenNext |
-| App | PWA (installable, mobile-first) |
-
-Data security is enforced by **Row Level Security** in Postgres: each church only ever
-sees its own data — guaranteed at the database, not just the application. A test suite
-covers cross-church isolation.
-
-## Getting started
-
-Requirements: Node 20+, Docker (for local Supabase), the Supabase CLI.
-
-```bash
-npm install
-cp .env.example .env.local      # fill in your Supabase URL and ANON KEY
-npx supabase start              # spins up local Postgres/Auth/Storage
-npx supabase db reset           # applies the migrations
-npm run dev                     # http://localhost:3000
-npm test                        # RLS + unit tests (needs local Supabase)
-```
-
-Migrations live in `supabase/migrations/`. **Before using**, adjust the super-admin
-allowlist in `00000000000006_super_admin.sql` (it ships with example e-mails — replace
-them with your own).
-
-## Philosophy
-
-Acts is **free for any church, anywhere**. The idea is that whoever can contribute
-helps sustain the infrastructure — and, in a **solidarity model**, keeps the smaller
-churches free forever. Acts is an **aggregator**, not a clone: it centralizes management
-and aims to **talk to** the tools a church already uses (like Holyrics via its open API),
-instead of rebuilding them. **API-first**: every feature is designed to expose a public
-endpoint, so the aggregator grows organically.
-
-## Contributing
-
-Contributions are welcome — issues, ideas and PRs. The system is designed to grow by
-modules (each ministry is a branch). See [`LICENSE`](LICENSE) (MIT).
+| **Escalas & disponibilidade** | Cultos, funções, convites, confirmações, indisponibilidades, trocas e visão da equipe |
+| **LUNOR Louvor** | Acervo, repertórios, cifras, tons, BPM, compasso, YouTube, materiais e preparação musical |
+| **LUNOR Kids** | Crianças, responsáveis, recepção, check-in, etiquetas, retirada segura e operação das salas |
+| **Pessoas & ministérios** | Perfis, equipes, funções, permissões, departamentos e campus |
+| **Operação** | Ordem do culto, acompanhamento das escalas, equipamentos e manutenção |
 
 ---
 
-## 🇧🇷 Português
+## Escalas que começam antes da escala
 
-**Acts** é um **software de gestão de igreja gratuito e open-source** (CRM de igreja):
-escalas de culto, equipe de mídia, voluntários, patrimônio e ministérios — **mobile-first**
-(PWA). Nasceu na gestão da **equipe de mídia** e cresce para a igreja inteira, cada
-ministério como uma ramificação.
+O LUNOR não trata escala apenas como uma lista de nomes. O fluxo começa pela **disponibilidade** e termina na execução do culto.
 
-Igrejas coordenam dezenas de voluntários no WhatsApp e em planilhas — e o resultado é
-gente que esquece a escala, líderes sem visão de quem confirmou, e os mesmos poucos
-sempre sobrecarregados. O Acts organiza tudo num só lugar, com foco em **fazer o
-voluntário aparecer**.
+- Solicitação e envio de disponibilidade por período.
+- Visão por **mês, campus e ministério**.
+- Escala de pessoas por função e área de serviço.
+- Confirmação do voluntário e acompanhamento de pendências.
+- Trocas e substituições quando necessário.
+- Visão de carga para evitar concentração sempre nas mesmas pessoas.
+- Próximo serviço em destaque para o voluntário.
+- Exportação para calendário (`.ics`).
+- Experiência pensada para uso rápido no celular.
 
-> **Palavras-chave:** gestão de igreja · CRM igreja · software para igreja · escala de
-> culto · equipe de mídia · organização de voluntários · ministério · louvor · sistema
-> de escalas · igreja evangélica · gestão de equipe · multi-tenant · PWA.
+### Fluxo operacional
 
-### Funcionalidades
-
-- **Escalas & eventos** — monte a escala do culto, escale pessoas por função, vincule
-  equipamentos, e veja quem **confirmou / falta confirmar / pediu troca** num olhar.
-- **Confirmação em um toque** — pela Home ou adicionando a escala ao **calendário do
-  celular** (`.ics`).
-- **Escalação assistida** — ao escalar, o líder vê a **carga do mês** de cada pessoa, se
-  está **indisponível**, suas **aptidões** e **interesses** — sem sobrecarregar sempre os
-  mesmos.
-- **Indisponibilidade** — o voluntário avisa quando não pode servir, antes da escala existir.
-- **Aptidões, interesses e treinamento** — cruza *quem quer* servir com *quem já é apto*,
-  gerando a fila de **"quem quer crescer"**.
-- **Patrimônio / equipamentos** — inventário, histórico, manutenções e chamados.
-- **Repertório de louvor** — o líder monta a sequência do culto a partir do acervo da
-  igreja (letra, tom, BPM) e define o tom **daquele domingo**. Ao publicar, avisa
-  quem está escalado e entrega à mídia a lista em texto para montar a projeção
-  (Holyrics e afins). Em rascunho ninguém vê, então arrumar a ordem na quinta à
-  noite não notifica ninguém. Cada música mostra **há quanto tempo não é cantada**.
-- **Infantil (check-in)** — ficha da criança com consentimento registrado, turmas
-  por faixa etária, alergia em destaque para o voluntário, e **retirada só por
-  responsável autorizado** — bloqueada no banco; exceção exige liderança e
-  justificativa gravada.
-- **Exportação de dados** — cada pessoa baixa os próprios dados; a coordenação exporta
-  a igreja inteira em JSON. A consulta roda com a sessão do usuário, então a RLS
-  delimita o arquivo sozinha.
-- **Escopo por setor** — cada ministério é um espaço isolado (escala, equipamentos,
-  avaliações). O culto é um evento compartilhado e cada setor monta a sua escala;
-  a coordenação enxerga o todo.
-- **Pessoas & ministérios**, **avaliações pós-culto**, **multi-igreja** (isolamento por RLS),
-  e **PWA** (instala na tela inicial).
-
-### Papéis
-
-- **Igreja:** Administrador · Coordenador · Membro
-- **Ministério:** Gerente · Líder · Instrutor · Voluntário
-- **Plataforma:** Super-admin (opera em todas as igrejas)
-
-### Rodando localmente
-
-```bash
-npm install
-cp .env.example .env.local      # preencha URL e ANON KEY do Supabase
-npx supabase start              # sobe o Postgres/Auth/Storage local
-npx supabase db reset           # aplica as migrations
-npm run dev                     # http://localhost:3000
-npm test                        # testes de RLS + unitários (precisa do Supabase local)
+```text
+DISPONIBILIDADE → CULTO → ESCALA → CONFIRMAÇÃO → PREPARO → SERVIÇO
 ```
 
-As migrations ficam em `supabase/migrations/`. **Antes de usar**, ajuste a allowlist de
-super-admins em `00000000000006_super_admin.sql` (há e-mails de exemplo — troque pelos seus).
+---
 
-### Filosofia
+## LUNOR Louvor
 
-Acts é **free para qualquer igreja**. Quem puder contribuir ajuda a sustentar a estrutura
-e, num **modelo solidário**, mantém as igrejas menores sempre gratuitas. É um **agregador**,
-não um clone: centraliza a gestão e pretende **conversar** com as ferramentas que a igreja
-já usa (como o Holyrics, pela API aberta), sem refazê-las. **API-first**: cada feature nasce
-com endpoint público.
+Um espaço dedicado à rotina real de um time de música — do acervo ao domingo.
 
-## Licença / License
+### Acervo musical
 
-MIT — veja [LICENSE](LICENSE).
+- Cadastro e organização de músicas.
+- Título, artista, tom original, BPM e compasso.
+- Letra e cifra no próprio LUNOR.
+- Importação e cadastro a partir do **YouTube**.
+- Links e materiais de referência para preparação.
+
+### Cifras e tons
+
+- Cifras armazenadas junto à música.
+- Alteração do tom para cada culto sem modificar o tom original do acervo.
+- **Transposição de acordes em tempo real**.
+- Suporte a conteúdo em formatos de cifra estruturados e texto.
+
+### Repertórios
+
+- Criação do repertório de cada culto.
+- Ordenação das músicas.
+- Definição de tom por música e por serviço.
+- Informações de preparação concentradas em um único lugar.
+- Repertório conectado à escala da equipe.
+
+O resultado é um fluxo único entre **música, repertório, músico, escala e culto**.
+
+---
+
+## LUNOR Kids
+
+O Kids foi desenhado para unir **agilidade na recepção** com **segurança na entrega da criança**.
+
+### Crianças e responsáveis
+
+- Cadastro de crianças e informações relevantes para o atendimento.
+- Relacionamento com responsáveis autorizados.
+- Organização por salas, faixas e contexto do ministério.
+- Histórico e dados centralizados para a equipe autorizada.
+
+### Recepção e check-in
+
+- Busca rápida na recepção.
+- Entrada da criança na sessão do culto.
+- Geração de **etiquetas próprias para identificação**.
+- Fluxo preparado para operação mobile.
+
+### Retirada segura
+
+- Identificação por **QR Code**.
+- Conferência do responsável autorizado.
+- Registro de retirada/check-out.
+- Controles adicionais para exceções e ações de liderança.
+
+### Equipe Kids
+
+O módulo também utiliza o mesmo motor de **disponibilidade e escalas** do LUNOR, mantendo a experiência consistente entre ministérios.
+
+---
+
+## Mobile-first de verdade
+
+O LUNOR é construído priorizando a operação no celular, porque é ali que boa parte da rotina da igreja acontece.
+
+- Interface responsiva para desktop e mobile.
+- **PWA instalável** na tela inicial.
+- Manifest e service worker próprios.
+- Empacotamento mobile com **Capacitor** para Android e iOS.
+- Ícone e identidade visual próprios do aplicativo.
+- Navegação focada nas ações mais importantes de cada perfil.
+
+---
+
+## Multi-igreja, multi-campus e permissões
+
+A aplicação foi desenhada para crescer sem misturar contexto ou dados.
+
+- Estrutura **multi-tenant** por igreja.
+- Suporte a múltiplos campus.
+- Pessoas podem participar de diferentes ministérios.
+- Permissões e responsabilidades por contexto.
+- Dados sensíveis protegidos também no banco através de **Row Level Security (RLS)**.
+- Testes específicos para isolamento entre tenants.
+
+---
+
+## Arquitetura
+
+| Camada | Tecnologia |
+|---|---|
+| **Frontend** | Next.js 16 · React 19 · TypeScript |
+| **UI** | Tailwind CSS 4 · Base UI · shadcn · Lucide |
+| **Backend** | Supabase |
+| **Banco** | PostgreSQL + Row Level Security |
+| **Auth** | Supabase Auth |
+| **Validação** | Zod |
+| **Deploy web** | Cloudflare Workers + OpenNext |
+| **Mobile** | PWA + Capacitor 8 |
+| **Testes** | Vitest + testes de RLS |
+
+### Visão simplificada
+
+```text
+┌─────────────────────────────────────────────┐
+│                  LUNOR UI                   │
+│        Next.js · React · PWA · Mobile       │
+└──────────────────────┬──────────────────────┘
+                       │
+            ┌──────────▼──────────┐
+            │   Aplicação / APIs   │
+            │ Next.js + OpenNext   │
+            └──────────┬──────────┘
+                       │
+       ┌───────────────▼────────────────┐
+       │            Supabase             │
+       │ Auth · Postgres · RLS · Storage │
+       └───────────────┬────────────────┘
+                       │
+            ┌──────────▼──────────┐
+            │ Cloudflare Workers   │
+            │   Runtime / Deploy   │
+            └─────────────────────┘
+```
+
+---
+
+## Desenvolvimento local
+
+### Requisitos
+
+- Node.js 20+
+- npm
+- Docker, caso utilize o Supabase local
+- Supabase CLI
+
+### Instalação
+
+```bash
+git clone <url-do-repositorio>
+cd lunor
+npm install
+cp .env.example .env.local
+```
+
+Configure as variáveis necessárias no `.env.local` e então:
+
+```bash
+npx supabase start
+npx supabase db reset
+npm run dev
+```
+
+A aplicação ficará disponível em:
+
+```text
+http://localhost:3000
+```
+
+### Comandos principais
+
+| Comando | Uso |
+|---|---|
+| `npm run dev` | Desenvolvimento local |
+| `npm run build` | Build de produção |
+| `npm run lint` | ESLint |
+| `npm test` | Testes com Vitest |
+| `npm run cf:build` | Build para Cloudflare/OpenNext |
+| `npm run cf:preview` | Preview do build Cloudflare |
+| `npm run cf:deploy` | Deploy via OpenNext |
+| `npm run mobile:sync` | Sincroniza o projeto Capacitor |
+| `npm run mobile:android` | Sincroniza Android |
+| `npm run mobile:ios` | Sincroniza iOS |
+
+As migrations do banco ficam em [`supabase/migrations`](supabase/migrations).
+
+---
+
+## Estrutura do produto
+
+```text
+LUNOR
+├── Início
+├── Escalas
+├── Disponibilidade
+├── Pessoas
+├── Louvor
+│   ├── Acervo
+│   ├── Repertórios
+│   ├── Escalas
+│   └── Disponibilidade
+├── Kids
+│   ├── Crianças
+│   ├── Responsáveis
+│   ├── Sessões
+│   ├── Check-in / Check-out
+│   └── Escalas
+├── Equipamentos
+└── Administração
+```
+
+A interface apresentada a cada usuário depende do seu contexto, permissões e ministérios.
+
+---
+
+## Princípios do LUNOR
+
+**1. Simples para quem serve**  
+O voluntário precisa encontrar rapidamente sua próxima escala, sua função, sua disponibilidade e aquilo que precisa preparar.
+
+**2. Poderoso para quem lidera**  
+O líder precisa enxergar equipe, confirmação, cobertura, repertório e operação sem depender de várias ferramentas paralelas.
+
+**3. Modular por natureza**  
+Louvor, Kids e outros ministérios compartilham a mesma base, mas cada área recebe fluxos próprios quando a operação exige.
+
+**4. Segurança no nível certo**  
+Permissão não é apenas elemento de interface. O isolamento de dados também é aplicado no banco.
+
+**5. Menos administração, mais clareza**  
+A tecnologia deve reduzir trabalho repetitivo e deixar evidente o próximo passo de cada pessoa.
+
+---
+
+## Status
+
+O LUNOR está em **evolução ativa**, com foco atual em consolidar a experiência de operação real da igreja, especialmente nos módulos de **Louvor, Kids, escalas e disponibilidade**.
+
+Novas funcionalidades são validadas pelo impacto operacional antes de serem incorporadas ao fluxo principal.
+
+---
+
+## Marca
+
+**LUNOR**  
+**Presença · preparo · propósito**
+
+A identidade visual oficial utilizada pelo produto está em [`public/brand`](public/brand) e [`public/icons`](public/icons).
+
+<div align="center">
+  <br />
+  <img src="public/icons/lunor-mark-v2.svg" width="58" alt="Símbolo LUNOR" />
+  <br /><br />
+  <strong>LUNOR</strong><br />
+  <sub>Presença · preparo · propósito</sub>
+</div>
