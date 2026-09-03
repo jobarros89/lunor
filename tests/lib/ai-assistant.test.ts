@@ -136,4 +136,61 @@ describe("runLunorAssistant", () => {
     expect(result.usedTools).toEqual(["propose_assignment"]);
     expect(toolExecutor).toHaveBeenCalledTimes(1);
   });
+
+  it("coleta todas as sugestões do rascunho completo e informa o modelo usado", async () => {
+    const proposal = {
+      kind: "assignment" as const,
+      eventId: "11111111-1111-4111-8111-111111111111",
+      eventTitle: "Culto",
+      startsAt: "2026-09-06T10:30:00.000Z",
+      userId: "22222222-2222-4222-8222-222222222222",
+      userName: "Pessoa Teste",
+      roleName: "Bateria",
+      departmentId: null,
+      departmentName: null,
+      availability: "available" as const,
+      availabilityLabel: "Disponível",
+      rationale: "Disponível",
+    };
+    const runner = vi
+      .fn()
+      .mockResolvedValueOnce({
+        text: "",
+        toolCalls: [
+          {
+            id: "call-draft",
+            name: "draft_schedule_from_previous_service",
+            arguments: { eventId: proposal.eventId },
+          },
+        ],
+        model: "fallback-model",
+      })
+      .mockResolvedValueOnce({
+        text: "Preparei o rascunho.",
+        toolCalls: [],
+        model: "fallback-model",
+      });
+    const toolExecutor = vi.fn().mockResolvedValue({
+      kind: "schedule_draft",
+      event: { id: proposal.eventId, title: "Culto", startsAt: proposal.startsAt },
+      referenceEvent: { id: "ref", title: "Culto anterior", startsAt: "2026-08-30T10:30:00.000Z" },
+      proposals: [proposal],
+      skippedRoles: [],
+    });
+
+    const result = await runLunorAssistant({
+      question: "Monte a escala completa",
+      context: {
+        churchId: "church-1",
+        ministryId: "ministry-1",
+        ministryName: "Louvor",
+      },
+      runner,
+      toolExecutor,
+    });
+
+    expect(result.proposals).toEqual([proposal]);
+    expect(result.usedTools).toEqual(["draft_schedule_from_previous_service"]);
+    expect(result.model).toBe("fallback-model");
+  });
 });
