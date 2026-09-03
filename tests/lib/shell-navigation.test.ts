@@ -22,8 +22,9 @@ describe("buildShellNavigation", () => {
       "kids",
       "ministry",
       "escalas",
-      "perfil",
+      "assistente",
       "pessoas",
+      "perfil",
       "admin",
     ]);
     expect(nav.find((item) => item.id === "ministry")?.href).toBe(
@@ -31,7 +32,7 @@ describe("buildShellNavigation", () => {
     );
   });
 
-  it("não expõe gestão para voluntário sem permissão", () => {
+  it("não expõe gestão nem assistente para voluntário sem permissão", () => {
     const nav = buildShellNavigation({
       guardianOnly: false,
       hasLouvor: true,
