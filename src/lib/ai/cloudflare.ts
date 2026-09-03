@@ -5,8 +5,6 @@ export const LUNOR_AI_MODEL = "@cf/zai-org/glm-4.7-flash";
 export type LunorAiMessage = {
   role: "system" | "user" | "assistant" | "tool";
   content: string;
-  name?: string;
-  tool_call_id?: string;
 };
 
 export type LunorAiTool = {
