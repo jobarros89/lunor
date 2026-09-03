@@ -75,6 +75,7 @@ export async function POST(request: Request) {
         answer: result.answer,
         model: result.model,
         usedTools: result.usedTools,
+        proposals: result.proposals,
         scope: { ministryId: ministry.id, ministryName: ministry.name },
       },
       { headers: HEADERS }
