@@ -28,21 +28,21 @@ function ComecarContent() {
       <Card className="rounded-3xl shadow-sm">
         <CardHeader className="space-y-2 text-center">
           <CardTitle className="text-2xl font-semibold tracking-tight">
-            {mode === "choose" ? "Como você quer começar?" : mode === "join" ? "Entrar em uma igreja" : "Criar sua igreja"}
+            {mode === "choose" ? "Como você quer usar o LUNOR?" : mode === "join" ? "Entrar em uma igreja" : "Criar sua igreja"}
           </CardTitle>
           <CardDescription>
-            {mode === "choose" ? "Escolha a opção que representa você agora." : mode === "join" ? "Abra o link enviado pelo seu líder ou use o código como alternativa." : "Agora dê um nome à sua igreja. O endereço será criado automaticamente."}
+            {mode === "choose" ? "Escolha como deseja começar." : mode === "join" ? "Use o convite que você recebeu. Se tiver um código, informe abaixo." : "Informe o nome da sua igreja para começar a configuração."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {mode === "choose" && <div className="grid gap-3 sm:grid-cols-2">
             <button type="button" onClick={() => setMode("create")} className="min-h-32 rounded-2xl border p-5 text-left transition-colors hover:border-foreground/40 hover:bg-muted/40">
               <strong className="block text-base">Criar uma igreja</strong>
-              <span className="mt-2 block text-sm text-muted-foreground">Sou líder ou administrador e quero configurar o LUNOR.</span>
+              <span className="mt-2 block text-sm text-muted-foreground">Sou responsável pela gestão e quero configurar o LUNOR.</span>
             </button>
             <button type="button" onClick={() => setMode("join")} className="min-h-32 rounded-2xl border p-5 text-left transition-colors hover:border-foreground/40 hover:bg-muted/40">
-              <strong className="block text-base">Já pertenço a uma igreja</strong>
-              <span className="mt-2 block text-sm text-muted-foreground">Tenho um código e quero entrar na equipe da minha igreja.</span>
+              <strong className="block text-base">Entrar em uma igreja</strong>
+              <span className="mt-2 block text-sm text-muted-foreground">Recebi um convite para acessar o LUNOR da minha igreja.</span>
             </button>
           </div>}
 
@@ -53,7 +53,7 @@ function ComecarContent() {
 
           {mode === "create" && <form action={(fd) => submit(createChurch, fd)} className="space-y-4">
             <div className="space-y-2"><Label htmlFor="name">Nome da igreja</Label><Input id="name" name="name" required autoComplete="organization" className="h-12 rounded-full" /></div>
-            <p className="text-xs text-muted-foreground">Exemplo: Igreja Batista Central. O slug será gerado pelo LUNOR.</p>
+            <p className="text-xs text-muted-foreground">Exemplo: Igreja Batista Central. O endereço no LUNOR será criado automaticamente.</p>
             <Button type="submit" disabled={pending} className="h-12 w-full rounded-full text-base">{pending ? "Criando…" : "Criar e configurar"}</Button>
           </form>}
         </CardContent>

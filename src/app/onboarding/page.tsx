@@ -43,12 +43,12 @@ export default async function OnboardingPage({
           <BrandLockup className="items-center [&_span]:text-[#f4f3ef] [&_span:last-child]:text-zinc-400" />
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              {membership.role === "admin" ? "Vamos preparar sua igreja" : `Você está entrando em ${church.name}`}
+              {membership.role === "admin" ? "Vamos preparar sua igreja" : `Bem-vindo à ${church.name}`}
             </h1>
             <p className="mt-2 text-sm text-zinc-400">
               {membership.role === "admin"
-                ? "Só o essencial para começar a organizar a equipe."
-                : "Confirme onde você serve e veja suas próximas escalas."}
+                ? "Configure o essencial para começar a usar o LUNOR."
+                : "Confirme onde você serve para concluir seu acesso ao LUNOR."}
             </p>
           </div>
         </div>

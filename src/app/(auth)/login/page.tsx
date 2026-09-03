@@ -59,7 +59,7 @@ function LoginForm() {
     <Card className="border-white/10 bg-[#111113] text-[#f4f3ef] shadow-none sm:rounded-2xl">
       <CardHeader className="space-y-4 pb-7 text-center">
         <BrandLockup className="items-center [&_span]:text-[#f4f3ef] [&_span:last-child]:text-zinc-400" />
-        <CardDescription>Entre para acessar seu ministério</CardDescription>
+        <CardDescription>Entre para acessar o aplicativo.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <Button
@@ -81,7 +81,7 @@ function LoginForm() {
         <form action={onSubmit} className="space-y-4">
           {shouldConfirmEmail && (
             <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-300">
-              Conta criada. Confirme seu e-mail e depois entre aqui. Se você chegou por um convite, ele será retomado automaticamente após o login.
+              Conta criada. Confirme seu e-mail e depois entre no LUNOR. Se você chegou por um convite, continuaremos de onde você parou.
             </p>
           )}
           <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" name="email" type="email" autoComplete="email" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-[#6e5ce6] focus-visible:ring-[#6e5ce6]/25" /></div>
@@ -89,7 +89,7 @@ function LoginForm() {
           {visibleError && <p className="text-sm text-destructive">{visibleError}</p>}
           <Button type="submit" disabled={pending} className="h-12 w-full rounded-lg bg-[#6e5ce6] text-base font-semibold text-white hover:bg-[#5f4fd1]">{pending ? "Entrando…" : "Entrar"}</Button>
           <p className="text-center text-sm"><Link href="/esqueci-senha" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Esqueci minha senha</Link></p>
-          <p className="text-center text-sm text-muted-foreground">Não tem conta?{" "}<Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">Criar conta</Link></p>
+          <p className="text-center text-sm text-muted-foreground">Ainda não tem conta?{" "}<Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">Criar conta</Link></p>
         </form>
 
         <p className="text-center text-xs leading-relaxed text-zinc-500">
