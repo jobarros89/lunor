@@ -53,7 +53,13 @@ export async function resolveExternalMcpContext(rawToken: string): Promise<Exter
     return null;
   }
 
-  return record as ExternalMcpContext;
+  return {
+    tokenId: record.tokenId,
+    churchId: record.churchId,
+    ministryId: record.ministryId,
+    ministryName: record.ministryName,
+    scope: "read:operational",
+  };
 }
 
 export async function executeExternalMcpTool(
