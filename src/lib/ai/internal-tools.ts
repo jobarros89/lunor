@@ -15,6 +15,11 @@ import {
   analyzeWorshipSetlist,
   getWorshipLibraryInsights,
 } from "@/lib/ai/worship";
+import {
+  buildWorshipSetlistProposal,
+  isWorshipSetlistProposal,
+  type WorshipSetlistProposal,
+} from "@/lib/ai/worship-setlist-proposal";
 
 const INTERNAL_TOOLS: LunorAiTool[] = [
   {
@@ -120,6 +125,30 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: "propose_worship_setlist",
+    description:
+      "Cria uma PROPOSTA visual de repertório para um culto usando exclusivamente IDs de músicas reais retornadas pelo acervo. Use somente depois de get_worship_library_insights. Não altera o repertório; a gravação exige confirmação explícita do líder.",
+    parameters: {
+      type: "object",
+      properties: {
+        eventId: {
+          type: "string",
+          format: "uuid",
+          description: "ID do culto que receberia o repertório após confirmação humana.",
+        },
+        songIds: {
+          type: "array",
+          minItems: 2,
+          maxItems: 6,
+          items: { type: "string", format: "uuid" },
+          description: "IDs das músicas reais do acervo na ordem sugerida.",
+        },
+      },
+      required: ["eventId", "songIds"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 const candidatesSchema = z.object({
@@ -142,6 +171,16 @@ const worshipLibrarySchema = z.object({
 });
 const worshipSetlistSchema = z.object({
   eventId: z.string().uuid(),
+});
+const worshipSetlistProposalSchema = z.object({
+  eventId: z.string().uuid(),
+  songIds: z
+    .array(z.string().uuid())
+    .min(2)
+    .max(6)
+    .refine((songIds) => new Set(songIds).size === songIds.length, {
+      message: "As músicas da proposta não podem se repetir",
+    }),
 });
 
 export function internalAiTools(): LunorAiTool[] {
@@ -184,6 +223,11 @@ export async function executeInternalAiTool(
     }
     case "analyze_worship_setlist":
       return analyzeWorshipSetlist(context, worshipSetlistSchema.parse(args));
+    case "propose_worship_setlist":
+      return buildWorshipSetlistProposal(
+        context,
+        worshipSetlistProposalSchema.parse(args)
+      );
     default:
       throw new Error("unknown_internal_tool");
   }
@@ -200,5 +244,5 @@ export function isAssignmentProposal(value: unknown): value is AssignmentProposa
   );
 }
 
-export { isScheduleDraft };
-export type { ScheduleDraft };
+export { isScheduleDraft, isWorshipSetlistProposal };
+export type { ScheduleDraft, WorshipSetlistProposal };
