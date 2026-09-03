@@ -11,6 +11,7 @@ import { PickupQr } from "@/components/infantil/pickup-qr";
 import { checkOutChild } from "@/lib/actions/infantil";
 import { chamarResponsavelSeguro } from "@/lib/actions/infantil-call";
 import { checkInOrReenterChild } from "@/lib/actions/infantil-checkin";
+import type { KidsPrintSettings } from "@/lib/kids-print-settings";
 
 export type Guardian = {
   id: string;
@@ -41,6 +42,7 @@ export function SessionChildRow({
   eventTitle,
   eventContext,
   podeLiberar,
+  printSettings,
 }: {
   child: SessionChild;
   churchName: string;
@@ -51,6 +53,7 @@ export function SessionChildRow({
   eventTitle: string;
   eventContext: string;
   podeLiberar: boolean;
+  printSettings: KidsPrintSettings;
 }) {
   const [pending, startTransition] = useTransition();
   const [retirando, setRetirando] = useState(false);
@@ -219,6 +222,7 @@ export function SessionChildRow({
                 pickupToken={child.checkin.pickupToken}
                 eventTitle={eventTitle}
                 eventContext={eventContext}
+                printSettings={printSettings}
               />
               <Button
                 variant="outline"
@@ -305,6 +309,28 @@ export function SessionChildRow({
             </div>
           )}
         </div>
+      )}
+
+      {child.checkin && !child.checkin.checkedOut && (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setMostrarQr((value) => !value)}
+            className="h-8 rounded-full px-3 text-xs"
+          >
+            <QrCode className="size-3.5" />
+            {mostrarQr ? "Ocultar QR" : "Ver QR de retirada"}
+          </Button>
+        </div>
+      )}
+
+      {mostrarQr && child.checkin && !child.checkin.checkedOut && (
+        <PickupQr
+          token={child.checkin.pickupToken}
+          code={child.checkin.code}
+          childName={child.fullName}
+        />
       )}
     </div>
   );
