@@ -41,6 +41,7 @@ describe("runLunorAssistant", () => {
     );
     expect(result.answer).toBe("Há 1 culto em atenção.");
     expect(result.usedTools).toEqual(["get_operational_summary"]);
+    expect(result.proposals).toEqual([]);
     const secondCall = runner.mock.calls[1]?.[0];
     expect(secondCall.messages.some((message: { role: string }) => message.role === "tool")).toBe(true);
   });
@@ -64,6 +65,60 @@ describe("runLunorAssistant", () => {
     });
 
     expect(result.answer).toContain("consultar");
+    expect(result.proposals).toEqual([]);
     expect(toolExecutor).not.toHaveBeenCalled();
+  });
+
+  it("retorna proposta revisável sem gravar a escala automaticamente", async () => {
+    const runner = vi
+      .fn()
+      .mockResolvedValueOnce({
+        text: "",
+        toolCalls: [
+          {
+            id: "call-2",
+            name: "propose_assignment",
+            arguments: {
+              eventId: "11111111-1111-4111-8111-111111111111",
+              userId: "22222222-2222-4222-8222-222222222222",
+              roleName: "Baixo",
+            },
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        text: "Preparei uma sugestão para sua revisão.",
+        toolCalls: [],
+      });
+    const proposal = {
+      kind: "assignment" as const,
+      eventId: "11111111-1111-4111-8111-111111111111",
+      eventTitle: "Culto de Domingo",
+      startsAt: "2026-09-06T10:30:00.000Z",
+      userId: "22222222-2222-4222-8222-222222222222",
+      userName: "Pessoa Teste",
+      roleName: "Baixo",
+      departmentId: null,
+      departmentName: null,
+      availability: "available" as const,
+      availabilityLabel: "Disponível",
+      rationale: "Disponível",
+    };
+    const toolExecutor = vi.fn().mockResolvedValue(proposal);
+
+    const result = await runLunorAssistant({
+      question: "Sugira alguém para o baixo",
+      context: {
+        churchId: "church-1",
+        ministryId: "ministry-1",
+        ministryName: "Louvor",
+      },
+      runner,
+      toolExecutor,
+    });
+
+    expect(result.proposals).toEqual([proposal]);
+    expect(result.usedTools).toEqual(["propose_assignment"]);
+    expect(toolExecutor).toHaveBeenCalledTimes(1);
   });
 });
