@@ -8,6 +8,7 @@ import type { Song } from "@/lib/louvor";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { TimeSignaturePicker } from "@/components/louvor/time-signature-picker";
 
 type SongFormProps = {
   churchSlug: string;
@@ -20,6 +21,7 @@ export function SongForm(props: SongFormProps) {
   const song = isEdit ? props.song : null;
   const router = useRouter();
   const [aberto, setAberto] = useState(isEdit);
+  const [timeSignature, setTimeSignature] = useState(song?.time_signature ?? "");
   const [erro, setErro] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -118,15 +120,11 @@ export function SongForm(props: SongFormProps) {
           />
         </Field>
         <Field label="Compasso">
-          <Input
+          <TimeSignaturePicker
             name="timeSignature"
-            defaultValue={song?.time_signature ?? ""}
-            maxLength={5}
-            pattern="(?:[1-9]|[12][0-9]|3[0-2])/(?:1|2|4|8|16|32)"
-            title="Informe um compasso como 4/4, 6/8 ou 12/8"
-            placeholder="Ex.: 4/4 ou 6/8"
-            inputMode="numeric"
-            className="h-11 rounded-xl"
+            value={timeSignature}
+            onChange={setTimeSignature}
+            id="song-time-signature"
           />
         </Field>
       </div>
