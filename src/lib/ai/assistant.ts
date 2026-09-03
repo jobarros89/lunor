@@ -34,6 +34,10 @@ Quando o ministério atual for Louvor, use get_worship_library_insights para per
 Ao sugerir repertório para um culto, descubra o culto com get_operational_summary quando necessário, consulte get_worship_library_insights e depois use propose_worship_setlist com 2 a 6 IDs retornados pelo acervo, na ordem musical sugerida.
 Uma proposta de repertório deve usar somente músicas realmente retornadas por get_worship_library_insights. Não invente títulos, artistas, tons, BPMs ou IDs.
 Para analisar um repertório já montado, descubra o culto com get_operational_summary quando necessário e use analyze_worship_setlist. Diferencie fatos objetivos (tom, BPM, repetição, distância tonal) de opinião musical.
+Quando o usuário pedir para refinar uma proposta anterior de repertório — por exemplo "troque a segunda música", "quero algo menos repetido", "coloque uma música mais calma no final", "mude a ordem" ou "evite mudanças grandes de tom" — use a proposta atual descrita no histórico como ponto de partida.
+Em refinamentos, preserve o mesmo culto e preserve as músicas/posições que o usuário não pediu para mudar. Para referências como "segunda", "última" ou "a terceira", use a ordem explícita da proposta atual no histórico.
+Antes de trocar ou inserir uma música, consulte get_worship_library_insights (use uma janela ampla e até 100 músicas quando precisar de alternativas) e depois chame propose_worship_setlist com a sequência completa resultante.
+Para "menos repetido", priorize usageCountInWindow menor. Para "mais calma", use BPM como sinal objetivo quando não houver outro dado musical disponível e deixe essa limitação clara. Para suavizar transições, considere tom e BPM; se propose_worship_setlist ainda retornar alerta de mudança ampla e houver alternativas viáveis, tente uma nova ordem ou seleção uma vez.
 propose_worship_setlist NÃO grava dados. A proposta só é adicionada ao repertório quando o líder tocar explicitamente em "Adicionar ao repertório" no LUNOR. A confirmação é aditiva: preserva músicas que já existem no culto.
 Uma proposta de escala NÃO altera dados: a gravação só acontece depois que o líder tocar em "Confirmar escala" no LUNOR.
 As demais ferramentas desta versão são somente leitura.
@@ -109,6 +113,33 @@ function appendWorshipProposal(
   if (!proposals.some((item) => worshipProposalKey(item) === key)) proposals.push(proposal);
 }
 
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR");
+}
+
+function withWorshipProposalHistoryContext(
+  answer: string,
+  proposals: WorshipSetlistProposal[]
+) {
+  const latest = proposals.at(-1);
+  if (!latest) return answer;
+
+  const normalizedAnswer = normalizeText(answer);
+  const alreadyListsSongs = latest.songs.every((song) =>
+    normalizedAnswer.includes(normalizeText(song.title))
+  );
+  if (alreadyListsSongs) return answer;
+
+  const orderedSongs = latest.songs
+    .map((song) => `${song.position}. ${song.title}`)
+    .join(" · ");
+
+  return `${answer.trim()}\n\nProposta atual para refinamento — ${latest.event.title}: ${orderedSongs}.`;
+}
+
 export async function runLunorAssistant({
   question,
   history = [],
@@ -158,7 +189,10 @@ export async function runLunorAssistant({
     if (turn.toolCalls.length === 0) {
       if (!turn.text) throw new Error("assistant_empty_answer");
       return {
-        answer: turn.text,
+        answer: withWorshipProposalHistoryContext(
+          turn.text,
+          worshipSetlistProposals
+        ),
         model: usedModel,
         usedTools: [...new Set(usedTools)],
         proposals,
@@ -206,7 +240,10 @@ export async function runLunorAssistant({
   if (!finalTurn.text) throw new Error("assistant_empty_answer");
 
   return {
-    answer: finalTurn.text,
+    answer: withWorshipProposalHistoryContext(
+      finalTurn.text,
+      worshipSetlistProposals
+    ),
     model: usedModel,
     usedTools: [...new Set(usedTools)],
     proposals,
