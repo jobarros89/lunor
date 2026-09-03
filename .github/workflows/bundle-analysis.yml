@@ -2,6 +2,9 @@ name: Bundle Analysis
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/bundle-analysis.yml
   push:
     branches: [perf/bundle-baseline]
     paths:
