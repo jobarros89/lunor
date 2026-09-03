@@ -22,7 +22,7 @@ export function InviteLink({ inviteCode }: { inviteCode: string }) {
     if (navigator.share) {
       await navigator.share({
         title: "Convite para o LUNOR",
-        text: "Entre na equipe da nossa igreja no LUNOR.",
+        text: "Você recebeu um convite para acessar o LUNOR da nossa igreja.",
         url: inviteUrl,
       });
       return;
