@@ -1,14 +1,19 @@
 import Link from "next/link";
-import { CalendarCheck2, CheckCircle2, ChevronRight, Clock3, TriangleAlert, Users2 } from "lucide-react";
+import { ChevronRight, Clock3 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
-import { formatEventDate, formatEventTime } from "@/lib/escalas";
+import { ASSIGNMENT_STATUS_LABELS, formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
 import { timeLabel } from "@/lib/service-window";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { LoadError } from "@/components/shell/load-error";
+import {
+  LeaderScheduleMetrics,
+  type LeaderScheduleEvent,
+  type LeaderSchedulePerson,
+} from "@/components/escalas/leader-schedule-metrics";
 
 type EventRow = {
   id: string;
@@ -21,10 +26,12 @@ type EventRow = {
 };
 
 type AssignmentRow = {
+  id: string;
   event_id: string;
   user_id: string;
   role_name: string;
   status: string;
+  profiles: { full_name: string } | { full_name: string }[] | null;
 };
 
 type ServiceWindowRow = {
@@ -45,6 +52,10 @@ function needsAttention(status: string) {
   return status === "substituicao_solicitada" || status === "falar_lider" || status === "ausente";
 }
 
+function isPending(status: string) {
+  return status === "convidado" || needsAttention(status);
+}
+
 export async function MinistryScheduleList({
   churchSlug,
   ministryId,
@@ -58,17 +69,19 @@ export async function MinistryScheduleList({
 }) {
   const tenant = await getTenant(churchSlug);
   const supabase = await createClient();
+  let canManage = tenant.isCoord;
 
   if (!tenant.isCoord) {
     const { data: membership } = await supabase
       .from("ministry_members")
-      .select("id")
+      .select("id, role")
       .eq("church_id", tenant.church.id)
       .eq("ministry_id", ministryId)
       .eq("user_id", tenant.userId)
       .eq("active", true)
       .maybeSingle();
     if (!membership) redirect(`/${churchSlug}`);
+    canManage = membership.role === "gerente" || membership.role === "lider";
   }
 
   const since = new Date();
@@ -90,7 +103,7 @@ export async function MinistryScheduleList({
       .limit(30),
     supabase
       .from("assignments")
-      .select("event_id, user_id, role_name, status, events!inner(starts_at)")
+      .select("id, event_id, user_id, role_name, status, profiles!assignments_user_id_fkey(full_name), events!inner(starts_at)")
       .eq("church_id", tenant.church.id)
       .eq("ministry_id", ministryId)
       .gte("events.starts_at", since.toISOString())
@@ -112,23 +125,67 @@ export async function MinistryScheduleList({
   const assignmentRows = (assignments ?? []) as unknown as AssignmentRow[];
   const windowRows = (serviceWindows ?? []) as unknown as ServiceWindowRow[];
   const byEvent = new Map<string, AssignmentRow[]>();
+  const eventById = new Map(eventRows.map((event) => [event.id, event]));
   const windowByEvent = new Map(windowRows.map((window) => [window.event_id, window]));
   for (const assignment of assignmentRows) {
     byEvent.set(assignment.event_id, [...(byEvent.get(assignment.event_id) ?? []), assignment]);
   }
 
-  const confirmed = assignmentRows.filter((item) => isConfirmed(item.status)).length;
+  const confirmedRows = assignmentRows.filter((item) => isConfirmed(item.status));
+  const pendingRows = assignmentRows.filter((item) => isPending(item.status));
+  const confirmed = confirmedRows.length;
   const waiting = assignmentRows.filter((item) => item.status === "convidado").length;
   const attention = assignmentRows.filter((item) => needsAttention(item.status)).length;
 
+  const leaderEvents: LeaderScheduleEvent[] = eventRows.map((event) => {
+    const eventAssignments = byEvent.get(event.id) ?? [];
+    return {
+      id: event.id,
+      title: event.title,
+      dateLabel: formatEventDate(event.starts_at),
+      timeLabel: formatEventTime(event.starts_at),
+      href: `${detailBaseHref}/${event.id}`,
+      assignmentCount: eventAssignments.length,
+      confirmedCount: eventAssignments.filter((item) => isConfirmed(item.status)).length,
+      pendingCount: eventAssignments.filter((item) => isPending(item.status)).length,
+    };
+  });
+
+  function toLeaderPerson(assignment: AssignmentRow): LeaderSchedulePerson {
+    const event = eventById.get(assignment.event_id);
+    return {
+      id: assignment.id,
+      eventId: assignment.event_id,
+      eventTitle: event?.title ?? "Evento",
+      dateLabel: event ? formatEventDate(event.starts_at) : "—",
+      timeLabel: event ? formatEventTime(event.starts_at) : "—",
+      href: `${detailBaseHref}/${assignment.event_id}`,
+      fullName: firstRelated(assignment.profiles)?.full_name ?? "Voluntário",
+      roleName: assignment.role_name,
+      status: assignment.status,
+      statusLabel: ASSIGNMENT_STATUS_LABELS[assignment.status] ?? assignment.status,
+    };
+  }
+
+  // Nomes da equipe só são serializados para o painel interativo quando o usuário
+  // realmente possui papel de liderança/gestão neste ministério.
+  const leaderInvites = canManage ? assignmentRows.map(toLeaderPerson) : [];
+  const leaderConfirmed = canManage ? confirmedRows.map(toLeaderPerson) : [];
+  const leaderPending = canManage ? pendingRows.map(toLeaderPerson) : [];
+
   return (
     <div className="space-y-6">
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Métricas das próximas escalas">
-        <Metric icon={CalendarCheck2} value={eventRows.length} label="Próximos eventos" />
-        <Metric icon={Users2} value={assignmentRows.length} label="Convites na escala" />
-        <Metric icon={CheckCircle2} value={confirmed} label="Confirmados" />
-        <Metric icon={TriangleAlert} value={waiting + attention} label="Pendências" />
-      </section>
+      <LeaderScheduleMetrics
+        canManage={canManage}
+        eventCount={eventRows.length}
+        inviteCount={assignmentRows.length}
+        confirmedCount={confirmed}
+        pendingCount={waiting + attention}
+        events={leaderEvents}
+        invites={leaderInvites}
+        confirmed={leaderConfirmed}
+        pending={leaderPending}
+      />
 
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-3 border-b pb-3">
@@ -209,29 +266,5 @@ export async function MinistryScheduleList({
         )}
       </section>
     </div>
-  );
-}
-
-function Metric({
-  icon: Icon,
-  value,
-  label,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  value: number;
-  label: string;
-}) {
-  return (
-    <Card className="rounded-3xl">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          <Icon className="size-4" />
-          {label}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-3xl font-semibold tracking-tight">{value}</p>
-      </CardContent>
-    </Card>
   );
 }
