@@ -96,6 +96,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
     { data: myEscalas },
     { data: nextChurchEvent },
     { data: serviceWindows },
+    { data: anuncios },
     operationalSummary,
   ] = await Promise.all([
     supabase
@@ -120,9 +121,9 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
       .select("event_id, ministry_id, arrival_at, release_at, events!inner(starts_at)")
       .eq("church_id", tenant.church.id)
       .gte("events.starts_at", nowIso),
+    supabase.rpc("anuncios_infantil", { p_church: tenant.church.id }),
     operationalSummaryPromise,
   ]);
-  const { data: anuncios } = await supabase.rpc("anuncios_infantil", { p_church: tenant.church.id });
   const escalas = (myEscalas ?? []) as unknown as HomeAssignment[];
   const windowByPair = new Map<string, ServiceWindowRow>();
   for (const window of (serviceWindows ?? []) as unknown as ServiceWindowRow[]) {
