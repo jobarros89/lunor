@@ -5,6 +5,13 @@ import {
   type LunorAiTurn,
 } from "@/lib/ai/cloudflare";
 import {
+  executeInternalAiTool,
+  internalAiTools,
+  isAssignmentProposal,
+  isInternalAiTool,
+} from "@/lib/ai/internal-tools";
+import type { AssignmentProposal } from "@/lib/ai/scheduling";
+import {
   executeLunorTool,
   lunorAiTools,
   type LunorToolContext,
@@ -16,7 +23,11 @@ Use as ferramentas do LUNOR para fatos sobre cultos, escalas, pessoas ou disponi
 Baseie respostas factuais atuais nos dados retornados pelas ferramentas.
 "Sem resposta" é diferente de "indisponível".
 O escopo de igreja e ministério é definido pelo servidor.
-As ferramentas desta versão são somente leitura.
+Para sugerir uma escala, consulte primeiro get_schedule_candidates.
+Nunca proponha uma pessoa marcada como indisponível.
+Quando o usuário pedir explicitamente para sugerir quem escalar em uma função, use propose_assignment para gerar uma proposta revisável.
+Uma proposta NÃO altera dados: a gravação só acontece depois que o líder tocar em "Confirmar escala" no LUNOR.
+As demais ferramentas desta versão são somente leitura.
 Prefira respostas curtas, salvo quando o usuário pedir detalhes.`;
 
 export type LunorAssistantHistoryItem = {
@@ -28,6 +39,7 @@ export type LunorAssistantResult = {
   answer: string;
   model: string;
   usedTools: string[];
+  proposals: AssignmentProposal[];
 };
 
 type TurnRunner = (input: {
@@ -42,6 +54,15 @@ type ToolExecutor = (
   args: Record<string, unknown>,
   context: LunorToolContext
 ) => Promise<unknown>;
+
+async function executeAssistantTool(
+  name: string,
+  args: Record<string, unknown>,
+  context: LunorToolContext
+) {
+  if (isInternalAiTool(name)) return executeInternalAiTool(name, args, context);
+  return executeLunorTool(name, args, context);
+}
 
 function toolCallMessage(turn: LunorAiTurn) {
   return JSON.stringify({
@@ -59,7 +80,7 @@ export async function runLunorAssistant({
   context,
   maxToolRounds = 4,
   runner = runLunorAiTurn,
-  toolExecutor = executeLunorTool,
+  toolExecutor = executeAssistantTool,
 }: {
   question: string;
   history?: LunorAssistantHistoryItem[];
@@ -85,7 +106,8 @@ export async function runLunorAssistant({
     { role: "user", content: cleanQuestion },
   ];
   const usedTools: string[] = [];
-  const tools = lunorAiTools();
+  const proposals: AssignmentProposal[] = [];
+  const tools = [...lunorAiTools(), ...internalAiTools()];
 
   for (let round = 0; round < maxToolRounds; round += 1) {
     const turn = await runner({
@@ -101,6 +123,7 @@ export async function runLunorAssistant({
         answer: turn.text,
         model: LUNOR_AI_MODEL,
         usedTools: [...new Set(usedTools)],
+        proposals,
       };
     }
 
@@ -109,8 +132,17 @@ export async function runLunorAssistant({
     for (const call of turn.toolCalls.slice(0, 3)) {
       let payload: unknown;
       try {
-        payload = { ok: true, data: await toolExecutor(call.name, call.arguments, context) };
+        const data = await toolExecutor(call.name, call.arguments, context);
+        payload = { ok: true, data };
         usedTools.push(call.name);
+        if (call.name === "propose_assignment" && isAssignmentProposal(data)) {
+          const key = `${data.eventId}:${data.userId}:${data.roleName.toLocaleLowerCase("pt-BR")}`;
+          const exists = proposals.some(
+            (proposal) =>
+              `${proposal.eventId}:${proposal.userId}:${proposal.roleName.toLocaleLowerCase("pt-BR")}` === key
+          );
+          if (!exists) proposals.push(data);
+        }
       } catch (error) {
         payload = {
           ok: false,
@@ -138,5 +170,6 @@ export async function runLunorAssistant({
     answer: finalTurn.text,
     model: LUNOR_AI_MODEL,
     usedTools: [...new Set(usedTools)],
+    proposals,
   };
 }
