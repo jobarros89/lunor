@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -21,12 +21,9 @@ export function TimeSignaturePicker({
   name?: string;
   id?: string;
 }) {
-  const [custom, setCustom] = useState(Boolean(value) && !isCommonTimeSignature(value));
-
-  useEffect(() => {
-    if (!value) return;
-    setCustom(!isCommonTimeSignature(value));
-  }, [value]);
+  const [customMode, setCustomMode] = useState(false);
+  const custom =
+    (Boolean(value) && !isCommonTimeSignature(value)) || (customMode && !value);
 
   return (
     <div className="space-y-2">
@@ -41,7 +38,7 @@ export function TimeSignaturePicker({
               type="button"
               aria-pressed={selected}
               onClick={() => {
-                setCustom(false);
+                setCustomMode(false);
                 onChange(signature);
               }}
               className={cn(
@@ -60,7 +57,7 @@ export function TimeSignaturePicker({
           type="button"
           aria-pressed={custom}
           onClick={() => {
-            setCustom(true);
+            setCustomMode(true);
             if (isCommonTimeSignature(value)) onChange("");
           }}
           className={cn(
