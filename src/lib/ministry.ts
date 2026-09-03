@@ -21,44 +21,30 @@ export const MINISTRY_COOKIE = "acts_ministry";
 /**
  * Resolve o setor ativo da pessoa nesta igreja:
  * - coordenador/admin da igreja → todos os setores (gere todos);
- * - demais → os setores de que é membro (gere onde é gerente/líder).
+ * - demais → reutiliza os setores já carregados no tenant (sem nova ida ao Supabase).
  * O setor ativo vem do cookie, com fallback no primeiro da lista.
  */
 export const getActiveMinistry = cache(
   async (churchSlug: string): Promise<ActiveMinistry> => {
     const tenant = await getTenant(churchSlug);
-    const supabase = await createClient();
-    const cid = tenant.church.id;
 
     let options: MinistryOption[] = [];
     if (tenant.isCoord) {
+      const supabase = await createClient();
       const { data } = await supabase
         .from("ministries")
         .select("id, name, slug")
-        .eq("church_id", cid)
+        .eq("church_id", tenant.church.id)
         .order("name");
       options = (data ?? []).map((m) => ({ ...m, canManage: true }));
     } else {
-      const { data } = await supabase
-        .from("ministry_members")
-        .select("role, ministries!inner(id, name, slug)")
-        .eq("church_id", cid)
-        .eq("user_id", tenant.userId)
-        .eq("active", true);
-      options = (data ?? [])
-        .map((row) => {
-          const m = row.ministries as unknown as {
-            id: string;
-            name: string;
-            slug: string;
-          };
-          return {
-            id: m.id,
-            name: m.name,
-            slug: m.slug,
-            canManage: row.role === "gerente" || row.role === "lider",
-          };
-        })
+      options = tenant.ministryMemberships
+        .map((membership) => ({
+          id: membership.id,
+          name: membership.name,
+          slug: membership.slug,
+          canManage: membership.role === "gerente" || membership.role === "lider",
+        }))
         .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
     }
 

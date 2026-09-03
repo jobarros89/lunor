@@ -4,6 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 
 export type MinistryRole = "gerente" | "lider" | "instrutor" | "voluntario";
 
+export type TenantMinistryMembership = {
+  id: string;
+  name: string;
+  slug: string;
+  role: MinistryRole;
+};
+
 export type TenantContext = {
   userId: string;
   church: { id: string; name: string; slug: string };
@@ -14,6 +21,8 @@ export type TenantContext = {
     onboarding_completed: boolean;
   };
   ministryRoles: MinistryRole[];
+  /** ministérios ativos do usuário; reaproveitado no shell para evitar nova consulta */
+  ministryMemberships: TenantMinistryMembership[];
   /** admin ou coordenador da igreja (gestão no nível da igreja toda) */
   isCoord: boolean;
   /** admin/coordenador da igreja ou gerente de algum ministério */
@@ -28,7 +37,8 @@ export type TenantContext = {
   isMaster: boolean;
 };
 
-// cache() deduplica por request: layout e page compartilham a mesma consulta
+// cache() deduplica por request: layout e page compartilham a mesma consulta.
+// O cache é apenas request-scoped; não compartilha contexto entre usuários/igrejas.
 export const getTenant = cache(
   async (churchSlug: string): Promise<TenantContext> => {
     const supabase = await createClient();
@@ -51,18 +61,19 @@ export const getTenant = cache(
     if (!data) {
       const { data: isMaster } = await supabase.rpc("is_platform_admin");
       if (isMaster) {
-        const { data: church } = await supabase
-          .from("churches")
-          .select("id, name, slug")
-          .eq("slug", churchSlug)
-          .maybeSingle();
+        const [{ data: church }, { data: profile }] = await Promise.all([
+          supabase
+            .from("churches")
+            .select("id, name, slug")
+            .eq("slug", churchSlug)
+            .maybeSingle(),
+          supabase
+            .from("profiles")
+            .select("full_name, avatar_url, onboarding_completed")
+            .eq("id", user.id)
+            .single(),
+        ]);
         if (!church) notFound();
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, avatar_url, onboarding_completed")
-          .eq("id", user.id)
-          .single();
 
         return {
           userId: user.id,
@@ -74,6 +85,7 @@ export const getTenant = cache(
             onboarding_completed: true,
           }) as TenantContext["profile"],
           ministryRoles: ["gerente"],
+          ministryMemberships: [],
           isCoord: true,
           isManager: true,
           isLeader: true,
@@ -108,6 +120,7 @@ export const getTenant = cache(
             onboarding_completed: true,
           }) as TenantContext["profile"],
           ministryRoles: [],
+          ministryMemberships: [],
           isCoord: false,
           isManager: false,
           isLeader: false,
@@ -130,23 +143,44 @@ export const getTenant = cache(
       if (!isMaster) redirect(`/onboarding?igreja=${church.id}`);
     }
 
-    const { data: memberships } = await supabase
-      .from("ministry_members")
-      .select("role")
-      .eq("church_id", church.id)
-      .eq("user_id", user.id)
-      .eq("active", true);
+    const [{ data: memberships }, { data: guardian }] = await Promise.all([
+      supabase
+        .from("ministry_members")
+        .select("role, ministries(id, name, slug)")
+        .eq("church_id", church.id)
+        .eq("user_id", user.id)
+        .eq("active", true),
+      supabase
+        .from("guardians")
+        .select("id")
+        .eq("church_id", church.id)
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
+    // Mantém a mesma semântica anterior: os papéis vêm diretamente de
+    // ministry_members e não dependem do join com ministries.
     const ministryRoles = (memberships ?? []).map(
-      (m) => m.role as MinistryRole
+      (membership) => membership.role as MinistryRole
     );
-    const { data: guardian } = await supabase
-      .from("guardians")
-      .select("id")
-      .eq("church_id", church.id)
-      .eq("user_id", user.id)
-      .limit(1)
-      .maybeSingle();
+    const ministryMemberships: TenantMinistryMembership[] = (memberships ?? []).flatMap(
+      (membership) => {
+        const ministry = membership.ministries as unknown as {
+          id: string;
+          name: string;
+          slug: string;
+        } | null;
+        if (!ministry) return [];
+        return [{
+          id: ministry.id,
+          name: ministry.name,
+          slug: ministry.slug,
+          role: membership.role as MinistryRole,
+        }];
+      }
+    );
+
     // admin e coordenador têm gestão no nível da igreja toda
     const isCoord = data.role === "admin" || data.role === "coordenador";
     const isManager = isCoord || ministryRoles.includes("gerente");
@@ -158,6 +192,7 @@ export const getTenant = cache(
       role: data.role,
       profile,
       ministryRoles,
+      ministryMemberships,
       isCoord,
       isManager,
       isLeader,
@@ -167,4 +202,3 @@ export const getTenant = cache(
     };
   }
 );
-
