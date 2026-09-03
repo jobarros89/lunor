@@ -326,11 +326,7 @@ export function SessionChildRow({
       )}
 
       {mostrarQr && child.checkin && !child.checkin.checkedOut && (
-        <PickupQr
-          token={child.checkin.pickupToken}
-          code={child.checkin.code}
-          childName={child.fullName}
-        />
+        <PickupQr token={child.checkin.pickupToken} />
       )}
     </div>
   );
