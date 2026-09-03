@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const loadOperationalSummary = vi.fn();
-const buildScheduleDraftFromPreviousService = vi.fn();
+const mocks = vi.hoisted(() => ({
+  loadOperationalSummary: vi.fn(),
+  buildScheduleDraftFromPreviousService: vi.fn(),
+}));
 
-vi.mock("@/lib/operational-summary-server", () => ({ loadOperationalSummary }));
-vi.mock("@/lib/ai/schedule-draft", () => ({ buildScheduleDraftFromPreviousService }));
+vi.mock("@/lib/operational-summary-server", () => ({
+  loadOperationalSummary: mocks.loadOperationalSummary,
+}));
+vi.mock("@/lib/ai/schedule-draft", () => ({
+  buildScheduleDraftFromPreviousService: mocks.buildScheduleDraftFromPreviousService,
+}));
 
 import { runDirectScheduleDraft } from "@/lib/ai/direct-schedule-draft";
 
@@ -25,7 +31,7 @@ describe("runDirectScheduleDraft", () => {
       context,
     });
     expect(result).toBeNull();
-    expect(loadOperationalSummary).not.toHaveBeenCalled();
+    expect(mocks.loadOperationalSummary).not.toHaveBeenCalled();
   });
 
   it("monta rascunho da próxima escala sem depender do LLM", async () => {
@@ -43,10 +49,10 @@ describe("runDirectScheduleDraft", () => {
       availabilityLabel: "Disponível",
       rationale: "Disponível",
     };
-    loadOperationalSummary.mockResolvedValue({
+    mocks.loadOperationalSummary.mockResolvedValue({
       events: [{ id: proposal.eventId, title: proposal.eventTitle }],
     });
-    buildScheduleDraftFromPreviousService.mockResolvedValue({
+    mocks.buildScheduleDraftFromPreviousService.mockResolvedValue({
       kind: "schedule_draft",
       event: { id: proposal.eventId, title: proposal.eventTitle, startsAt: proposal.startsAt },
       referenceEvent: {
