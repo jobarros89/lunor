@@ -15,6 +15,15 @@ const requestSchema = z.object({
   churchSlug: z.string().trim().min(1).max(100),
   ministryId: z.string().uuid().optional(),
   question: z.string().trim().min(1).max(1_500),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().trim().min(1).max(1_500),
+      })
+    )
+    .max(8)
+    .default([]),
 });
 
 export async function POST(request: Request) {
@@ -53,6 +62,7 @@ export async function POST(request: Request) {
   try {
     const result = await runLunorAssistant({
       question: parsed.data.question,
+      history: parsed.data.history,
       context: {
         churchId: tenant.church.id,
         ministryId: ministry.id,
