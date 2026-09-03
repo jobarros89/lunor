@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
-import { Baby, Calendar, Home, Music2, PanelLeftClose, PanelLeftOpen, Settings, User, Users } from "lucide-react";
+import { Baby, Calendar, Home, Music2, PanelLeftClose, PanelLeftOpen, Settings, Sparkles, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildShellNavigation, type ActiveMinistryNavigation, type ShellNavItemId } from "@/lib/shell-navigation";
 import { BrandLockup } from "@/components/brand-lockup";
@@ -17,6 +17,7 @@ const ICONS: Record<ShellNavItemId, React.ComponentType<{ className?: string; st
   kids: Baby,
   ministry: Users,
   escalas: Calendar,
+  assistente: Sparkles,
   perfil: User,
   pessoas: Users,
   admin: Settings,
