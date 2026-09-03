@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { AssistantLauncher } from "@/components/ai/assistant-launcher";
 import { formatEventDate, formatEventTime } from "@/lib/escalas";
 import type {
   OperationalEventSummary,
@@ -135,6 +136,12 @@ export function OperationalSummarySection({
       <p className="px-1 text-xs text-muted-foreground">
         O status usa somente dados existentes: escalas, confirmações e disponibilidade informada. “Sem escala” não significa erro — apenas que esta equipe ainda não tem pessoas escaladas no culto.
       </p>
+
+      <AssistantLauncher
+        churchSlug={churchSlug}
+        ministryId={summary.scope.ministryId}
+        ministryName={summary.scope.ministryName}
+      />
     </section>
   );
 }
