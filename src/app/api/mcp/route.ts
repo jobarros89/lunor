@@ -1,5 +1,11 @@
 import { z } from "zod";
 import {
+  bearerTokenFromRequest,
+  executeExternalMcpTool,
+  resolveExternalMcpContext,
+  type ExternalMcpContext,
+} from "@/lib/ai/mcp-external";
+import {
   executeLunorTool,
   LUNOR_TOOLS,
   type LunorToolContext,
@@ -30,6 +36,10 @@ const callSchema = z.object({
   arguments: z.record(z.string(), z.unknown()).default({}),
 });
 
+type McpAuth =
+  | { mode: "external"; token: string; context: ExternalMcpContext }
+  | { mode: "session" };
+
 function rpcResult(id: string | number, result: unknown) {
   return Response.json({ jsonrpc: "2.0", id, result }, { headers: HEADERS });
 }
@@ -46,7 +56,21 @@ function rpcError(
   );
 }
 
-async function toolContext(request: Request): Promise<LunorToolContext | null> {
+async function authenticate(request: Request): Promise<McpAuth | null> {
+  const bearer = bearerTokenFromRequest(request);
+  if (bearer) {
+    const context = await resolveExternalMcpContext(bearer);
+    return context ? { mode: "external", token: bearer, context } : null;
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user ? { mode: "session" } : null;
+}
+
+async function sessionToolContext(request: Request): Promise<LunorToolContext | null> {
   const churchSlug = request.headers.get("x-lunor-church-slug")?.trim();
   const ministryId = request.headers.get("x-lunor-ministry-id")?.trim();
   if (!churchSlug || !ministryId || !z.string().uuid().safeParse(ministryId).success) {
@@ -67,16 +91,13 @@ async function toolContext(request: Request): Promise<LunorToolContext | null> {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return rpcError(null, -32001, "Unauthorized", 401);
-
   const protocol = request.headers.get("mcp-protocol-version");
   if (protocol !== MCP_VERSION) {
     return rpcError(null, -32600, `MCP-Protocol-Version must be ${MCP_VERSION}`, 400);
   }
+
+  const auth = await authenticate(request);
+  if (!auth) return rpcError(null, -32001, "Unauthorized", 401);
 
   let body: unknown;
   try {
@@ -98,6 +119,12 @@ export async function POST(request: Request) {
       protocolVersion: MCP_VERSION,
       serverInfo: { name: "lunor", version: "1" },
       capabilities: { tools: { listChanged: false } },
+      authentication: auth.mode === "external"
+        ? { type: "bearer", scope: auth.context.scope }
+        : { type: "lunor-session" },
+      ...(auth.mode === "external"
+        ? { scope: { ministryId: auth.context.ministryId, ministryName: auth.context.ministryName } }
+        : {}),
     });
   }
 
@@ -124,11 +151,15 @@ export async function POST(request: Request) {
     return rpcError(id, -32602, "Unknown tool");
   }
 
-  const context = await toolContext(request);
-  if (!context) return rpcError(id, -32003, "Forbidden", 403);
-
   try {
-    const result = await executeLunorTool(call.data.name, call.data.arguments, context);
+    const result = auth.mode === "external"
+      ? await executeExternalMcpTool(auth.token, call.data.name, call.data.arguments)
+      : await (async () => {
+          const context = await sessionToolContext(request);
+          if (!context) throw new Error("forbidden");
+          return executeLunorTool(call.data.name, call.data.arguments, context);
+        })();
+
     return rpcResult(id, {
       content: [{ type: "text", text: JSON.stringify(result) }],
       structuredContent: result,
@@ -136,6 +167,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "tool_error";
+    if (message === "forbidden") return rpcError(id, -32003, "Forbidden", 403);
     return rpcResult(id, {
       content: [{ type: "text", text: `Erro ao consultar o LUNOR: ${message}` }],
       isError: true,
