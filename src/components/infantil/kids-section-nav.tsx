@@ -2,12 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck2, CalendarDays, LayoutDashboard } from "lucide-react";
+import {
+  CalendarCheck2,
+  CalendarDays,
+  LayoutDashboard,
+  Settings2,
+} from "lucide-react";
 
-export function KidsSectionNav({ churchSlug }: { churchSlug: string }) {
+export function KidsSectionNav({
+  churchSlug,
+  canManageSettings = false,
+}: {
+  churchSlug: string;
+  canManageSettings?: boolean;
+}) {
   const pathname = usePathname();
   const scalesActive = pathname.includes(`/${churchSlug}/infantil/escalas`);
   const availabilityActive = pathname.includes(`/${churchSlug}/infantil/disponibilidade`);
+  const settingsActive = pathname.includes(`/${churchSlug}/infantil/configuracoes`);
 
   const items = [
     {
@@ -15,7 +27,8 @@ export function KidsSectionNav({ churchSlug }: { churchSlug: string }) {
       label: "Visão",
       href: `/${churchSlug}/infantil`,
       icon: <LayoutDashboard className="size-4" />,
-      active: !scalesActive && !availabilityActive,
+      active: !scalesActive && !availabilityActive && !settingsActive,
+      visible: true,
     },
     {
       key: "escalas",
@@ -23,6 +36,7 @@ export function KidsSectionNav({ churchSlug }: { churchSlug: string }) {
       href: `/${churchSlug}/infantil/escalas`,
       icon: <CalendarDays className="size-4" />,
       active: scalesActive,
+      visible: true,
     },
     {
       key: "disponibilidade",
@@ -30,12 +44,21 @@ export function KidsSectionNav({ churchSlug }: { churchSlug: string }) {
       href: `/${churchSlug}/infantil/disponibilidade`,
       icon: <CalendarCheck2 className="size-4" />,
       active: availabilityActive,
+      visible: true,
+    },
+    {
+      key: "configuracoes",
+      label: "Configurações",
+      href: `/${churchSlug}/infantil/configuracoes`,
+      icon: <Settings2 className="size-4" />,
+      active: settingsActive,
+      visible: canManageSettings,
     },
   ];
 
   return (
     <nav className="flex gap-1 overflow-x-auto border-b" aria-label="Áreas do Kids">
-      {items.map((item) => (
+      {items.filter((item) => item.visible).map((item) => (
         <Link
           key={item.key}
           href={item.href}
