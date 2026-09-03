@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Baby, Calendar, ChevronRight, Home, Music2, Send, Settings, User, Users } from "lucide-react";
+import { Baby, Calendar, ChevronRight, Home, Music2, Settings, User, Users } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
+import { createClient } from "@/lib/supabase/server";
 import { buildShellNavigation, type ShellNavItemId } from "@/lib/shell-navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { InviteLink } from "@/components/invite-link";
 
 function isKidsMinistry(ministry: { name: string; slug: string }) {
   const slug = ministry.slug.toLocaleLowerCase("pt-BR");
@@ -62,6 +64,11 @@ export default async function MaisPage({
     canAdmin: tenant.isCoord,
   });
 
+  const supabase = await createClient();
+  const { data: inviteCode } = tenant.role === "admin"
+    ? await supabase.rpc("get_church_invite_code", { p_church: tenant.church.id })
+    : { data: null };
+
   return (
     <div className="space-y-6">
       <div>
@@ -74,21 +81,18 @@ export default async function MaisPage({
         </p>
       </div>
 
-      {tenant.role === "admin" && (
-        <Link href={`/${churchSlug}/admin#convite`} className="block">
-          <Card className="rounded-3xl border-[#6e5ce6]/35 bg-[#6e5ce6]/8 transition-colors hover:bg-[#6e5ce6]/12">
-            <CardContent className="flex items-center gap-4 py-4">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#6e5ce6] text-white">
-                <Send className="size-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">Convidar pessoa</p>
-                <p className="text-sm text-muted-foreground">Compartilhar o convite da igreja</p>
-              </div>
-              <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-            </CardContent>
-          </Card>
-        </Link>
+      {tenant.role === "admin" && inviteCode && (
+        <Card className="rounded-3xl border-[#6e5ce6]/35 bg-[#6e5ce6]/8">
+          <CardHeader>
+            <CardTitle className="text-base">Convidar pessoa</CardTitle>
+            <CardDescription>
+              Compartilhe o convite da igreja para novos voluntários e integrantes da equipe.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <InviteLink inviteCode={inviteCode} />
+          </CardContent>
+        </Card>
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
