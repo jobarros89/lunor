@@ -6,6 +6,11 @@ import {
   type AssignmentProposal,
   type SchedulingContext,
 } from "@/lib/ai/scheduling";
+import {
+  buildScheduleDraftFromPreviousService,
+  isScheduleDraft,
+  type ScheduleDraft,
+} from "@/lib/ai/schedule-draft";
 
 const INTERNAL_TOOLS: LunorAiTool[] = [
   {
@@ -52,6 +57,25 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
       additionalProperties: false,
     },
   },
+  {
+    name: "draft_schedule_from_previous_service",
+    description:
+      "Monta um RASCUNHO completo para um culto usando a escala anterior do mesmo ministério apenas como referência de funções. Revalida disponibilidade e experiência e nunca grava a escala automaticamente.",
+    parameters: {
+      type: "object",
+      properties: {
+        eventId: { type: "string", format: "uuid", description: "ID do culto que receberá o rascunho." },
+        maxRoles: {
+          type: "integer",
+          minimum: 1,
+          maximum: 20,
+          description: "Máximo de funções a sugerir. Padrão: 12.",
+        },
+      },
+      required: ["eventId"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 const candidatesSchema = z.object({
@@ -63,6 +87,10 @@ const proposalSchema = z.object({
   eventId: z.string().uuid(),
   userId: z.string().uuid(),
   roleName: z.string().trim().min(2).max(80),
+});
+const draftSchema = z.object({
+  eventId: z.string().uuid(),
+  maxRoles: z.number().int().min(1).max(20).optional(),
 });
 
 export function internalAiTools(): LunorAiTool[] {
@@ -89,6 +117,13 @@ export async function executeInternalAiTool(
     }
     case "propose_assignment":
       return buildAssignmentProposal(context, proposalSchema.parse(args));
+    case "draft_schedule_from_previous_service": {
+      const input = draftSchema.parse(args);
+      return buildScheduleDraftFromPreviousService(context, {
+        eventId: input.eventId,
+        maxRoles: input.maxRoles ?? 12,
+      });
+    }
     default:
       throw new Error("unknown_internal_tool");
   }
@@ -104,3 +139,6 @@ export function isAssignmentProposal(value: unknown): value is AssignmentProposa
     typeof proposal.roleName === "string"
   );
 }
+
+export { isScheduleDraft };
+export type { ScheduleDraft };
