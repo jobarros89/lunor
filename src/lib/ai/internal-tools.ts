@@ -1,6 +1,12 @@
 import { z } from "zod";
 import type { LunorAiTool } from "@/lib/ai/cloudflare";
 import {
+  assistantScopeDescription,
+  getAssistantAppContext,
+  getAssistantAppOperationalOverview,
+  resolveAssistantMinistryContext,
+} from "@/lib/ai/app-context";
+import {
   buildAssignmentProposal,
   loadScheduleCandidates,
   type AssignmentProposal,
@@ -21,15 +27,98 @@ import {
   type WorshipSetlistProposal,
 } from "@/lib/ai/worship-setlist-proposal";
 import { getKidsOperationalInsights } from "@/lib/ai/kids";
+import { executeLunorTool } from "@/lib/ai/tools";
+
+const ministryIdProperty = {
+  type: "string",
+  format: "uuid",
+  description:
+    "ID de um ministério autorizado retornado por get_app_context. Se omitido, usa o contexto visual atual.",
+} as const;
 
 const INTERNAL_TOOLS: LunorAiTool[] = [
   {
-    name: "get_schedule_candidates",
+    name: "get_app_context",
     description:
-      "Retorna candidatos do ministério para uma função em um culto, priorizando disponibilidade informada e experiência anterior na função. Não altera a escala.",
+      "Mostra a visão transversal do Assistente LUNOR: ministério visual atual e todos os ministérios que o usuário pode gerenciar. Use antes de responder perguntas que atravessam módulos ou mencionam outro ministério.",
+    parameters: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_app_operational_overview",
+    description:
+      "Consulta um panorama operacional dos ministérios que o usuário pode gerenciar. Use para perguntas amplas sobre a igreja, pendências gerais, próximos cultos ou preparação de reunião de líderes. Somente leitura.",
     parameters: {
       type: "object",
       properties: {
+        eventLimit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 4,
+          description: "Quantidade de próximos cultos por ministério. Padrão: 2.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_ministry_operational_summary",
+    description:
+      "Consulta o resumo operacional de um ministério autorizado, mesmo que ele não seja o ministério atualmente aberto na interface. Somente leitura.",
+    parameters: {
+      type: "object",
+      properties: {
+        ministryId: ministryIdProperty,
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 8,
+          description: "Quantidade de próximos cultos. Padrão: 4.",
+        },
+      },
+      required: ["ministryId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_ministry_event_team",
+    description:
+      "Lista a equipe escalada de um culto em um ministério autorizado, mesmo fora do contexto visual atual. Somente leitura.",
+    parameters: {
+      type: "object",
+      properties: {
+        ministryId: ministryIdProperty,
+        eventId: { type: "string", format: "uuid", description: "ID do culto." },
+      },
+      required: ["ministryId", "eventId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_ministry_event_availability",
+    description:
+      "Consulta a disponibilidade da equipe de um culto em um ministério autorizado, mesmo fora do contexto visual atual. Somente leitura.",
+    parameters: {
+      type: "object",
+      properties: {
+        ministryId: ministryIdProperty,
+        eventId: { type: "string", format: "uuid", description: "ID do culto." },
+      },
+      required: ["ministryId", "eventId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_schedule_candidates",
+    description:
+      "Retorna candidatos de um ministério autorizado para uma função em um culto, priorizando disponibilidade informada e experiência anterior. Somente leitura; não altera a escala.",
+    parameters: {
+      type: "object",
+      properties: {
+        ministryId: ministryIdProperty,
         eventId: {
           type: "string",
           format: "uuid",
@@ -55,7 +144,7 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
   {
     name: "propose_assignment",
     description:
-      "Cria somente uma PROPOSTA de escala para revisão humana. Use depois de consultar candidatos. Esta ferramenta não grava nada no LUNOR.",
+      "Cria somente uma PROPOSTA de escala para revisão humana no ministério atualmente aberto. Use depois de consultar candidatos. Esta ferramenta não grava nada no LUNOR.",
     parameters: {
       type: "object",
       properties: {
@@ -70,7 +159,7 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
   {
     name: "draft_schedule_from_previous_service",
     description:
-      "Monta um RASCUNHO completo para um culto usando a escala anterior do mesmo ministério apenas como referência de funções. Revalida disponibilidade e experiência e nunca grava a escala automaticamente.",
+      "Monta um RASCUNHO completo para um culto do ministério atualmente aberto usando a escala anterior apenas como referência de funções. Nunca grava automaticamente.",
     parameters: {
       type: "object",
       properties: {
@@ -93,10 +182,11 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
   {
     name: "get_worship_library_insights",
     description:
-      "Consulta o acervo ativo do Louvor com tom, BPM, compasso, materiais e uso recente. Use para analisar repetição, metadados faltantes ou sugerir repertório somente com músicas reais do acervo. Não altera dados.",
+      "Consulta o acervo ativo de um ministério de Louvor autorizado com tom, BPM, compasso, materiais e uso recente. Pode ser usado mesmo se outra tela estiver aberta. Não altera dados.",
     parameters: {
       type: "object",
       properties: {
+        ministryId: ministryIdProperty,
         limit: {
           type: "integer",
           minimum: 1,
@@ -116,10 +206,11 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
   {
     name: "analyze_worship_setlist",
     description:
-      "Analisa o repertório real de um culto do Louvor: sequência, tons efetivos, BPM, compasso, repetição recente e mudanças entre músicas. Não altera o repertório.",
+      "Analisa o repertório real de um culto em um ministério de Louvor autorizado: sequência, tons, BPM, compasso, repetição e transições. Pode ser usado fora da tela do Louvor. Não altera o repertório.",
     parameters: {
       type: "object",
       properties: {
+        ministryId: ministryIdProperty,
         eventId: {
           type: "string",
           format: "uuid",
@@ -133,7 +224,7 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
   {
     name: "propose_worship_setlist",
     description:
-      "Cria uma PROPOSTA visual de repertório para um culto usando exclusivamente IDs de músicas reais retornadas pelo acervo. Use somente depois de get_worship_library_insights. Não altera o repertório; a gravação exige confirmação explícita do líder.",
+      "Cria uma PROPOSTA visual de repertório apenas quando o Louvor é o ministério atualmente aberto, usando exclusivamente músicas reais do acervo. Não grava; exige confirmação explícita do líder.",
     parameters: {
       type: "object",
       properties: {
@@ -157,10 +248,11 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
   {
     name: "get_kids_operational_insights",
     description:
-      "Consulta indicadores agregados e protegidos do Kids: operação atual, presença por turma, chamadas pendentes, prontidão cadastral e frequência recente. Nunca retorna nomes, códigos de retirada, telefones nem detalhes médicos de crianças ou responsáveis. Não altera dados.",
+      "Consulta indicadores agregados e protegidos de um ministério Kids/Infantil autorizado, mesmo se outra tela estiver aberta. Nunca retorna nomes, códigos de retirada, telefones nem detalhes médicos. Não altera dados.",
     parameters: {
       type: "object",
       properties: {
+        ministryId: ministryIdProperty,
         eventId: {
           type: "string",
           format: "uuid",
@@ -179,7 +271,19 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
   },
 ];
 
-const candidatesSchema = z.object({
+const ministryTargetSchema = z.object({ ministryId: z.string().uuid().optional() });
+const appOverviewSchema = z.object({
+  eventLimit: z.number().int().min(1).max(4).optional(),
+});
+const ministryOperationalSchema = z.object({
+  ministryId: z.string().uuid(),
+  limit: z.number().int().min(1).max(8).optional(),
+});
+const ministryEventSchema = z.object({
+  ministryId: z.string().uuid(),
+  eventId: z.string().uuid(),
+});
+const candidatesSchema = ministryTargetSchema.extend({
   eventId: z.string().uuid(),
   roleName: z.string().trim().min(2).max(80).optional(),
   limit: z.number().int().min(1).max(12).optional(),
@@ -193,11 +297,11 @@ const draftSchema = z.object({
   eventId: z.string().uuid(),
   maxRoles: z.number().int().min(1).max(20).optional(),
 });
-const worshipLibrarySchema = z.object({
+const worshipLibrarySchema = ministryTargetSchema.extend({
   limit: z.number().int().min(1).max(100).optional(),
   historyDays: z.number().int().min(14).max(365).optional(),
 });
-const worshipSetlistSchema = z.object({
+const worshipSetlistSchema = ministryTargetSchema.extend({
   eventId: z.string().uuid(),
 });
 const worshipSetlistProposalSchema = z.object({
@@ -210,7 +314,7 @@ const worshipSetlistProposalSchema = z.object({
       message: "As músicas da proposta não podem se repetir",
     }),
 });
-const kidsOperationalSchema = z.object({
+const kidsOperationalSchema = ministryTargetSchema.extend({
   eventId: z.string().uuid().optional(),
   historyDays: z.number().int().min(14).max(365).optional(),
 });
@@ -229,9 +333,41 @@ export async function executeInternalAiTool(
   context: SchedulingContext
 ): Promise<unknown> {
   switch (name) {
+    case "get_app_context":
+      return getAssistantAppContext(context);
+    case "get_app_operational_overview": {
+      const input = appOverviewSchema.parse(args);
+      return getAssistantAppOperationalOverview(context, {
+        eventLimit: input.eventLimit ?? 2,
+      });
+    }
+    case "get_ministry_operational_summary": {
+      const input = ministryOperationalSchema.parse(args);
+      const target = resolveAssistantMinistryContext(context, input.ministryId);
+      return executeLunorTool(
+        "get_operational_summary",
+        { limit: input.limit ?? 4 },
+        target
+      );
+    }
+    case "get_ministry_event_team": {
+      const input = ministryEventSchema.parse(args);
+      const target = resolveAssistantMinistryContext(context, input.ministryId);
+      return executeLunorTool("get_event_team", { eventId: input.eventId }, target);
+    }
+    case "get_ministry_event_availability": {
+      const input = ministryEventSchema.parse(args);
+      const target = resolveAssistantMinistryContext(context, input.ministryId);
+      return executeLunorTool(
+        "get_event_availability",
+        { eventId: input.eventId },
+        target
+      );
+    }
     case "get_schedule_candidates": {
       const input = candidatesSchema.parse(args);
-      return loadScheduleCandidates(context, {
+      const target = resolveAssistantMinistryContext(context, input.ministryId);
+      return loadScheduleCandidates(target, {
         eventId: input.eventId,
         roleName: input.roleName,
         limit: input.limit ?? 6,
@@ -248,13 +384,17 @@ export async function executeInternalAiTool(
     }
     case "get_worship_library_insights": {
       const input = worshipLibrarySchema.parse(args);
-      return getWorshipLibraryInsights(context, {
+      const target = resolveAssistantMinistryContext(context, input.ministryId);
+      return getWorshipLibraryInsights(target, {
         limit: input.limit ?? 40,
         historyDays: input.historyDays ?? 120,
       });
     }
-    case "analyze_worship_setlist":
-      return analyzeWorshipSetlist(context, worshipSetlistSchema.parse(args));
+    case "analyze_worship_setlist": {
+      const input = worshipSetlistSchema.parse(args);
+      const target = resolveAssistantMinistryContext(context, input.ministryId);
+      return analyzeWorshipSetlist(target, { eventId: input.eventId });
+    }
     case "propose_worship_setlist":
       return buildWorshipSetlistProposal(
         context,
@@ -262,7 +402,8 @@ export async function executeInternalAiTool(
       );
     case "get_kids_operational_insights": {
       const input = kidsOperationalSchema.parse(args);
-      return getKidsOperationalInsights(context, {
+      const target = resolveAssistantMinistryContext(context, input.ministryId);
+      return getKidsOperationalInsights(target, {
         eventId: input.eventId,
         historyDays: input.historyDays ?? 90,
       });
@@ -270,6 +411,10 @@ export async function executeInternalAiTool(
     default:
       throw new Error("unknown_internal_tool");
   }
+}
+
+export function internalAssistantScopeDescription(context: SchedulingContext) {
+  return assistantScopeDescription(context);
 }
 
 export function isAssignmentProposal(value: unknown): value is AssignmentProposal {

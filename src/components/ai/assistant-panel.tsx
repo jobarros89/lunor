@@ -70,32 +70,12 @@ type AssistantResponse = {
   error?: string;
 };
 
-const DEFAULT_SUGGESTIONS = [
-  "O que precisa da minha atenção nos próximos cultos?",
-  "Quem confirmou o próximo culto?",
-  "Quem está indisponível para o próximo culto?",
-  "Me ajude a montar a próxima escala.",
+const GLOBAL_SUGGESTIONS = [
+  "Como está a igreja como um todo?",
+  "Quais ministérios precisam de atenção?",
+  "O que preciso acompanhar nos próximos cultos?",
+  "Prepare um panorama para a reunião de líderes.",
 ];
-
-const WORSHIP_SUGGESTIONS = [
-  "Analise o repertório do próximo culto.",
-  "Quais músicas estamos repetindo mais?",
-  "Sugira 4 músicas do nosso acervo para o próximo culto.",
-  "Quais músicas estão sem tom, BPM ou compasso?",
-];
-
-function isWorshipMinistry(name: string) {
-  const normalized = name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLocaleLowerCase("pt-BR");
-  return (
-    normalized.includes("louvor") ||
-    normalized.includes("worship") ||
-    normalized.includes("musica")
-  );
-}
 
 function proposalKey(proposal: AssignmentProposal) {
   return `${proposal.eventId}:${proposal.userId}:${proposal.roleName.toLocaleLowerCase("pt-BR")}`;
@@ -146,8 +126,7 @@ export function AssistantPanel({
   const [confirmedSetlists, setConfirmedSetlists] = useState<Set<string>>(new Set());
   const [setlistErrors, setSetlistErrors] = useState<Record<string, string>>({});
   const [setlistSuccess, setSetlistSuccess] = useState<Record<string, string>>({});
-  const worshipMode = isWorshipMinistry(ministryName);
-  const suggestions = worshipMode ? WORSHIP_SUGGESTIONS : DEFAULT_SUGGESTIONS;
+  const suggestions = GLOBAL_SUGGESTIONS;
 
   async function ask(text: string) {
     const clean = text.trim();
@@ -279,7 +258,7 @@ export function AssistantPanel({
             <div>
               <CardTitle className="text-xl">Pergunte ao LUNOR</CardTitle>
               <CardDescription className="mt-1">
-                Assistente operacional de {ministryName}. Ele consulta os dados reais do LUNOR antes de responder.
+                Um único copiloto para os módulos que você gerencia. Contexto atual: {ministryName}.
               </CardDescription>
             </div>
           </CardHeader>
@@ -303,7 +282,12 @@ export function AssistantPanel({
 
       {compact && messages.length === 0 && (
         <div className="space-y-3 rounded-2xl border border-[#6e5ce6]/20 bg-[#6e5ce6]/5 p-4">
-          <p className="text-sm font-medium">Como posso ajudar com {ministryName}?</p>
+          <div>
+            <p className="text-sm font-medium">Como posso ajudar no LUNOR?</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Contexto atual: {ministryName}. Você pode perguntar sobre outros módulos que gerencia.
+            </p>
+          </div>
           <div className="flex flex-wrap gap-2">
             {suggestions.map((suggestion) => (
               <button
@@ -554,11 +538,7 @@ export function AssistantPanel({
           <textarea
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
-            placeholder={
-              worshipMode
-                ? "Ex.: Sugira 4 músicas do acervo para o próximo culto."
-                : "Ex.: O que precisa da minha atenção no próximo culto?"
-            }
+            placeholder="Ex.: Como está a igreja como um todo?"
             rows={2}
             maxLength={1500}
             className="min-h-12 flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
@@ -576,9 +556,7 @@ export function AssistantPanel({
       </form>
 
       <p className="text-center text-xs text-muted-foreground">
-        {worshipMode
-          ? "No Louvor, o assistente consulta o acervo real. Propostas de repertório só são adicionadas depois de uma confirmação explícita e nunca removem músicas existentes."
-          : "O assistente consulta dados e pode preparar sugestões. Alterações só são gravadas depois de uma confirmação explícita."}
+        O contexto atual ajuda o LUNOR a priorizar, mas você pode perguntar sobre outros módulos que gerencia. Alterações só são gravadas depois de uma confirmação explícita.
       </p>
     </div>
   );

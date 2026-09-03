@@ -28,6 +28,42 @@ const requestSchema = z.object({
     .default([]),
 });
 
+function normalize(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+}
+
+function shouldUseGlobalOrchestration(
+  question: string,
+  currentMinistryId: string,
+  allowedMinistries: Array<{ id: string; name: string }>
+) {
+  const normalized = normalize(question);
+  const broadIntent = [
+    "igreja",
+    "visao geral",
+    "panorama geral",
+    "todos os ministerios",
+    "todos os ministérios",
+    "reuniao de lideres",
+    "reunião de líderes",
+    "app como um todo",
+    "lunor como um todo",
+  ].some((term) => normalized.includes(normalize(term)));
+
+  const mentionsOtherMinistry = allowedMinistries.some(
+    (item) =>
+      item.id !== currentMinistryId &&
+      normalize(item.name).length >= 3 &&
+      normalized.includes(normalize(item.name))
+  );
+
+  return broadIntent || mentionsOtherMinistry;
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -61,65 +97,84 @@ export async function POST(request: Request) {
     return Response.json({ error: "forbidden" }, { status: 403, headers: HEADERS });
   }
 
+  const allowedMinistries = ministries.options
+    .filter((item) => item.canManage)
+    .map((item) => ({ id: item.id, name: item.name }));
+
   const context = {
     churchId: tenant.church.id,
     ministryId: ministry.id,
     ministryName: ministry.name,
+    allowedMinistries,
   };
 
-  // A vertical de rascunho de escala também tem um caminho determinístico.
-  // Assim o atalho principal continua útil mesmo se ambos os modelos oscilarem.
-  try {
-    const draft = await runDirectScheduleDraft({
-      question: parsed.data.question,
-      context,
-    });
-    if (draft) {
-      return Response.json(
-        {
-          answer: draft.answer,
-          model: "lunor-deterministic",
-          usedTools: draft.usedTools,
-          proposals: draft.proposals,
-          worshipSetlistProposals: [],
-          scope: { ministryId: ministry.id, ministryName: ministry.name },
-        },
-        { headers: HEADERS }
-      );
-    }
-  } catch (error) {
-    console.error(
-      "lunor direct schedule draft:",
-      error instanceof Error ? error.message : "unknown_error"
-    );
-  }
+  const globalOrCrossModule = shouldUseGlobalOrchestration(
+    parsed.data.question,
+    ministry.id,
+    allowedMinistries
+  );
 
-  // Perguntas operacionais recorrentes dos chips da UI não precisam gastar uma
-  // inferência para descobrir quais ferramentas chamar. Elas continuam usando
-  // os mesmos dados/RLS e funcionam mesmo se o provedor de LLM estiver oscilando.
-  try {
-    const direct = await runDirectOperationalAnswer({
-      question: parsed.data.question,
-      context,
-    });
-    if (direct) {
-      return Response.json(
-        {
-          answer: direct.answer,
-          model: "lunor-deterministic",
-          usedTools: direct.usedTools,
-          proposals: [],
-          worshipSetlistProposals: [],
-          scope: { ministryId: ministry.id, ministryName: ministry.name },
-        },
-        { headers: HEADERS }
+  // Atalhos determinísticos permanecem para perguntas claramente locais ao
+  // contexto visual. Perguntas globais ou sobre outro ministério seguem para o
+  // orquestrador do Assistente LUNOR, que pode cruzar módulos autorizados.
+  if (!globalOrCrossModule) {
+    try {
+      const draft = await runDirectScheduleDraft({
+        question: parsed.data.question,
+        context,
+      });
+      if (draft) {
+        return Response.json(
+          {
+            answer: draft.answer,
+            model: "lunor-deterministic",
+            usedTools: draft.usedTools,
+            proposals: draft.proposals,
+            worshipSetlistProposals: [],
+            scope: {
+              ministryId: ministry.id,
+              ministryName: ministry.name,
+              availableMinistries: allowedMinistries.length,
+            },
+          },
+          { headers: HEADERS }
+        );
+      }
+    } catch (error) {
+      console.error(
+        "lunor direct schedule draft:",
+        error instanceof Error ? error.message : "unknown_error"
       );
     }
-  } catch (error) {
-    console.error(
-      "lunor direct assistant:",
-      error instanceof Error ? error.message : "unknown_error"
-    );
+
+    try {
+      const direct = await runDirectOperationalAnswer({
+        question: parsed.data.question,
+        context,
+      });
+      if (direct) {
+        return Response.json(
+          {
+            answer: direct.answer,
+            model: "lunor-deterministic",
+            usedTools: direct.usedTools,
+            proposals: [],
+            worshipSetlistProposals: [],
+            scope: {
+              ministryId: ministry.id,
+              ministryName: ministry.name,
+              availableMinistries: allowedMinistries.length,
+            },
+          },
+          { headers: HEADERS }
+        );
+      }
+    } catch (error) {
+      console.error(
+        "lunor direct assistant:",
+        error instanceof Error ? error.message : "unknown_error"
+      );
+    }
   }
 
   try {
@@ -136,7 +191,11 @@ export async function POST(request: Request) {
         usedTools: result.usedTools,
         proposals: result.proposals,
         worshipSetlistProposals: result.worshipSetlistProposals,
-        scope: { ministryId: ministry.id, ministryName: ministry.name },
+        scope: {
+          ministryId: ministry.id,
+          ministryName: ministry.name,
+          availableMinistries: allowedMinistries.length,
+        },
       },
       { headers: HEADERS }
     );

@@ -54,9 +54,9 @@ export function AssistantLauncher({
             <div className="min-w-0 flex-1">
               <SheetTitle className="truncate text-lg">Assistente LUNOR</SheetTitle>
               <SheetDescription className="mt-0.5 truncate">
-                <span className="sm:hidden">{ministryName}</span>
+                <span className="sm:hidden">Contexto: {ministryName}</span>
                 <span className="hidden sm:inline">
-                  {ministryName} · pergunte, analise e prepare ações antes de confirmar.
+                  Contexto atual: {ministryName} · você pode perguntar sobre outros módulos que gerencia.
                 </span>
               </SheetDescription>
             </div>
