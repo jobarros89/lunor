@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { runLunorAssistant } from "@/lib/ai/assistant";
 import { runDirectOperationalAnswer } from "@/lib/ai/direct-operational-answer";
+import { runDirectScheduleDraft } from "@/lib/ai/direct-schedule-draft";
 import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
 import { getTenant } from "@/lib/tenant";
@@ -65,6 +66,32 @@ export async function POST(request: Request) {
     ministryId: ministry.id,
     ministryName: ministry.name,
   };
+
+  // A vertical de rascunho de escala também tem um caminho determinístico.
+  // Assim o atalho principal continua útil mesmo se ambos os modelos oscilarem.
+  try {
+    const draft = await runDirectScheduleDraft({
+      question: parsed.data.question,
+      context,
+    });
+    if (draft) {
+      return Response.json(
+        {
+          answer: draft.answer,
+          model: "lunor-deterministic",
+          usedTools: draft.usedTools,
+          proposals: draft.proposals,
+          scope: { ministryId: ministry.id, ministryName: ministry.name },
+        },
+        { headers: HEADERS }
+      );
+    }
+  } catch (error) {
+    console.error(
+      "lunor direct schedule draft:",
+      error instanceof Error ? error.message : "unknown_error"
+    );
+  }
 
   // Perguntas operacionais recorrentes dos chips da UI não precisam gastar uma
   // inferência para descobrir quais ferramentas chamar. Elas continuam usando
