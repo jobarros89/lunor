@@ -9,6 +9,7 @@ import {
   internalAiTools,
   isAssignmentProposal,
   isInternalAiTool,
+  isScheduleDraft,
 } from "@/lib/ai/internal-tools";
 import type { AssignmentProposal } from "@/lib/ai/scheduling";
 import {
@@ -23,9 +24,10 @@ Use as ferramentas do LUNOR para fatos sobre cultos, escalas, pessoas ou disponi
 Baseie respostas factuais atuais nos dados retornados pelas ferramentas.
 "Sem resposta" é diferente de "indisponível".
 O escopo de igreja e ministério é definido pelo servidor.
-Para sugerir uma escala, consulte primeiro get_schedule_candidates.
+Para sugerir uma pessoa para uma função, consulte primeiro get_schedule_candidates e depois use propose_assignment.
+Para montar um rascunho da próxima escala ou de uma escala completa, descubra o culto com get_operational_summary e use draft_schedule_from_previous_service.
+O rascunho usa a escala anterior apenas como referência de funções; deixe isso claro ao líder.
 Nunca proponha uma pessoa marcada como indisponível.
-Quando o usuário pedir explicitamente para sugerir quem escalar em uma função, use propose_assignment para gerar uma proposta revisável.
 Uma proposta NÃO altera dados: a gravação só acontece depois que o líder tocar em "Confirmar escala" no LUNOR.
 As demais ferramentas desta versão são somente leitura.
 Prefira respostas curtas, salvo quando o usuário pedir detalhes.`;
@@ -78,6 +80,15 @@ function toolCallMessage(turn: LunorAiTurn) {
   return JSON.stringify(calls.length === 1 ? calls[0] : calls);
 }
 
+function proposalKey(proposal: AssignmentProposal) {
+  return `${proposal.eventId}:${proposal.userId}:${proposal.roleName.toLocaleLowerCase("pt-BR")}`;
+}
+
+function appendProposal(proposals: AssignmentProposal[], proposal: AssignmentProposal) {
+  const key = proposalKey(proposal);
+  if (!proposals.some((item) => proposalKey(item) === key)) proposals.push(proposal);
+}
+
 export async function runLunorAssistant({
   question,
   history = [],
@@ -112,6 +123,7 @@ export async function runLunorAssistant({
   const usedTools: string[] = [];
   const proposals: AssignmentProposal[] = [];
   const tools = [...lunorAiTools(), ...internalAiTools()];
+  let usedModel = LUNOR_AI_MODEL;
 
   for (let round = 0; round < maxToolRounds; round += 1) {
     const turn = await runner({
@@ -120,12 +132,13 @@ export async function runLunorAssistant({
       maxTokens: 520,
       temperature: 0.1,
     });
+    if (turn.model) usedModel = turn.model;
 
     if (turn.toolCalls.length === 0) {
       if (!turn.text) throw new Error("assistant_empty_answer");
       return {
         answer: turn.text,
-        model: LUNOR_AI_MODEL,
+        model: usedModel,
         usedTools: [...new Set(usedTools)],
         proposals,
       };
@@ -140,12 +153,10 @@ export async function runLunorAssistant({
         payload = { ok: true, data };
         usedTools.push(call.name);
         if (call.name === "propose_assignment" && isAssignmentProposal(data)) {
-          const key = `${data.eventId}:${data.userId}:${data.roleName.toLocaleLowerCase("pt-BR")}`;
-          const exists = proposals.some(
-            (proposal) =>
-              `${proposal.eventId}:${proposal.userId}:${proposal.roleName.toLocaleLowerCase("pt-BR")}` === key
-          );
-          if (!exists) proposals.push(data);
+          appendProposal(proposals, data);
+        }
+        if (call.name === "draft_schedule_from_previous_service" && isScheduleDraft(data)) {
+          data.proposals.forEach((proposal) => appendProposal(proposals, proposal));
         }
       } catch (error) {
         payload = {
@@ -166,11 +177,12 @@ export async function runLunorAssistant({
     content: "Responda usando somente os resultados das ferramentas acima. Se faltar um dado, informe que ele não foi encontrado.",
   });
   const finalTurn = await runner({ messages, tools: [], maxTokens: 520, temperature: 0.1 });
+  if (finalTurn.model) usedModel = finalTurn.model;
   if (!finalTurn.text) throw new Error("assistant_empty_answer");
 
   return {
     answer: finalTurn.text,
-    model: LUNOR_AI_MODEL,
+    model: usedModel,
     usedTools: [...new Set(usedTools)],
     proposals,
   };
