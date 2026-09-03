@@ -28,31 +28,22 @@ function SignupForm() {
   const normalizedIntent = intent === "criar" || intent === "entrar" || intent === "convite" ? intent : "direto";
   const passwordReady = password.length >= 8;
 
-  const copy =
-    familyToken
+  const copy = familyToken
+    ? {
+        title: "Bem-vindo ao LUNOR Kids",
+        description:
+          "Crie sua conta para acessar o aplicativo e acompanhar seus filhos com segurança.",
+      }
+    : intent === "criar"
       ? {
-          title: "Acesse o Kids da sua família",
+          title: "Bem-vindo ao LUNOR",
           description:
-            "Crie sua conta para ver somente seus filhos e acompanhar check-in e check-out.",
+            "Crie sua conta para acessar o aplicativo e configurar sua igreja.",
         }
-      : intent === "criar"
-      ? {
-          title: "Crie sua conta",
-          description:
-            "Você será o administrador inicial da sua igreja no LUNOR.",
-        }
-      : intent === "convite" || intent === "entrar"
-        ? {
-            title: "Entre para sua equipe",
-            description:
-              intent === "convite"
-                ? "Crie sua conta para aceitar o convite e entrar na igreja."
-                : "Crie sua conta para entrar em uma igreja que já usa o LUNOR.",
-          }
-        : {
-            title: "Crie sua conta",
-            description: "Organize equipes, escalas e ministérios com o LUNOR.",
-          };
+      : {
+          title: "Bem-vindo ao LUNOR",
+          description: "Crie sua conta para acessar o aplicativo.",
+        };
 
   function onSubmit(formData: FormData) {
     setError(null);
@@ -183,4 +174,3 @@ export default function SignupPage() {
     </Suspense>
   );
 }
-
