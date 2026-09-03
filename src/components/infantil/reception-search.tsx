@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { SessionChildRow, type SessionChild } from "@/components/infantil/session-child";
+import type { KidsPrintSettings } from "@/lib/kids-print-settings";
 
 function normalizeText(value: string) {
   return value
@@ -62,6 +63,7 @@ export function ReceptionSearch({
   eventTitle,
   eventContext,
   podeLiberar,
+  printSettings,
 }: {
   sessionChildren: SessionChild[];
   churchName: string;
@@ -72,6 +74,7 @@ export function ReceptionSearch({
   eventTitle: string;
   eventContext: string;
   podeLiberar: boolean;
+  printSettings: KidsPrintSettings;
 }) {
   const [query, setQuery] = useState("");
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
@@ -172,6 +175,7 @@ export function ReceptionSearch({
             eventTitle={eventTitle}
             eventContext={eventContext}
             podeLiberar={podeLiberar}
+            printSettings={printSettings}
           />
         </div>
       )}
@@ -203,6 +207,7 @@ export function ReceptionSearch({
                     eventTitle={eventTitle}
                     eventContext={eventContext}
                     podeLiberar={podeLiberar}
+                    printSettings={printSettings}
                   />
                 ))}
               </CardContent>
