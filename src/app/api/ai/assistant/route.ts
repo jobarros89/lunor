@@ -81,6 +81,7 @@ export async function POST(request: Request) {
           model: "lunor-deterministic",
           usedTools: draft.usedTools,
           proposals: draft.proposals,
+          worshipSetlistProposals: [],
           scope: { ministryId: ministry.id, ministryName: ministry.name },
         },
         { headers: HEADERS }
@@ -108,6 +109,7 @@ export async function POST(request: Request) {
           model: "lunor-deterministic",
           usedTools: direct.usedTools,
           proposals: [],
+          worshipSetlistProposals: [],
           scope: { ministryId: ministry.id, ministryName: ministry.name },
         },
         { headers: HEADERS }
@@ -133,6 +135,7 @@ export async function POST(request: Request) {
         model: result.model,
         usedTools: result.usedTools,
         proposals: result.proposals,
+        worshipSetlistProposals: result.worshipSetlistProposals,
         scope: { ministryId: ministry.id, ministryName: ministry.name },
       },
       { headers: HEADERS }

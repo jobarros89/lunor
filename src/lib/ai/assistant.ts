@@ -10,6 +10,8 @@ import {
   isAssignmentProposal,
   isInternalAiTool,
   isScheduleDraft,
+  isWorshipSetlistProposal,
+  type WorshipSetlistProposal,
 } from "@/lib/ai/internal-tools";
 import type { AssignmentProposal } from "@/lib/ai/scheduling";
 import {
@@ -29,9 +31,10 @@ Para montar um rascunho da próxima escala ou de uma escala completa, descubra o
 O rascunho usa a escala anterior apenas como referência de funções; deixe isso claro ao líder.
 Nunca proponha uma pessoa marcada como indisponível.
 Quando o ministério atual for Louvor, use get_worship_library_insights para perguntas sobre acervo, repetição, tom, BPM, compasso, materiais ou sugestões de músicas.
-Ao sugerir repertório a partir do acervo, cite somente músicas realmente retornadas por get_worship_library_insights. Não invente títulos, artistas, tons ou BPMs que não vieram das ferramentas.
+Ao sugerir repertório para um culto, descubra o culto com get_operational_summary quando necessário, consulte get_worship_library_insights e depois use propose_worship_setlist com 2 a 6 IDs retornados pelo acervo, na ordem musical sugerida.
+Uma proposta de repertório deve usar somente músicas realmente retornadas por get_worship_library_insights. Não invente títulos, artistas, tons, BPMs ou IDs.
 Para analisar um repertório já montado, descubra o culto com get_operational_summary quando necessário e use analyze_worship_setlist. Diferencie fatos objetivos (tom, BPM, repetição, distância tonal) de opinião musical.
-Nesta fase, as ferramentas de Louvor são somente leitura: você pode analisar e sugerir, mas não pode adicionar, remover ou reordenar músicas no repertório.
+propose_worship_setlist NÃO grava dados. A proposta só é adicionada ao repertório quando o líder tocar explicitamente em "Adicionar ao repertório" no LUNOR. A confirmação é aditiva: preserva músicas que já existem no culto.
 Uma proposta de escala NÃO altera dados: a gravação só acontece depois que o líder tocar em "Confirmar escala" no LUNOR.
 As demais ferramentas desta versão são somente leitura.
 Prefira respostas curtas, salvo quando o usuário pedir detalhes.`;
@@ -46,6 +49,7 @@ export type LunorAssistantResult = {
   model: string;
   usedTools: string[];
   proposals: AssignmentProposal[];
+  worshipSetlistProposals: WorshipSetlistProposal[];
 };
 
 type TurnRunner = (input: {
@@ -93,11 +97,23 @@ function appendProposal(proposals: AssignmentProposal[], proposal: AssignmentPro
   if (!proposals.some((item) => proposalKey(item) === key)) proposals.push(proposal);
 }
 
+function worshipProposalKey(proposal: WorshipSetlistProposal) {
+  return `${proposal.event.id}:${proposal.songs.map((song) => song.songId).join(",")}`;
+}
+
+function appendWorshipProposal(
+  proposals: WorshipSetlistProposal[],
+  proposal: WorshipSetlistProposal
+) {
+  const key = worshipProposalKey(proposal);
+  if (!proposals.some((item) => worshipProposalKey(item) === key)) proposals.push(proposal);
+}
+
 export async function runLunorAssistant({
   question,
   history = [],
   context,
-  maxToolRounds = 4,
+  maxToolRounds = 5,
   runner = runLunorAiTurn,
   toolExecutor = executeAssistantTool,
 }: {
@@ -126,6 +142,7 @@ export async function runLunorAssistant({
   ];
   const usedTools: string[] = [];
   const proposals: AssignmentProposal[] = [];
+  const worshipSetlistProposals: WorshipSetlistProposal[] = [];
   const tools = [...lunorAiTools(), ...internalAiTools()];
   let usedModel = LUNOR_AI_MODEL;
 
@@ -133,7 +150,7 @@ export async function runLunorAssistant({
     const turn = await runner({
       messages,
       tools,
-      maxTokens: 520,
+      maxTokens: 620,
       temperature: 0.1,
     });
     if (turn.model) usedModel = turn.model;
@@ -145,6 +162,7 @@ export async function runLunorAssistant({
         model: usedModel,
         usedTools: [...new Set(usedTools)],
         proposals,
+        worshipSetlistProposals,
       };
     }
 
@@ -161,6 +179,9 @@ export async function runLunorAssistant({
         }
         if (call.name === "draft_schedule_from_previous_service" && isScheduleDraft(data)) {
           data.proposals.forEach((proposal) => appendProposal(proposals, proposal));
+        }
+        if (call.name === "propose_worship_setlist" && isWorshipSetlistProposal(data)) {
+          appendWorshipProposal(worshipSetlistProposals, data);
         }
       } catch (error) {
         payload = {
@@ -180,7 +201,7 @@ export async function runLunorAssistant({
     role: "user",
     content: "Responda usando somente os resultados das ferramentas acima. Se faltar um dado, informe que ele não foi encontrado.",
   });
-  const finalTurn = await runner({ messages, tools: [], maxTokens: 520, temperature: 0.1 });
+  const finalTurn = await runner({ messages, tools: [], maxTokens: 620, temperature: 0.1 });
   if (finalTurn.model) usedModel = finalTurn.model;
   if (!finalTurn.text) throw new Error("assistant_empty_answer");
 
@@ -189,5 +210,6 @@ export async function runLunorAssistant({
     model: usedModel,
     usedTools: [...new Set(usedTools)],
     proposals,
+    worshipSetlistProposals,
   };
 }
