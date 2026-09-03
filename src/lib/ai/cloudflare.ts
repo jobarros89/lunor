@@ -1,6 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 export const LUNOR_AI_MODEL = "@cf/zai-org/glm-4.7-flash";
+export const LUNOR_AI_FALLBACK_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
 export type LunorAiMessage = {
   role: "system" | "user" | "assistant" | "tool";
@@ -22,6 +23,7 @@ export type LunorAiToolCall = {
 export type LunorAiTurn = {
   text: string;
   toolCalls: LunorAiToolCall[];
+  model?: string;
 };
 
 type WorkersAI = {
@@ -115,6 +117,19 @@ async function workersAi() {
   return ai;
 }
 
+async function runModel(
+  ai: WorkersAI,
+  model: string,
+  input: Record<string, unknown>
+): Promise<LunorAiTurn> {
+  const result = await ai.run(model, input);
+  const turn = parseWorkersAiTurn(result);
+  if (!turn.text && turn.toolCalls.length === 0) {
+    throw new Error("workers_ai_empty_response");
+  }
+  return { ...turn, model };
+}
+
 export async function runLunorAiTurn({
   messages,
   tools = [],
@@ -131,7 +146,7 @@ export async function runLunorAiTurn({
   if (totalChars > 32_000) throw new Error("ai_messages_too_large");
 
   const ai = await workersAi();
-  const result = await ai.run(LUNOR_AI_MODEL, {
+  const input = {
     messages,
     ...(tools.length > 0
       ? {
@@ -142,13 +157,25 @@ export async function runLunorAiTurn({
       : {}),
     max_completion_tokens: Math.min(Math.max(maxTokens, 32), 1_024),
     temperature: Math.min(Math.max(temperature, 0), 1),
-  });
+  };
 
-  const turn = parseWorkersAiTurn(result);
-  if (!turn.text && turn.toolCalls.length === 0) {
-    throw new Error("workers_ai_empty_response");
+  try {
+    return await runModel(ai, LUNOR_AI_MODEL, input);
+  } catch (primaryError) {
+    console.warn(
+      "lunor ai primary unavailable, using fallback:",
+      primaryError instanceof Error ? primaryError.message : "unknown_error"
+    );
+    try {
+      return await runModel(ai, LUNOR_AI_FALLBACK_MODEL, input);
+    } catch (fallbackError) {
+      console.error(
+        "lunor ai fallback unavailable:",
+        fallbackError instanceof Error ? fallbackError.message : "unknown_error"
+      );
+      throw primaryError;
+    }
   }
-  return turn;
 }
 
 /**
