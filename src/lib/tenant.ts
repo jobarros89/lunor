@@ -146,7 +146,7 @@ export const getTenant = cache(
     const [{ data: memberships }, { data: guardian }] = await Promise.all([
       supabase
         .from("ministry_members")
-        .select("role, ministries!inner(id, name, slug)")
+        .select("role, ministries(id, name, slug)")
         .eq("church_id", church.id)
         .eq("user_id", user.id)
         .eq("active", true),
@@ -159,22 +159,27 @@ export const getTenant = cache(
         .maybeSingle(),
     ]);
 
-    const ministryMemberships: TenantMinistryMembership[] = (memberships ?? []).map(
+    // Mantém a mesma semântica anterior: os papéis vêm diretamente de
+    // ministry_members e não dependem do join com ministries.
+    const ministryRoles = (memberships ?? []).map(
+      (membership) => membership.role as MinistryRole
+    );
+    const ministryMemberships: TenantMinistryMembership[] = (memberships ?? []).flatMap(
       (membership) => {
         const ministry = membership.ministries as unknown as {
           id: string;
           name: string;
           slug: string;
-        };
-        return {
+        } | null;
+        if (!ministry) return [];
+        return [{
           id: ministry.id,
           name: ministry.name,
           slug: ministry.slug,
           role: membership.role as MinistryRole,
-        };
+        }];
       }
     );
-    const ministryRoles = ministryMemberships.map((membership) => membership.role);
 
     // admin e coordenador têm gestão no nível da igreja toda
     const isCoord = data.role === "admin" || data.role === "coordenador";
