@@ -88,7 +88,6 @@ const memberSetupSchema = z.object({
   churchId: z.string().uuid(),
   ministryIds: z.array(z.string().uuid()).min(1, "Selecione pelo menos um ministério"),
   phone: z.string().trim().max(30).default(""),
-  departments: z.array(z.string().trim().min(1)).default([]),
 });
 
 export async function completeMemberOnboarding(raw: unknown): Promise<ActionResult> {
@@ -116,7 +115,7 @@ export async function completeMemberOnboarding(raw: unknown): Promise<ActionResu
   const uniqueMinistryIds = [...new Set(parsed.data.ministryIds)];
   const { data: ministries } = await supabase
     .from("ministries")
-    .select("id")
+    .select("id, name")
     .eq("church_id", membership.church_id)
     .in("id", uniqueMinistryIds);
   if (!church || ministries?.length !== uniqueMinistryIds.length) {
@@ -131,12 +130,13 @@ export async function completeMemberOnboarding(raw: unknown): Promise<ActionResu
   });
   if (joinError) return { ok: false, error: "Não foi possível concluir seu cadastro" };
 
-  const departments = [...new Set(parsed.data.departments)];
+  // Mantém o campo legado sincronizado automaticamente, sem pedir uma segunda
+  // seleção ao usuário. A fonte de verdade para acesso segue sendo ministry_members.
   const { error: profileError } = await supabase
     .from("profiles")
-    .update({ departments })
+    .update({ departments: [...new Set(ministries.map((ministry) => ministry.name))] })
     .eq("id", user.id);
-  if (profileError) return { ok: false, error: "Não foi possível salvar os departamentos" };
+  if (profileError) return { ok: false, error: "Não foi possível concluir seu perfil" };
 
-  redirect(`/${church.slug}/escalas`);
+  redirect(`/${church.slug}?welcome=1`);
 }

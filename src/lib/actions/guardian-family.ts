@@ -33,12 +33,13 @@ export async function createGuardianInvite(
   if (error || !token) {
     return {
       ok: false,
-      error: "O convite só pode ser criado pela equipe autorizada durante a operação do Kids.",
+      error: "O convite só pode ser criado por um integrante ativo da equipe Kids.",
     };
   }
 
   const origin = await requestOrigin();
   revalidatePath(`/${parsed.data.churchSlug}/infantil`);
+  revalidatePath(`/${parsed.data.churchSlug}/infantil/responsaveis`);
   return {
     ok: true,
     data: { url: `${origin}/familia/${token}` },
