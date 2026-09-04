@@ -59,6 +59,7 @@ export async function addChildGuardian(raw: unknown): Promise<ActionResult> {
   }
 
   let guardianId = d.guardianId;
+  let createdGuardianId: string | null = null;
 
   if (guardianId) {
     const { data: guardian } = await supabase
@@ -101,6 +102,7 @@ export async function addChildGuardian(raw: unknown): Promise<ActionResult> {
         return { ok: false, error: "Não foi possível cadastrar o responsável" };
       }
       guardianId = guardian.id;
+      createdGuardianId = guardian.id;
     }
   }
 
@@ -127,7 +129,12 @@ export async function addChildGuardian(raw: unknown): Promise<ActionResult> {
     can_pickup: d.canPickup,
     is_primary: makePrimary,
   });
-  if (error) return { ok: false, error: "Não foi possível vincular o responsável" };
+  if (error) {
+    if (createdGuardianId) {
+      await supabase.from("guardians").delete().eq("id", createdGuardianId);
+    }
+    return { ok: false, error: "Não foi possível vincular o responsável" };
+  }
 
   revalidatePath(`/${d.churchSlug}/infantil/crianca/${d.childId}`);
   revalidatePath(`/${d.churchSlug}/infantil/responsaveis`);
@@ -200,21 +207,21 @@ export async function setPrimaryChildGuardian(raw: unknown): Promise<ActionResul
     .maybeSingle();
   if (!target) return { ok: false, error: "Vínculo não encontrado" };
 
+  const { error: targetError } = await supabase
+    .from("child_guardians")
+    .update({ is_primary: true })
+    .eq("child_id", d.childId)
+    .eq("guardian_id", d.guardianId)
+    .eq("church_id", d.churchId);
+  if (targetError) return { ok: false, error: "Não foi possível alterar o responsável principal" };
+
   const { error: clearError } = await supabase
     .from("child_guardians")
     .update({ is_primary: false })
     .eq("child_id", d.childId)
     .eq("church_id", d.churchId)
     .neq("guardian_id", d.guardianId);
-  if (clearError) return { ok: false, error: "Não foi possível alterar o responsável principal" };
-
-  const { error } = await supabase
-    .from("child_guardians")
-    .update({ is_primary: true })
-    .eq("child_id", d.childId)
-    .eq("guardian_id", d.guardianId)
-    .eq("church_id", d.churchId);
-  if (error) return { ok: false, error: "Não foi possível alterar o responsável principal" };
+  if (clearError) return { ok: false, error: "Responsável principal salvo, mas não foi possível limpar o vínculo anterior" };
 
   revalidatePath(`/${d.churchSlug}/infantil/crianca/${d.childId}`);
   return { ok: true, data: undefined };
@@ -247,22 +254,36 @@ export async function removeChildGuardian(raw: unknown): Promise<ActionResult> {
   }
 
   const remaining = (links ?? []).filter((item) => item.guardian_id !== d.guardianId);
+  const nextPrimary = current.is_primary && remaining.length > 0
+    ? (remaining.find((item) => item.can_pickup) ?? remaining[0])
+    : null;
+
+  if (nextPrimary) {
+    const { error: promoteError } = await supabase
+      .from("child_guardians")
+      .update({ is_primary: true })
+      .eq("child_id", d.childId)
+      .eq("guardian_id", nextPrimary.guardian_id)
+      .eq("church_id", d.churchId);
+    if (promoteError) return { ok: false, error: "Não foi possível definir um novo responsável principal" };
+  }
+
   const { error } = await supabase
     .from("child_guardians")
     .delete()
     .eq("child_id", d.childId)
     .eq("guardian_id", d.guardianId)
     .eq("church_id", d.churchId);
-  if (error) return { ok: false, error: "Não foi possível remover o vínculo" };
-
-  if (current.is_primary && remaining.length > 0) {
-    const nextPrimary = remaining.find((item) => item.can_pickup) ?? remaining[0];
-    await supabase
-      .from("child_guardians")
-      .update({ is_primary: true })
-      .eq("child_id", d.childId)
-      .eq("guardian_id", nextPrimary.guardian_id)
-      .eq("church_id", d.churchId);
+  if (error) {
+    if (nextPrimary) {
+      await supabase
+        .from("child_guardians")
+        .update({ is_primary: false })
+        .eq("child_id", d.childId)
+        .eq("guardian_id", nextPrimary.guardian_id)
+        .eq("church_id", d.churchId);
+    }
+    return { ok: false, error: "Não foi possível remover o vínculo" };
   }
 
   revalidatePath(`/${d.churchSlug}/infantil/crianca/${d.childId}`);
