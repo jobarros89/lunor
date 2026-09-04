@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { CheckCircle2, Copy, Send, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { FamilyInviteQr } from "@/components/infantil/family-invite-qr";
 import { createGuardianInvite } from "@/lib/actions/guardian-family";
 
@@ -22,20 +23,29 @@ export function GuardianInvitePanel({
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [inviteEmails, setInviteEmails] = useState<Record<string, string>>({});
   const [inviteUrls, setInviteUrls] = useState<Record<string, string>>({});
 
   function createInvite(guardian: Guardian) {
+    const email = (inviteEmails[guardian.id] ?? "").trim().toLowerCase();
+    if (!email) {
+      toast.error("Informe o e-mail que o responsável usará no LUNOR.");
+      return;
+    }
+
     setPendingId(guardian.id);
     startTransition(async () => {
       const result = await createGuardianInvite({
         churchSlug,
         guardianId: guardian.id,
+        email,
       });
       setPendingId(null);
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
+      setInviteEmails((current) => ({ ...current, [guardian.id]: email }));
       setInviteUrls((current) => ({ ...current, [guardian.id]: result.data.url }));
       toast.success("Convite familiar criado");
     });
@@ -79,10 +89,11 @@ export function GuardianInvitePanel({
     <div className="space-y-4">
       {guardians.map((guardian) => {
         const inviteUrl = inviteUrls[guardian.id];
+        const email = inviteEmails[guardian.id] ?? "";
         const linked = Boolean(guardian.userId);
         return (
           <article key={guardian.id} className="rounded-3xl border bg-card p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-4">
               <div>
                 <p className="font-medium">{guardian.fullName}</p>
                 <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -90,21 +101,52 @@ export function GuardianInvitePanel({
                   {linked ? "Conta LUNOR já vinculada" : "Ainda sem conta LUNOR vinculada"}
                 </p>
               </div>
+
               {!linked && (
-                <Button
-                  type="button"
-                  variant={inviteUrl ? "outline" : "default"}
-                  disabled={pending && pendingId === guardian.id}
-                  onClick={() => createInvite(guardian)}
-                  className="h-10 rounded-full px-4"
-                >
-                  <Send className="size-4" />
-                  {pending && pendingId === guardian.id
-                    ? "Gerando…"
-                    : inviteUrl
-                      ? "Gerar novo convite"
-                      : "Gerar convite"}
-                </Button>
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor={`guardian-email-${guardian.id}`}
+                      className="text-xs font-medium text-muted-foreground"
+                    >
+                      E-mail do responsável
+                    </label>
+                    <Input
+                      id={`guardian-email-${guardian.id}`}
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      placeholder="responsavel@email.com"
+                      value={email}
+                      onChange={(event) =>
+                        setInviteEmails((current) => ({
+                          ...current,
+                          [guardian.id]: event.target.value,
+                        }))
+                      }
+                      className="h-10"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      O convite só poderá ser concluído por uma conta com este mesmo e-mail.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={inviteUrl ? "outline" : "default"}
+                    disabled={
+                      (pending && pendingId === guardian.id) || email.trim().length === 0
+                    }
+                    onClick={() => createInvite(guardian)}
+                    className="h-10 rounded-full px-4"
+                  >
+                    <Send className="size-4" />
+                    {pending && pendingId === guardian.id
+                      ? "Gerando…"
+                      : inviteUrl
+                        ? "Gerar novo convite"
+                        : "Gerar convite"}
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -121,6 +163,9 @@ export function GuardianInvitePanel({
                     <p className="font-medium">Acesso de responsável</p>
                     <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                       O responsável pode apontar a câmera do celular para o QR Code. O link abre diretamente o cadastro ou login do LUNOR Kids e mantém o vínculo com a família.
+                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Convite destinado a <span className="font-medium text-foreground">{email}</span>.
                     </p>
                   </div>
                   <div className="rounded-2xl bg-muted/50 p-3">
