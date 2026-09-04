@@ -45,12 +45,13 @@ describe("Kids — escala operacional e família", () => {
   let otherChildId: string;
   let guardianId: string;
   const run = Date.now();
+  const guardianEmail = `kids-scope-family-${run}@teste.dev`;
 
   beforeAll(async () => {
     coord = await newUser(`kids-scope-coord-${run}@teste.dev`);
     scheduled = await newUser(`kids-scope-scheduled-${run}@teste.dev`);
     unscheduled = await newUser(`kids-scope-unscheduled-${run}@teste.dev`);
-    guardian = await newUser(`kids-scope-family-${run}@teste.dev`);
+    guardian = await newUser(guardianEmail);
 
     churchId = (await coord.rpc("create_church", {
       p_name: "Igreja Kids Scope",
@@ -127,7 +128,10 @@ describe("Kids — escala operacional e família", () => {
     expect(guardians.error).toBeNull();
     expect(guardians.data?.[0]?.id).toBe(guardianId);
 
-    const invite = await unscheduled.rpc("create_guardian_invite", { p_guardian: guardianId });
+    const invite = await unscheduled.rpc("create_guardian_invite", {
+      p_guardian: guardianId,
+      p_email: guardianEmail,
+    });
     expect(invite.error).toBeNull();
     expect(invite.data).toMatch(/^[a-f0-9]{48}$/i);
   });
@@ -149,7 +153,10 @@ describe("Kids — escala operacional e família", () => {
   });
 
   it("convite familiar liga a conta sem torná-la voluntária", async () => {
-    const invite = await coord.rpc("create_guardian_invite", { p_guardian: guardianId });
+    const invite = await coord.rpc("create_guardian_invite", {
+      p_guardian: guardianId,
+      p_email: guardianEmail,
+    });
     expect(invite.error).toBeNull();
 
     const redeem = await guardian.rpc("redeem_guardian_invite", { p_token: invite.data });
