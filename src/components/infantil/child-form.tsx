@@ -35,7 +35,6 @@ export function ChildForm({
         allergies: String(fd.get("allergies") ?? ""),
         healthNotes: String(fd.get("healthNotes") ?? ""),
         specialNeeds: String(fd.get("specialNeeds") ?? ""),
-        emergencyName: String(fd.get("emergencyName") ?? ""),
         emergencyPhone: String(fd.get("emergencyPhone") ?? ""),
         guardianName: String(fd.get("guardianName") ?? ""),
         guardianPhone: String(fd.get("guardianPhone") ?? ""),
@@ -91,15 +90,15 @@ export function ChildForm({
           <Label htmlFor="specialNeeds">Necessidades especiais</Label>
           <Input id="specialNeeds" name="specialNeeds" className={campo} />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="emergencyName">Contato de emergência</Label>
-            <Input id="emergencyName" name="emergencyName" className={campo} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="emergencyPhone">Telefone</Label>
-            <Input id="emergencyPhone" name="emergencyPhone" className={campo} />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="emergencyPhone">Telefone de emergência</Label>
+          <Input
+            id="emergencyPhone"
+            name="emergencyPhone"
+            type="tel"
+            autoComplete="tel"
+            className={campo}
+          />
         </div>
       </section>
 
@@ -123,7 +122,13 @@ export function ChildForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="guardianPhone">Telefone</Label>
-            <Input id="guardianPhone" name="guardianPhone" className={campo} />
+            <Input
+              id="guardianPhone"
+              name="guardianPhone"
+              type="tel"
+              autoComplete="tel"
+              className={campo}
+            />
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
