@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { checkAndLogAiUsage } from "@/lib/ai/rate-limit-server";
 import { runLunorAssistant } from "@/lib/ai/assistant";
 import { runDirectOperationalAnswer } from "@/lib/ai/direct-operational-answer";
 import { runDirectScheduleDraft } from "@/lib/ai/direct-schedule-draft";
@@ -100,6 +101,26 @@ export async function POST(request: Request) {
   const allowedMinistries = ministries.options
     .filter((item) => item.canManage)
     .map((item) => ({ id: item.id, name: item.name }));
+
+  // Rate limiting: máx 20 mensagens/hora por usuário + igreja
+  const rateLimitResult = await checkAndLogAiUsage({
+    userId: user.id,
+    churchId: tenant.church.id,
+  });
+  if (!rateLimitResult.allowed) {
+    const resetAtMs = rateLimitResult.resetAt.getTime();
+    const nowMs = Date.now();
+    const waitSeconds = Math.ceil((resetAtMs - nowMs) / 1000);
+    return Response.json(
+      {
+        error: "rate_limit_exceeded",
+        message: `Limite de 20 mensagens/hora atingido. Tente novamente em ${waitSeconds}s.`,
+        resetAt: rateLimitResult.resetAt.toISOString(),
+        retryAfter: waitSeconds,
+      },
+      { status: 429, headers: { ...HEADERS, "Retry-After": waitSeconds.toString() } }
+    );
+  }
 
   const context = {
     churchId: tenant.church.id,

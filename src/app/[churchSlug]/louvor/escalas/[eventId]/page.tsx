@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { getLouvorMinistry } from "@/lib/louvor-server";
 import { MinistryEventSchedule } from "@/components/escalas/ministry-event-schedule";
+import { WhatsAppPublishControl } from "@/components/escalas/whatsapp-publish-control";
 
 export default async function LouvorEscalaDetailPage({
   params,
@@ -14,13 +15,20 @@ export default async function LouvorEscalaDetailPage({
   if (!louvor) redirect(`/${churchSlug}`);
 
   return (
-    <MinistryEventSchedule
-      churchSlug={churchSlug}
-      ministryId={louvor.id}
-      ministryName="Louvor"
-      eventId={eventId}
-      backHref={`/${churchSlug}/louvor/escalas`}
-      backLabel="Escalas do Louvor"
-    />
+    <>
+      <WhatsAppPublishControl
+        churchSlug={churchSlug}
+        ministryId={louvor.id}
+        eventId={eventId}
+      />
+      <MinistryEventSchedule
+        churchSlug={churchSlug}
+        ministryId={louvor.id}
+        ministryName="Louvor"
+        eventId={eventId}
+        backHref={`/${churchSlug}/louvor/escalas`}
+        backLabel="Escalas do Louvor"
+      />
+    </>
   );
 }

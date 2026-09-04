@@ -328,6 +328,14 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         </div>
       </section>
 
+      {activeMinistry?.canManage && (
+        <AssistantHomeInput
+          churchSlug={churchSlug}
+          ministryId={activeMinistry.id}
+          ministryName={activeMinistry.name}
+        />
+      )}
+
       {onboardingChecklist && (
         <OnboardingChecklistCard churchId={tenant.church.id} checklist={onboardingChecklist} />
       )}
