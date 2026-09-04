@@ -19,11 +19,15 @@ export async function resolveAuthenticatedDestination(
       p_token: familyToken,
     });
 
-    cookieStore.delete(FAMILY_INVITE_COOKIE);
     if (!error && churchSlug) {
+      cookieStore.delete(FAMILY_INVITE_COOKIE);
       cookieStore.delete(SIGNUP_INTENT_COOKIE);
       return `/${churchSlug}/infantil`;
     }
+
+    // Convite familiar nunca deve cair no onboarding genérico de igreja.
+    // Mantemos o token para permitir nova tentativa ou exibir uma mensagem clara.
+    return "/familia/acesso?erro=convite";
   }
 
   const inviteCode = cookieStore.get(INVITE_COOKIE)?.value;
@@ -52,4 +56,3 @@ export async function resolveAuthenticatedDestination(
 
   return fallbackPath;
 }
-
