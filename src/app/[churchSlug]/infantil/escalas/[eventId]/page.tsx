@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { getInfantilMinistry } from "@/lib/infantil";
 import { MinistryEventSchedule } from "@/components/escalas/ministry-event-schedule";
+import { WhatsAppPublishControl } from "@/components/escalas/whatsapp-publish-control";
 
 export default async function KidsEscalaDetailPage({
   params,
@@ -14,15 +15,22 @@ export default async function KidsEscalaDetailPage({
   if (!kids) redirect(`/${churchSlug}`);
 
   return (
-    <MinistryEventSchedule
-      churchSlug={churchSlug}
-      ministryId={kids.id}
-      ministryName="Kids"
-      eventId={eventId}
-      backHref={`/${churchSlug}/infantil/escalas`}
-      backLabel="Escalas do Kids"
-      actionHref={`/${churchSlug}/infantil/sessao/${eventId}`}
-      actionLabel="Abrir recepção"
-    />
+    <>
+      <WhatsAppPublishControl
+        churchSlug={churchSlug}
+        ministryId={kids.id}
+        eventId={eventId}
+      />
+      <MinistryEventSchedule
+        churchSlug={churchSlug}
+        ministryId={kids.id}
+        ministryName="Kids"
+        eventId={eventId}
+        backHref={`/${churchSlug}/infantil/escalas`}
+        backLabel="Escalas do Kids"
+        actionHref={`/${churchSlug}/infantil/sessao/${eventId}`}
+        actionLabel="Abrir recepção"
+      />
+    </>
   );
 }
