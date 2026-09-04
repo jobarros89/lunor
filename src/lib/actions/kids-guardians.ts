@@ -78,32 +78,35 @@ export async function addChildGuardian(raw: unknown): Promise<ActionResult> {
     if (normalizedPhone) {
       const { data: existingGuardians } = await supabase
         .from("guardians")
-        .select("id, phone")
+        .select("id, full_name, phone")
         .eq("church_id", d.churchId)
         .eq("ministry_id", d.ministryId);
       const samePhone = (existingGuardians ?? []).find(
         (item) => normalizePhone(item.phone) === normalizedPhone
       );
-      if (samePhone) guardianId = samePhone.id;
+      if (samePhone) {
+        return {
+          ok: false,
+          error: `Este telefone já está cadastrado para ${samePhone.full_name}. Se for a mesma pessoa, use “Já cadastrado”; caso contrário, corrija o telefone antes de continuar.`,
+        };
+      }
     }
 
-    if (!guardianId) {
-      const { data: guardian, error } = await supabase
-        .from("guardians")
-        .insert({
-          church_id: d.churchId,
-          ministry_id: d.ministryId,
-          full_name: fullName,
-          phone: d.phone.trim() || null,
-        })
-        .select("id")
-        .single();
-      if (error || !guardian) {
-        return { ok: false, error: "Não foi possível cadastrar o responsável" };
-      }
-      guardianId = guardian.id;
-      createdGuardianId = guardian.id;
+    const { data: guardian, error } = await supabase
+      .from("guardians")
+      .insert({
+        church_id: d.churchId,
+        ministry_id: d.ministryId,
+        full_name: fullName,
+        phone: d.phone.trim() || null,
+      })
+      .select("id")
+      .single();
+    if (error || !guardian) {
+      return { ok: false, error: "Não foi possível cadastrar o responsável" };
     }
+    guardianId = guardian.id;
+    createdGuardianId = guardian.id;
   }
 
   const { data: existingLink } = await supabase
