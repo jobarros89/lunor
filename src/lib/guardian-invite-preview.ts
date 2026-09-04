@@ -12,6 +12,16 @@ export type GuardianInvitePreview = {
   churchName: string | null;
 };
 
+export function guardianInviteErrorPath(message: string | undefined): string {
+  const value = message ?? "";
+  if (value.includes("invite_email_mismatch")) return "/familia/acesso?erro=email";
+  if (value.includes("guardian_already_linked")) return "/familia/acesso?erro=vinculado";
+  if (value.includes("invite_expired")) return "/familia/acesso?erro=convite-expirado";
+  if (value.includes("invite_already_used")) return "/familia/acesso?erro=convite-usado";
+  if (value.includes("invite_invalid")) return "/familia/acesso?erro=convite-invalido";
+  return "/familia/acesso?erro=convite";
+}
+
 export async function getGuardianInvitePreview(): Promise<GuardianInvitePreview | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(FAMILY_INVITE_COOKIE)?.value ?? "";
