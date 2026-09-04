@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  FAMILY_INVITE_COOKIE,
+  guardianInviteErrorPath,
+} from "@/lib/guardian-invite-preview";
 import { createClient } from "@/lib/supabase/server";
 
-const FAMILY_COOKIE = "lunor_family_invite";
-
 function setFamilyCookie(response: NextResponse, token: string) {
-  response.cookies.set(FAMILY_COOKIE, token, {
+  response.cookies.set(FAMILY_INVITE_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -19,12 +21,37 @@ export async function GET(
 ) {
   const { token } = await params;
   if (!/^[a-f0-9]{48}$/i.test(token)) {
-    return NextResponse.redirect(
+    const response = NextResponse.redirect(
       new URL("/familia/acesso?erro=convite-invalido", request.url)
     );
+    response.cookies.delete(FAMILY_INVITE_COOKIE);
+    return response;
   }
 
   const supabase = await createClient();
+  const { data: previewData, error: previewError } = await supabase.rpc(
+    "guardian_invite_preview",
+    { p_token: token }
+  );
+  const preview = Array.isArray(previewData) ? previewData[0] : previewData;
+  const status = preview?.status ?? "invalid";
+
+  if (previewError || status === "invalid") {
+    const response = NextResponse.redirect(
+      new URL("/familia/acesso?erro=convite-invalido", request.url)
+    );
+    response.cookies.delete(FAMILY_INVITE_COOKIE);
+    return response;
+  }
+
+  if (status === "expired" || !preview?.invited_email) {
+    const response = NextResponse.redirect(
+      new URL("/familia/acesso?erro=convite-expirado", request.url)
+    );
+    setFamilyCookie(response, token);
+    return response;
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -37,18 +64,23 @@ export async function GET(
       const response = NextResponse.redirect(
         new URL(`/${churchSlug}/infantil`, request.url)
       );
-      response.cookies.delete(FAMILY_COOKIE);
+      response.cookies.delete(FAMILY_INVITE_COOKIE);
       return response;
     }
 
     const response = NextResponse.redirect(
-      new URL("/familia/acesso?erro=convite", request.url)
+      new URL(guardianInviteErrorPath(error?.message), request.url)
     );
     setFamilyCookie(response, token);
     return response;
   }
 
-  const response = NextResponse.redirect(new URL("/familia/acesso", request.url));
+  const response = NextResponse.redirect(
+    new URL(
+      status === "used" ? "/familia/acesso?erro=convite-usado" : "/familia/acesso",
+      request.url
+    )
+  );
   setFamilyCookie(response, token);
   return response;
 }
