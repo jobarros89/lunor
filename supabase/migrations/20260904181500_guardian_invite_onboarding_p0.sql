@@ -18,6 +18,13 @@ alter table public.guardian_invites
     )
   );
 
+-- Convites antigos não tinham e-mail de destino. Mantê-los ativos impediria
+-- garantir a identidade do destinatário, portanto precisam ser regenerados.
+update public.guardian_invites
+set expires_at = least(expires_at, now())
+where used_at is null
+  and invited_email is null;
+
 -- Remove a assinatura antiga para que novos convites não possam ser criados
 -- sem destinatário definido.
 drop function if exists public.create_guardian_invite(uuid);
@@ -122,7 +129,7 @@ begin
     return;
   end if;
 
-  select gi.*, g.full_name, c.name
+  select gi, g.full_name, c.name
     into v_invite, v_guardian_name, v_church_name
   from public.guardian_invites gi
   join public.guardians g on g.id = gi.guardian_id
