@@ -133,6 +133,12 @@ export async function completeMemberOnboarding(raw: unknown): Promise<ActionResu
 
   // Mantém o campo legado sincronizado automaticamente, sem pedir uma segunda
   // seleção ao usuário. A fonte de verdade para acesso segue sendo ministry_members.
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ departments: [...new Set(ministries.map((ministry) => ministry.name))] })
+    .eq("id", user.id);
+  if (profileError) return { ok: false, error: "Não foi possível concluir seu perfil" };
+
   redirect(`/${church.slug}?welcome=1`);
 }
 
