@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { QuickConfirm } from "@/components/escalas/quick-confirm";
 import { OperationalSummarySection } from "@/components/home/operational-summary";
 import { OnboardingChecklistCard } from "@/components/home/onboarding-checklist";
+import { CultModeBanner } from "@/components/home/cult-mode-banner";
 
 type RelatedName = { name: string } | { name: string }[] | null;
 type AssignmentEvent = {
@@ -147,6 +148,8 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   }
 
   const nowIso = new Date().toISOString();
+  // eslint-disable-next-line react-hooks/purity -- server component, Date.now() é seguro aqui
+  const nowMs = Date.now();
   const [
     { data: myEscalas },
     { data: nextChurchEvent },
@@ -218,6 +221,17 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
     ? escalas.filter((assignment) => firstRelated(assignment.events)?.id !== nextEvent.id)
     : escalas;
 
+  // Culto iminente: começa nas próximas 3h ou já começou mas ainda não terminou
+  const CULT_MODE_WINDOW_MS = 3 * 60 * 60 * 1000;
+  const imminentEvent = (() => {
+    if (!nextEvent) return null;
+    const startMs = new Date(nextEvent.starts_at).getTime();
+    const endMs = nextEvent.ends_at ? new Date(nextEvent.ends_at).getTime() : startMs + 2 * 60 * 60 * 1000;
+    const startsWithinWindow = startMs - nowMs <= CULT_MODE_WINDOW_MS && startMs - nowMs > 0;
+    const alreadyStartedNotEnded = startMs <= nowMs && nowMs < endMs;
+    return (startsWithinWindow || alreadyStartedNotEnded) ? nextEvent : null;
+  })();
+
   return (
     <div className="lunor-home min-w-0 space-y-12 overflow-x-clip pb-8">
       {(anuncios ?? []).length > 0 && (
@@ -231,6 +245,16 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
             </div>
           ))}
         </section>
+      )}
+
+      {tenant.isLeader && imminentEvent && (
+        <CultModeBanner
+          churchSlug={churchSlug}
+          eventId={imminentEvent.id}
+          eventTitle={imminentEvent.title}
+          startsAt={imminentEvent.starts_at}
+          nowMs={nowMs}
+        />
       )}
 
       <section className="lunor-prism relative overflow-hidden rounded-[24px] border border-foreground/10 shadow-sm">
