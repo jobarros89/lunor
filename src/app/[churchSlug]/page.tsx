@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { QuickConfirm } from "@/components/escalas/quick-confirm";
 import { OperationalSummarySection } from "@/components/home/operational-summary";
 import { OnboardingChecklistCard } from "@/components/home/onboarding-checklist";
+import { AssistantHomeInput } from "@/components/home/assistant-home-input";
 
 type RelatedName = { name: string } | { name: string }[] | null;
 type AssignmentEvent = {
@@ -303,6 +304,14 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
           </Link>
         </div>
       </section>
+
+      {activeMinistry?.canManage && (
+        <AssistantHomeInput
+          churchSlug={churchSlug}
+          ministryId={activeMinistry.id}
+          ministryName={activeMinistry.name}
+        />
+      )}
 
       {onboardingChecklist && (
         <OnboardingChecklistCard churchId={tenant.church.id} checklist={onboardingChecklist} />
