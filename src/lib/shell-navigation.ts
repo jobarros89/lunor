@@ -7,6 +7,8 @@ export type ShellNavItemId =
   | "assistente"
   | "perfil"
   | "pessoas"
+  | "distribuicao"
+  | "equipamentos"
   | "admin";
 
 export type ShellNavItem = {
@@ -65,6 +67,8 @@ export function buildShellNavigation({
       ? [
           { id: "assistente" as const, href: "/assistente", label: "Assistente LUNOR" },
           { id: "pessoas" as const, href: "/pessoas", label: "Equipe" },
+          { id: "distribuicao" as const, href: "/distribuicao", label: "Distribuição" },
+          { id: "equipamentos" as const, href: "/equipamentos", label: "Equipamentos" },
         ]
       : []),
     { id: "perfil", href: "/perfil", label: "Perfil" },
