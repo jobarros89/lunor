@@ -48,9 +48,8 @@ export async function resolveAuthenticatedDestination(
   if (intent) {
     cookieStore.delete(SIGNUP_INTENT_COOKIE);
     if (intent === "criar") return "/comecar?intencao=criar";
-    if (intent === "entrar" || intent === "convite") {
-      return "/comecar?intencao=entrar";
-    }
+    if (intent === "entrar") return "/comecar?intencao=entrar";
+    if (intent === "convite") return "/comecar?intencao=convite";
     return "/comecar";
   }
 
