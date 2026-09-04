@@ -24,15 +24,17 @@ function SignupForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const intent = searchParams.get("intencao");
-  const familyToken = searchParams.get("familia") ?? "";
+  const familyParam = searchParams.get("familia") ?? "";
+  const familyToken = /^[a-f0-9]{48}$/i.test(familyParam) ? familyParam : "";
+  const isFamilyAccess = Boolean(familyParam);
   const normalizedIntent = intent === "criar" || intent === "entrar" || intent === "convite" ? intent : "direto";
   const passwordReady = password.length >= 8;
 
-  const copy = familyToken
+  const copy = isFamilyAccess
     ? {
-        title: "Bem-vindo ao LUNOR Kids",
+        title: "Acesso de responsável — LUNOR Kids",
         description:
-          "Crie sua conta para acessar o aplicativo e acompanhar seus filhos com segurança.",
+          "Crie sua conta de responsável. Ao entrar, o LUNOR vinculará com segurança as crianças associadas ao seu convite.",
       }
     : intent === "criar"
       ? {
@@ -59,6 +61,11 @@ function SignupForm() {
   return (
     <Card className="rounded-3xl shadow-sm">
       <CardHeader className="space-y-2 text-center">
+        {isFamilyAccess && (
+          <p className="mx-auto w-fit rounded-full bg-[#6e5ce6]/10 px-3 py-1 text-xs font-medium text-[#6e5ce6]">
+            Convite familiar
+          </p>
+        )}
         <CardTitle className="text-2xl font-semibold tracking-tight">
           {copy.title}
         </CardTitle>
@@ -150,15 +157,15 @@ function SignupForm() {
             disabled={pending}
             className="h-12 w-full rounded-full text-base"
           >
-            {pending ? "Criando…" : "Criar conta"}
+            {pending ? "Criando…" : isFamilyAccess ? "Criar conta de responsável" : "Criar conta"}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             Já tem conta?{" "}
             <Link
-              href="/login"
+              href={isFamilyAccess ? "/login?familia=1" : "/login"}
               className="font-medium text-foreground underline-offset-4 hover:underline"
             >
-              Entrar
+              {isFamilyAccess ? "Entrar como responsável" : "Entrar"}
             </Link>
           </p>
         </form>
