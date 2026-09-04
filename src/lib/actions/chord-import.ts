@@ -9,9 +9,14 @@ import {
   fetchChordPage,
   type ChordPageCandidate,
 } from "@/lib/music/import/fetch-chord-page";
+import { parseChordChart } from "@/lib/music/import/parse-chord-chart";
+import { alignmentFixPreservesLyrics } from "@/lib/music/import/validate-ai-alignment";
 import { createClient } from "@/lib/supabase/server";
 import { getTenant } from "@/lib/tenant";
 import type { ActionResult } from "./types";
+
+const MAX_REPAIR_CONTENT_LENGTH = 6_000;
+const ALIGNMENT_WARNING_CODES = new Set(["UNALIGNED_CHORDS", "AMBIGUOUS_CHORD_LINE"]);
 
 const schema = z.object({
   churchSlug: z.string().min(2), songId: z.string().uuid(),
@@ -67,13 +72,79 @@ async function chooseChordCandidate(candidates: ChordPageCandidate[]): Promise<{
   return { candidate: fallback, aiUsed: false };
 }
 
+/**
+ * A colagem de fontes diferentes (WhatsApp, PDF, outros sites) costuma
+ * desalinhar acorde e sílaba porque o espaçamento original não sobrevive à
+ * cópia. O parser heurístico já detecta esses casos (UNALIGNED_CHORDS,
+ * AMBIGUOUS_CHORD_LINE) — quando eles aparecem, pedimos para a IA
+ * reescrever só o posicionamento dos acordes em ChordPro inline.
+ *
+ * A IA nunca é a única autoridade aqui: o resultado só é aceito se a letra
+ * extraída dele for palavra por palavra idêntica à letra extraída do
+ * resultado heurístico original. Qualquer divergência (a IA "corrigindo"
+ * uma palavra, pulando uma linha, completando algo) descarta a tentativa e
+ * devolve o resultado determinístico de sempre — a mesma filosofia de
+ * fallback já usada em chooseChordCandidate.
+ */
+async function repairPlainAlignment(rawContent: string): Promise<{
+  content: string;
+  fixed: boolean;
+}> {
+  const heuristic = parseChordChart({ content: rawContent });
+  const noFix = { content: rawContent, fixed: false };
+
+  if (heuristic.detectedFormat !== "PLAIN") return noFix;
+  const hasAlignmentIssue = heuristic.warnings.some((warning) =>
+    ALIGNMENT_WARNING_CODES.has(warning.code)
+  );
+  if (!hasAlignmentIssue) return noFix;
+  // Cifra grande demais para caber com folga no limite de prompt da IA
+  // (8.000 caracteres) — mantém o resultado heurístico em vez de truncar
+  // a música no meio.
+  if (rawContent.length > MAX_REPAIR_CONTENT_LENGTH) return noFix;
+
+  try {
+    const answer = await runLunorAi({
+      system:
+        "Você corrige o posicionamento de acordes em cifras musicais coladas de fontes com espaçamento inconsistente. " +
+        "Nunca invente, remova, traduza ou altere uma palavra da letra. Nunca adicione ou remova um acorde que não " +
+        "estava no texto original. Sua única tarefa é reescrever o texto em formato ChordPro, colocando cada acorde " +
+        "entre colchetes imediatamente antes da sílaba onde ele deve soar, preservando títulos, seções e metadados " +
+        "como estavam. Responda apenas com o texto corrigido — sem comentários, sem explicações, sem marcação markdown.",
+      prompt: rawContent,
+      maxTokens: 1024,
+      temperature: 0,
+    });
+
+    const repaired = answer.trim();
+    if (!repaired) return noFix;
+
+    const reparsed = parseChordChart({ content: repaired });
+    const stillHasAlignmentIssue = reparsed.warnings.some((warning) =>
+      ALIGNMENT_WARNING_CODES.has(warning.code)
+    );
+    if (stillHasAlignmentIssue) return noFix;
+    if (!alignmentFixPreservesLyrics(heuristic.chordProContent, reparsed.chordProContent)) {
+      return noFix;
+    }
+
+    return { content: repaired, fixed: true };
+  } catch {
+    // Workers AI é um aprimoramento. A importação continua com o resultado
+    // heurístico se o binding estiver indisponível ou a chamada falhar.
+    return noFix;
+  }
+}
+
 export async function fetchChordFromUrl(raw: unknown): Promise<
   ActionResult<{
     content: string;
+    rawContent: string;
     sourceUrl: string;
     sourceTitle: string | null;
     hostname: string;
     aiUsed: boolean;
+    alignmentFixedByAi: boolean;
   }>
 > {
   const parsed = urlImportSchema.safeParse(raw);
@@ -109,16 +180,19 @@ export async function fetchChordFromUrl(raw: unknown): Promise<
   try {
     const page = await fetchChordPage(input.url);
     const { candidate, aiUsed } = await chooseChordCandidate(page.candidates);
+    const { content, fixed: alignmentFixedByAi } = await repairPlainAlignment(candidate.content);
     const resolved = new URL(page.finalUrl);
 
     return {
       ok: true,
       data: {
-        content: candidate.content,
+        content,
+        rawContent: candidate.content,
         sourceUrl: page.finalUrl,
         sourceTitle: page.title,
         hostname: resolved.hostname,
         aiUsed,
+        alignmentFixedByAi,
       },
     };
   } catch (error) {
