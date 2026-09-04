@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 const url = process.env.API_URL!;
 const anonKey = process.env.ANON_KEY!;
 const serviceKey = process.env.SERVICE_ROLE_KEY!;
+const testPassword = `test-${Date.now()}-Aa1!`;
 
 const admin = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -12,7 +13,7 @@ const admin = createClient(url, serviceKey, {
 async function newUser(email: string): Promise<SupabaseClient> {
   const { error } = await admin.auth.admin.createUser({
     email,
-    password: "senha-teste-123",
+    password: testPassword,
     email_confirm: true,
     user_metadata: { full_name: email.split("@")[0] },
   });
@@ -22,7 +23,7 @@ async function newUser(email: string): Promise<SupabaseClient> {
   });
   const login = await client.auth.signInWithPassword({
     email,
-    password: "senha-teste-123",
+    password: testPassword,
   });
   if (login.error) throw login.error;
   return client;
@@ -106,17 +107,34 @@ describe("Kids — escala operacional e família", () => {
     })).data as string;
   });
 
-  it("bloqueia voluntário sem escala e libera o escalado durante a operação", async () => {
-    const denied = await unscheduled.from("children").select("id").eq("id", childId);
+  it("membro ativo do Kids enxerga o módulo e pode convidar responsável mesmo sem escala", async () => {
+    const visible = await unscheduled.from("children").select("id").eq("id", childId);
+    expect(visible.error).toBeNull();
+    expect(visible.data?.[0]?.id).toBe(childId);
+
+    const guardians = await unscheduled.from("guardians").select("id").eq("id", guardianId);
+    expect(guardians.error).toBeNull();
+    expect(guardians.data?.[0]?.id).toBe(guardianId);
+
+    const invite = await unscheduled.rpc("create_guardian_invite", { p_guardian: guardianId });
+    expect(invite.error).toBeNull();
+    expect(invite.data).toMatch(/^[a-f0-9]{48}$/i);
+  });
+
+  it("mantém escrita operacional restrita à escala/janela autorizada", async () => {
+    const denied = await unscheduled.from("children")
+      .update({ health_notes: "Não deveria gravar" })
+      .eq("id", childId)
+      .select("id");
+    expect(denied.error).toBeNull();
     expect(denied.data ?? []).toEqual([]);
 
-    const allowed = await scheduled.from("children").select("id").eq("id", childId);
-    expect(allowed.data?.[0]?.id).toBe(childId);
-
-    const update = await scheduled.from("children")
+    const allowed = await scheduled.from("children")
       .update({ health_notes: "Atualização operacional" })
-      .eq("id", childId);
-    expect(update.error).toBeNull();
+      .eq("id", childId)
+      .select("id");
+    expect(allowed.error).toBeNull();
+    expect(allowed.data?.[0]?.id).toBe(childId);
   });
 
   it("convite familiar liga a conta sem torná-la voluntária", async () => {
