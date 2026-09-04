@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 function ComecarContent() {
   const searchParams = useSearchParams();
   const intent = searchParams.get("intencao");
-  const initialMode = intent === "criar" ? "create" : intent === "entrar" ? "join" : "choose";
+  const inviteFlow = intent === "convite";
+  const initialMode = intent === "criar" ? "create" : intent === "entrar" || inviteFlow ? "join" : "choose";
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<"choose" | "join" | "create">(initialMode);
 
@@ -31,7 +32,13 @@ function ComecarContent() {
             {mode === "choose" ? "Como você quer usar o LUNOR?" : mode === "join" ? "Entrar em uma igreja" : "Criar sua igreja"}
           </CardTitle>
           <CardDescription>
-            {mode === "choose" ? "Escolha como deseja começar." : mode === "join" ? "Use o convite que você recebeu. Se tiver um código, informe abaixo." : "Informe o nome da sua igreja para começar a configuração."}
+            {mode === "choose"
+              ? "Escolha como deseja começar."
+              : mode === "join"
+                ? inviteFlow
+                  ? "Seu acesso veio por convite. Use o código recebido para entrar na igreja correta."
+                  : "Use o convite que você recebeu. Se tiver um código, informe abaixo."
+                : "Informe o nome da sua igreja para começar a configuração."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -58,7 +65,7 @@ function ComecarContent() {
           </form>}
         </CardContent>
       </Card>
-      {mode !== "choose" && <button type="button" onClick={() => setMode("choose")} className="min-h-11 w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline">Escolher outra opção</button>}
+      {mode !== "choose" && !inviteFlow && <button type="button" onClick={() => setMode("choose")} className="min-h-11 w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline">Escolher outra opção</button>}
     </div>
   </main>;
 }
