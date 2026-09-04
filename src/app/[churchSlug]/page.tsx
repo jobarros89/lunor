@@ -16,6 +16,7 @@ import { QuickConfirm } from "@/components/escalas/quick-confirm";
 import { OperationalSummarySection } from "@/components/home/operational-summary";
 import { OnboardingChecklistCard } from "@/components/home/onboarding-checklist";
 import { CultModeBanner } from "@/components/home/cult-mode-banner";
+import { AssistantHomeInput } from "@/components/home/assistant-home-input";
 
 type RelatedName = { name: string } | { name: string }[] | null;
 type AssignmentEvent = {
