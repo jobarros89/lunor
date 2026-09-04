@@ -107,10 +107,21 @@ describe("Kids — escala operacional e família", () => {
     })).data as string;
   });
 
-  it("membro ativo do Kids enxerga o módulo e pode convidar responsável mesmo sem escala", async () => {
+  it("membro ativo do Kids enxerga, cadastra e convida mesmo sem escala", async () => {
     const visible = await unscheduled.from("children").select("id").eq("id", childId);
     expect(visible.error).toBeNull();
     expect(visible.data?.[0]?.id).toBe(childId);
+
+    const registration = await unscheduled.rpc("create_child_with_primary_guardian", {
+      p_church: churchId,
+      p_ministry: kidsId,
+      p_event: null,
+      p_full_name: "Criança cadastrada fora do culto",
+      p_birth_date: "2022-01-01",
+      p_guardian_name: "Responsável fora do culto",
+    });
+    expect(registration.error).toBeNull();
+    expect(registration.data).toMatch(/^[0-9a-f-]{36}$/i);
 
     const guardians = await unscheduled.from("guardians").select("id").eq("id", guardianId);
     expect(guardians.error).toBeNull();
