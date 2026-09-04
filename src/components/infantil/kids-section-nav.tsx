@@ -7,6 +7,7 @@ import {
   CalendarDays,
   LayoutDashboard,
   Settings2,
+  Users,
 } from "lucide-react";
 
 export function KidsSectionNav({
@@ -19,6 +20,7 @@ export function KidsSectionNav({
   const pathname = usePathname();
   const scalesActive = pathname.includes(`/${churchSlug}/infantil/escalas`);
   const availabilityActive = pathname.includes(`/${churchSlug}/infantil/disponibilidade`);
+  const guardiansActive = pathname.includes(`/${churchSlug}/infantil/responsaveis`);
   const settingsActive = pathname.includes(`/${churchSlug}/infantil/configuracoes`);
 
   const items = [
@@ -27,7 +29,7 @@ export function KidsSectionNav({
       label: "Visão",
       href: `/${churchSlug}/infantil`,
       icon: <LayoutDashboard className="size-4" />,
-      active: !scalesActive && !availabilityActive && !settingsActive,
+      active: !scalesActive && !availabilityActive && !guardiansActive && !settingsActive,
       visible: true,
     },
     {
@@ -44,6 +46,14 @@ export function KidsSectionNav({
       href: `/${churchSlug}/infantil/disponibilidade`,
       icon: <CalendarCheck2 className="size-4" />,
       active: availabilityActive,
+      visible: true,
+    },
+    {
+      key: "responsaveis",
+      label: "Responsáveis",
+      href: `/${churchSlug}/infantil/responsaveis`,
+      icon: <Users className="size-4" />,
+      active: guardiansActive,
       visible: true,
     },
     {
