@@ -129,18 +129,25 @@ begin
     return;
   end if;
 
-  select gi, g.full_name, c.name
-    into v_invite, v_guardian_name, v_church_name
+  select gi.*
+    into v_invite
   from public.guardian_invites gi
-  join public.guardians g on g.id = gi.guardian_id
-  join public.churches c on c.id = gi.church_id
   where gi.token_hash = encode(digest(trim(p_token), 'sha256'), 'hex')
   order by gi.created_at desc
   limit 1;
 
   if v_invite.id is null then
     return query select 'invalid'::text, null::text, null::text, null::text;
-  elsif v_invite.used_at is not null then
+    return;
+  end if;
+
+  select g.full_name, c.name
+    into v_guardian_name, v_church_name
+  from public.guardians g
+  join public.churches c on c.id = v_invite.church_id
+  where g.id = v_invite.guardian_id;
+
+  if v_invite.used_at is not null then
     return query select 'used'::text, v_guardian_name, v_invite.invited_email, v_church_name;
   elsif v_invite.expires_at <= now() then
     return query select 'expired'::text, v_guardian_name, v_invite.invited_email, v_church_name;
