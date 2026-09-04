@@ -217,3 +217,100 @@ describe("Lembretes agendados (migration 28)", () => {
     expect((data ?? []).filter((r: { user_id: string }) => r.user_id === spId)).toHaveLength(0);
   });
 });
+
+// A RPC só monta o alerta de sobrecarga na execução de segunda-feira (fuso da
+// igreja) — é o que a mantém "semanal" sem precisar de uma tabela nova. Por
+// depender do dia real do relógio, este bloco só roda de verdade quando o CI
+// cai numa segunda; nos outros dias, fica marcado como pulado (não como
+// falho) — já é mais cobertura do que a "preparacao_sexta" tem hoje.
+const isSegundaEmSaoPaulo = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Sao_Paulo",
+  weekday: "long",
+}).format(new Date()) === "Monday";
+
+describe.skipIf(!isSegundaEmSaoPaulo)("Alerta de sobrecarga semanal (migration overload_alert_reminder)", () => {
+  const SEGREDO = `segredo-sobrecarga-${Date.now()}`;
+  let coordenador: SupabaseClient, membro: SupabaseClient;
+  let coordId: string, membroId: string, churchId: string, ministryId: string;
+  const run = Date.now();
+
+  beforeAll(async () => {
+    await admin.from("cron_secret").insert({ secret: SEGREDO });
+
+    coordenador = await newUser(`sob-coord-${run}@teste.dev`);
+    membro = await newUser(`sob-membro-${run}@teste.dev`);
+    coordId = await uid(coordenador);
+    membroId = await uid(membro);
+
+    churchId = (
+      await coordenador.rpc("create_church", { p_name: "Igreja Sobrecarga", p_slug: `sob-${run}` })
+    ).data;
+    // quem cria a igreja já entra como admin — rebaixa para coordenador para
+    // testar exatamente o papel-alvo do alerta.
+    await admin.from("church_members").update({ role: "coordenador" }).eq("church_id", churchId).eq("user_id", coordId);
+
+    ministryId = (
+      await coordenador.from("ministries")
+        .insert({ church_id: churchId, name: "Louvor", slug: "louvor" })
+        .select("id").single()
+    ).data!.id;
+    const invite = (
+      await admin.from("churches").select("invite_code").eq("id", churchId).single()
+    ).data!.invite_code;
+    await membro.rpc("join_church", { p_invite_code: invite });
+    await admin.from("ministry_members").insert({
+      ministry_id: ministryId, church_id: churchId, user_id: membroId, role: "voluntario",
+    });
+
+    await admin.from("push_subscriptions").insert({
+      church_id: churchId, user_id: coordId, endpoint: `https://push.test/${run}-coord`, p256dh: "k", auth: "a",
+    });
+
+    // 4 cultos passados nos últimos 30 dias, todos com o mesmo voluntário
+    // escalado e confirmado/presente — bate o limiar de "carga alta".
+    for (let i = 1; i <= 4; i++) {
+      const passado = new Date();
+      passado.setDate(passado.getDate() - i * 6);
+      const ev = (
+        await coordenador.from("events")
+          .insert({ church_id: churchId, title: `Culto ${i}`, starts_at: passado.toISOString() })
+          .select("id").single()
+      ).data!.id;
+      await admin.from("assignments").insert({
+        church_id: churchId, event_id: ev, user_id: membroId,
+        ministry_id: ministryId, role_name: "Vocal", status: "presente",
+      });
+    }
+  });
+
+  it("avisa o coordenador sobre carga alta na equipe", async () => {
+    const { data, error } = await anon.rpc("lembretes_do_dia", { p_secret: SEGREDO });
+    expect(error).toBeNull();
+    const aviso = (data ?? []).find(
+      (r: { user_id: string; titulo: string }) =>
+        r.user_id === coordId && r.titulo === "Radar de carga da equipe"
+    );
+    expect(aviso).toBeTruthy();
+    expect(aviso.url).toBe(`/sob-${run}/distribuicao`);
+    expect(aviso.corpo).toContain("carga alta");
+  });
+
+  it("não avisa quem não é admin/coordenador", async () => {
+    await admin.from("push_subscriptions").insert({
+      church_id: churchId, user_id: membroId, endpoint: `https://push.test/${run}-membro-2`, p256dh: "k", auth: "a",
+    });
+    const { data } = await anon.rpc("lembretes_do_dia", { p_secret: SEGREDO });
+    const aviso = (data ?? []).find(
+      (r: { user_id: string; titulo: string }) => r.user_id === membroId && r.titulo === "Radar de carga da equipe"
+    );
+    expect(aviso).toBeUndefined();
+  });
+
+  it("rodar de novo na mesma segunda não reenvia", async () => {
+    const { data } = await anon.rpc("lembretes_do_dia", { p_secret: SEGREDO });
+    const aviso = (data ?? []).find(
+      (r: { user_id: string; titulo: string }) => r.user_id === coordId && r.titulo === "Radar de carga da equipe"
+    );
+    expect(aviso).toBeUndefined();
+  });
+});
