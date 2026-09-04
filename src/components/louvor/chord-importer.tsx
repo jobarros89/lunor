@@ -22,6 +22,7 @@ type ImportedSource = {
   title: string | null;
   hostname: string;
   aiUsed: boolean;
+  alignmentFixedByAi: boolean;
 };
 
 export function ChordImporter({
@@ -41,6 +42,7 @@ export function ChordImporter({
   const [content, setContent] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [importedSource, setImportedSource] = useState<ImportedSource | null>(null);
+  const [urlRawContent, setUrlRawContent] = useState<string | null>(null);
   const [file, setFile] = useState<{ name: string; type: string } | null>(null);
   const [parsed, setParsed] = useState<ParsedChordChart | null>(null);
   const [arrangementId, setArrangementId] = useState("new");
@@ -71,6 +73,7 @@ export function ChordImporter({
     setContent(text);
     setFile({ name: selected.name, type: selected.type });
     setImportedSource(null);
+    setUrlRawContent(null);
     setParsed(null);
   }
 
@@ -86,15 +89,21 @@ export function ChordImporter({
       const nextContent = result.data.content;
       setContent(nextContent);
       setFile(null);
+      setUrlRawContent(result.data.rawContent);
       setImportedSource({
         url: result.data.sourceUrl,
         title: result.data.sourceTitle,
         hostname: result.data.hostname,
         aiUsed: result.data.aiUsed,
+        alignmentFixedByAi: result.data.alignmentFixedByAi,
       });
       setParsed(parseChordChart({ content: nextContent }));
       setConfirmed(false);
-      toast.success(`Cifra encontrada em ${result.data.hostname}. Revise antes de salvar.`);
+      toast.success(
+        result.data.alignmentFixedByAi
+          ? `Cifra encontrada em ${result.data.hostname}. A IA corrigiu o alinhamento de acordes — revise antes de salvar.`
+          : `Cifra encontrada em ${result.data.hostname}. Revise antes de salvar.`
+      );
     });
   }
 
@@ -116,7 +125,7 @@ export function ChordImporter({
         sourceFormat: parsed.detectedFormat,
         originalFilename: file?.name ?? null,
         mimeType: file?.type || null,
-        rawContent: parsed.originalContent,
+        rawContent: urlRawContent ?? parsed.originalContent,
         chordProContent: parsed.chordProContent,
         extractedLyrics,
         syncSongLyrics: syncLyrics,
@@ -134,6 +143,7 @@ export function ChordImporter({
       setContent("");
       setSourceUrl("");
       setImportedSource(null);
+      setUrlRawContent(null);
       setConfirmed(false);
     });
   }
@@ -210,6 +220,7 @@ export function ChordImporter({
                   setContent(e.target.value);
                   setFile(null);
                   setImportedSource(null);
+                  setUrlRawContent(null);
                 }}
                 rows={12}
                 className="w-full rounded-2xl border bg-transparent p-3 font-mono text-sm"
@@ -251,6 +262,12 @@ export function ChordImporter({
                   <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                     <Sparkles className="size-3" />
                     IA selecionou o conteúdo
+                  </span>
+                )}
+                {importedSource.alignmentFixedByAi && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                    <Sparkles className="size-3" />
+                    IA corrigiu o alinhamento
                   </span>
                 )}
               </div>
