@@ -5,8 +5,8 @@ import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { getInfantilMinistry } from "@/lib/infantil";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChildEditPanel } from "@/components/infantil/child-edit-panel";
+import { ChildGuardianManager } from "@/components/infantil/child-guardian-manager";
 
 export default async function KidsChildPage({
   params,
@@ -26,7 +26,7 @@ export default async function KidsChildPage({
   });
   if (!canOperate) redirect(`/${churchSlug}/infantil`);
 
-  const [{ data: child }, { data: links }] = await Promise.all([
+  const [{ data: child }, { data: links }, { data: allGuardians }] = await Promise.all([
     supabase
       .from("children")
       .select("id, full_name, birth_date, allergies, health_notes, special_needs, emergency_contact_name, emergency_contact_phone, photo_consent")
@@ -36,9 +36,16 @@ export default async function KidsChildPage({
       .maybeSingle(),
     supabase
       .from("child_guardians")
-      .select("guardian_id, relationship, can_pickup, is_primary, guardians!inner(id, full_name, phone)")
+      .select("guardian_id, relationship, can_pickup, is_primary, guardians!inner(id, full_name, phone, user_id)")
       .eq("child_id", childId)
-      .eq("church_id", tenant.church.id),
+      .eq("church_id", tenant.church.id)
+      .order("created_at"),
+    supabase
+      .from("guardians")
+      .select("id, full_name, phone, user_id")
+      .eq("church_id", tenant.church.id)
+      .eq("ministry_id", ministry.id)
+      .order("full_name"),
   ]);
 
   if (!child) notFound();
@@ -48,6 +55,7 @@ export default async function KidsChildPage({
       id: string;
       full_name: string;
       phone: string | null;
+      user_id: string | null;
     };
     return {
       id: guardian.id,
@@ -56,8 +64,16 @@ export default async function KidsChildPage({
       relationship: link.relationship,
       canPickup: link.can_pickup,
       isPrimary: link.is_primary,
+      hasAccount: !!guardian.user_id,
     };
   });
+
+  const guardianOptions = (allGuardians ?? []).map((guardian) => ({
+    id: guardian.id,
+    fullName: guardian.full_name,
+    phone: guardian.phone,
+    hasAccount: !!guardian.user_id,
+  }));
 
   return (
     <div className="space-y-6">
@@ -99,41 +115,14 @@ export default async function KidsChildPage({
         ministryId={ministry.id}
       />
 
-      <Card className="rounded-3xl">
-        <CardHeader>
-          <CardTitle className="text-base">Responsáveis cadastrados</CardTitle>
-          <CardDescription>
-            {guardians.length} responsável(is) vinculado(s) a esta criança
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {guardians.map((guardian) => (
-            <div key={guardian.id} className="rounded-2xl border px-4 py-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="font-medium">{guardian.fullName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {guardian.relationship || "Parentesco não informado"}
-                    {guardian.phone ? ` · ${guardian.phone}` : ""}
-                  </p>
-                </div>
-                <div className="flex gap-2 text-xs">
-                  {guardian.isPrimary && (
-                    <span className="rounded-full bg-muted px-2 py-1">Principal</span>
-                  )}
-                  <span className="rounded-full bg-muted px-2 py-1">
-                    {guardian.canPickup ? "Pode retirar" : "Sem retirada"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-          {guardians.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhum responsável vinculado.</p>
-          )}
-        </CardContent>
-      </Card>
+      <ChildGuardianManager
+        churchSlug={churchSlug}
+        churchId={tenant.church.id}
+        ministryId={ministry.id}
+        childId={child.id}
+        guardians={guardians}
+        availableGuardians={guardianOptions}
+      />
     </div>
   );
 }
-
