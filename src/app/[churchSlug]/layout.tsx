@@ -96,6 +96,7 @@ export default async function TenantLayout({ children, params }: { children: Rea
         hasKids={hasKids}
         escalasPending={escalasPending ?? 0}
         guardianOnly={tenant.guardianOnly}
+        isLeader={tenant.isLeader}
       />
     </div>
   );
