@@ -253,9 +253,20 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
               {heroAssignment.items_to_bring && <span><span className="text-muted-foreground">Levar</span> <strong>{heroAssignment.items_to_bring}</strong></span>}
             </div>
           ) : nextEvent ? (
-            <div className="flex min-w-0 flex-1 flex-wrap gap-x-5 gap-y-2 text-sm">
-              <span className="font-medium">Próximo culto cadastrado</span>
-              {nextContext && <span><span className="text-muted-foreground">Local</span> <strong>{nextContext}</strong></span>}
+            <div className="min-w-0 flex-1 space-y-1 text-sm">
+              <p className="font-medium">
+                {nextAssignedEvent
+                  ? "Você não está escalado(a) para este culto."
+                  : "Você ainda não foi escalado(a) para nenhum serviço."}
+              </p>
+              <div className="flex flex-wrap gap-x-5 gap-y-1 text-muted-foreground">
+                {nextAssignedEvent && (
+                  <span>
+                    Próximo serviço: <strong className="text-foreground">{nextAssignedEvent.title} · {formatEventDate(nextAssignedEvent.starts_at)}</strong>
+                  </span>
+                )}
+                {nextContext && <span>Local <strong className="text-foreground">{nextContext}</strong></span>}
+              </div>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Seu próximo compromisso vai aparecer aqui.</p>
@@ -310,7 +321,11 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
                 </div>
               );
             })}
-            {agendaAssignments.length === 0 && <p className="py-7 text-sm text-muted-foreground">{heroAssignment ? "Nenhuma outra escala agendada por enquanto." : "Nenhuma escala agendada por enquanto."}</p>}
+            {agendaAssignments.length === 0 && (
+              <p className="py-7 text-sm text-muted-foreground">
+                {heroAssignment ? "Nenhuma outra escala agendada por enquanto." : "Você ainda não foi escalado(a) para nenhum serviço."}
+              </p>
+            )}
           </div>
         </div>
       </section>
