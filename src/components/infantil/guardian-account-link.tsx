@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Copy, Link2, Send, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   linkGuardianAccount,
   unlinkGuardianAccount,
@@ -40,6 +41,7 @@ export function GuardianAccountLink({
   const [userId, setUserId] = useState("");
   const [pending, startTransition] = useTransition();
   const [inviteUrls, setInviteUrls] = useState<Record<string, string>>({});
+  const [inviteEmails, setInviteEmails] = useState<Record<string, string>>({});
 
   const unlinked = useMemo(
     () => guardians.filter((guardian) => !guardian.userId),
@@ -77,10 +79,17 @@ export function GuardianAccountLink({
   }
 
   function createInvite(guardian: Guardian) {
+    const email = (inviteEmails[guardian.id] ?? "").trim();
+    if (!email) {
+      toast.error("Informe o e-mail do responsável");
+      return;
+    }
+
     startTransition(async () => {
       const result = await createGuardianInvite({
         churchSlug,
         guardianId: guardian.id,
+        email,
       });
       if (!result.ok) {
         toast.error(result.error);
@@ -164,24 +173,38 @@ export function GuardianAccountLink({
       )}
 
       {unlinked.length > 0 && (
-        <div className="space-y-2 rounded-2xl border p-4">
+        <div className="space-y-3 rounded-2xl border p-4">
           <div>
             <p className="text-sm font-medium">Acesso da família</p>
             <p className="text-xs text-muted-foreground">
-              O convite cria uma conta restrita somente às crianças vinculadas ao responsável.
+              Informe o e-mail que receberá o convite. O vínculo só será concluído por uma conta com esse mesmo e-mail.
             </p>
           </div>
           {unlinked.map((guardian) => (
-            <div key={guardian.id} className="space-y-2 rounded-xl bg-muted/40 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-medium">{guardian.fullName}</span>
+            <div key={guardian.id} className="space-y-3 rounded-xl bg-muted/40 p-3">
+              <span className="text-sm font-medium">{guardian.fullName}</span>
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <Input
+                  type="email"
+                  value={inviteEmails[guardian.id] ?? ""}
+                  onChange={(event) =>
+                    setInviteEmails((current) => ({
+                      ...current,
+                      [guardian.id]: event.target.value,
+                    }))
+                  }
+                  disabled={pending}
+                  placeholder="E-mail do responsável"
+                  autoComplete="off"
+                  className="h-11 rounded-xl bg-background"
+                  aria-label={`E-mail de ${guardian.fullName}`}
+                />
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  disabled={pending}
+                  disabled={pending || !(inviteEmails[guardian.id] ?? "").trim()}
                   onClick={() => createInvite(guardian)}
-                  className="rounded-full"
+                  className="h-11 rounded-full px-4"
                 >
                   <Send className="size-4" />
                   Gerar convite
@@ -243,4 +266,3 @@ export function GuardianAccountLink({
     </div>
   );
 }
-
