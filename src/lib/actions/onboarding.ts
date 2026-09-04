@@ -115,7 +115,7 @@ export async function completeMemberOnboarding(raw: unknown): Promise<ActionResu
   const uniqueMinistryIds = [...new Set(parsed.data.ministryIds)];
   const { data: ministries } = await supabase
     .from("ministries")
-    .select("id")
+    .select("id, name")
     .eq("church_id", membership.church_id)
     .in("id", uniqueMinistryIds);
   if (!church || ministries?.length !== uniqueMinistryIds.length) {
@@ -129,6 +129,14 @@ export async function completeMemberOnboarding(raw: unknown): Promise<ActionResu
     p_availability: {},
   });
   if (joinError) return { ok: false, error: "Não foi possível concluir seu cadastro" };
+
+  // Mantém o campo legado sincronizado automaticamente, sem pedir uma segunda
+  // seleção ao usuário. A fonte de verdade para acesso segue sendo ministry_members.
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ departments: [...new Set(ministries.map((ministry) => ministry.name))] })
+    .eq("id", user.id);
+  if (profileError) return { ok: false, error: "Não foi possível concluir seu perfil" };
 
   redirect(`/${church.slug}?welcome=1`);
 }
