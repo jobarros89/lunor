@@ -66,10 +66,13 @@ begin
     raise exception 'guardian_already_linked';
   end if;
 
-  if not public.can_operate_kids(
+  -- Gerar convite é manutenção da base do Kids, não uma mutação operacional
+  -- de culto. Preserva a regra anterior: membro ativo pode convidar mesmo sem
+  -- escala/janela; check-in, check-out e demais operações seguem protegidos
+  -- por can_operate_kids() nas respectivas funções/policies.
+  if not public.is_active_ministry_member(
     v_guardian.church_id,
-    v_guardian.ministry_id,
-    null
+    v_guardian.ministry_id
   ) then
     raise exception 'not_allowed';
   end if;
