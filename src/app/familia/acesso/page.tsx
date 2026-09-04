@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BrandLockup } from "@/components/brand-lockup";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export default async function FamilyAccessPage({
   searchParams,
@@ -52,12 +53,24 @@ export default async function FamilyAccessPage({
 
             {!invalidInvite && (
               <>
-                <Button asChild className="h-12 w-full rounded-full bg-[#6e5ce6] text-base font-semibold text-white hover:bg-[#5f4fd1]">
-                  <Link href="/login?familia=1">Entrar como responsável</Link>
-                </Button>
-                <Button asChild variant="outline" className="h-12 w-full rounded-full border-white/15 bg-transparent text-base text-[#f4f3ef] hover:bg-white/5 hover:text-white">
-                  <Link href="/signup?familia=acesso">Criar conta de responsável</Link>
-                </Button>
+                <Link
+                  href="/login?familia=1"
+                  className={cn(
+                    buttonVariants(),
+                    "h-12 w-full rounded-full bg-[#6e5ce6] text-base font-semibold text-white hover:bg-[#5f4fd1]"
+                  )}
+                >
+                  Entrar como responsável
+                </Link>
+                <Link
+                  href="/signup?familia=acesso"
+                  className={cn(
+                    buttonVariants({ variant: "outline" }),
+                    "h-12 w-full rounded-full border-white/15 bg-transparent text-base text-[#f4f3ef] hover:bg-white/5 hover:text-white"
+                  )}
+                >
+                  Criar conta de responsável
+                </Link>
               </>
             )}
 
