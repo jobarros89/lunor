@@ -24,6 +24,8 @@ describe("buildShellNavigation", () => {
       "escalas",
       "assistente",
       "pessoas",
+      "distribuicao",
+      "equipamentos",
       "perfil",
       "admin",
     ]);

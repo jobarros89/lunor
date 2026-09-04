@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Baby, Calendar, ChevronRight, Home, Music2, Settings, Sparkles, User, Users } from "lucide-react";
+import { Baby, BookOpen, Calendar, ChevronRight, Gauge, Home, Music2, Settings, Sparkles, User, Users, Wrench } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
 import { serverEnv } from "@/lib/env";
@@ -35,6 +35,8 @@ const ICONS: Record<ShellNavItemId, React.ComponentType<{ className?: string }>>
   assistente: Sparkles,
   perfil: User,
   pessoas: Users,
+  distribuicao: Gauge,
+  equipamentos: Wrench,
   admin: Settings,
 };
 
@@ -128,7 +130,11 @@ export default async function MaisPage({
                   ? "Cultos, convites e suas próximas escalas"
                   : item.id === "ministry"
                     ? "Disponibilidade e visão do ministério ativo"
-                    : `Abrir ${item.label}`;
+                    : item.id === "distribuicao"
+                      ? "Radar de carga: quem está sobrecarregado ou esquecido nas escalas"
+                      : item.id === "equipamentos"
+                        ? "Inventário, patrimônio e chamados de manutenção"
+                        : `Abrir ${item.label}`;
 
           return (
             <Link key={`${item.id}-${item.href}`} href={`/${churchSlug}${item.href}`} className="block">
@@ -148,6 +154,23 @@ export default async function MaisPage({
           );
         })}
       </div>
+
+      <Link href={`/${churchSlug}/guia`} className="block">
+        <Card className="rounded-3xl transition-colors hover:bg-accent/40">
+          <CardContent className="flex items-center gap-4 py-4">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-muted">
+              <BookOpen className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">Central de ajuda</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Entenda os papéis e o que cada um pode fazer no LUNOR
+              </p>
+            </div>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </Link>
     </div>
   );
 }
