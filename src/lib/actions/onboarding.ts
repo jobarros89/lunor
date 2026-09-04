@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/utils";
@@ -132,11 +133,47 @@ export async function completeMemberOnboarding(raw: unknown): Promise<ActionResu
 
   // Mantém o campo legado sincronizado automaticamente, sem pedir uma segunda
   // seleção ao usuário. A fonte de verdade para acesso segue sendo ministry_members.
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({ departments: [...new Set(ministries.map((ministry) => ministry.name))] })
-    .eq("id", user.id);
-  if (profileError) return { ok: false, error: "Não foi possível concluir seu perfil" };
-
   redirect(`/${church.slug}?welcome=1`);
+}
+
+const dismissChecklistSchema = z.object({
+  churchId: z.string().uuid(),
+});
+
+export async function dismissOnboardingChecklist(raw: unknown): Promise<ActionResult> {
+  const parsed = dismissChecklistSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Dados inválidos" };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: membership } = await supabase
+    .from("church_members")
+    .select("church_id, role")
+    .eq("church_id", parsed.data.churchId)
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .in("role", ["admin", "coordenador"])
+    .maybeSingle();
+  if (!membership) return { ok: false, error: "Somente admin ou coordenador podem dispensar o checklist" };
+
+  const { data: church } = await supabase
+    .from("churches")
+    .select("slug, settings")
+    .eq("id", membership.church_id)
+    .single();
+  if (!church) return { ok: false, error: "Igreja não encontrada" };
+
+  const currentSettings = church.settings && typeof church.settings === "object" && !Array.isArray(church.settings)
+    ? church.settings as Record<string, unknown>
+    : {};
+  const { error } = await supabase
+    .from("churches")
+    .update({ settings: { ...currentSettings, onboarding_checklist_dismissed: true } })
+    .eq("id", membership.church_id);
+  if (error) return { ok: false, error: "Não foi possível dispensar o checklist" };
+
+  revalidatePath(`/${church.slug}`);
+  return { ok: true, data: undefined };
 }
