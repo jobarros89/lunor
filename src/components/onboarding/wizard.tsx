@@ -108,9 +108,9 @@ function MemberWizard({ churchId, churchName, ministries }: Props) {
   return (
     <Card className={cardClass}>
       <CardHeader className="text-center">
-        <CardTitle>{`Bem-vindo à ${churchName}`}</CardTitle>
+        <CardTitle>Complete seu cadastro</CardTitle>
         <CardDescription className="text-zinc-400">
-          Complete o essencial e informe todos os times em que você serve.
+          Informe o essencial e todos os times em que você serve na {churchName}.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
