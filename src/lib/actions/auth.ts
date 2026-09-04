@@ -103,6 +103,10 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
       maxAge: 60 * 60 * 24 * 7,
     });
   }
+  const hasFamilyInvite = Boolean(
+    parsed.data.familyToken || cookieStore.get(FAMILY_INVITE_COOKIE)?.value
+  );
+
   if (parsed.data.intent !== "direto") {
     cookieStore.set(SIGNUP_INTENT_COOKIE, parsed.data.intent, {
       httpOnly: true,
@@ -128,7 +132,11 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
   // Com confirmação de e-mail habilitada, mantemos convite/intenção em cookie
   // até o primeiro login autenticado para retomar exatamente o próximo passo.
   if (!data.session) {
-    redirect("/login?cadastro=confirme-email");
+    redirect(
+      hasFamilyInvite
+        ? "/login?cadastro=confirme-email&familia=1"
+        : "/login?cadastro=confirme-email"
+    );
   }
 
   const destination = await resolveAuthenticatedDestination(supabase, "/comecar");
