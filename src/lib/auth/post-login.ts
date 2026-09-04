@@ -1,9 +1,12 @@
 import { cookies } from "next/headers";
+import {
+  FAMILY_INVITE_COOKIE,
+  guardianInviteErrorPath,
+} from "@/lib/guardian-invite-preview";
 import { createClient } from "@/lib/supabase/server";
 
 const INVITE_COOKIE = "lunor_invite";
 const SIGNUP_INTENT_COOKIE = "lunor_signup_intent";
-const FAMILY_INVITE_COOKIE = "lunor_family_invite";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -25,9 +28,9 @@ export async function resolveAuthenticatedDestination(
       return `/${churchSlug}/infantil`;
     }
 
-    // Convite familiar nunca deve cair no onboarding genérico de igreja.
-    // Mantemos o token para permitir nova tentativa ou exibir uma mensagem clara.
-    return "/familia/acesso?erro=convite";
+    // Convite familiar nunca cai no onboarding genérico de igreja. O token
+    // permanece para que a tela explique o motivo e permita a correção.
+    return guardianInviteErrorPath(error?.message);
   }
 
   const inviteCode = cookieStore.get(INVITE_COOKIE)?.value;

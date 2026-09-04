@@ -9,6 +9,9 @@ const testPassword = `test-${Date.now()}-Aa1!`;
 const admin = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
+const anonymous = createClient(url, anonKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
 async function newUser(email: string): Promise<SupabaseClient> {
   const { error } = await admin.auth.admin.createUser({
@@ -38,6 +41,7 @@ describe("Kids — escala operacional e família", () => {
   let scheduled: SupabaseClient;
   let unscheduled: SupabaseClient;
   let guardian: SupabaseClient;
+  let wrongGuardian: SupabaseClient;
   let churchId: string;
   let kidsId: string;
   let eventId: string;
@@ -45,16 +49,20 @@ describe("Kids — escala operacional e família", () => {
   let otherChildId: string;
   let guardianId: string;
   const run = Date.now();
+  const churchSlug = `kids-scope-${run}`;
+  const guardianEmail = `kids-scope-family-${run}@teste.dev`;
+  const wrongGuardianEmail = `kids-scope-family-wrong-${run}@teste.dev`;
 
   beforeAll(async () => {
     coord = await newUser(`kids-scope-coord-${run}@teste.dev`);
     scheduled = await newUser(`kids-scope-scheduled-${run}@teste.dev`);
     unscheduled = await newUser(`kids-scope-unscheduled-${run}@teste.dev`);
-    guardian = await newUser(`kids-scope-family-${run}@teste.dev`);
+    guardian = await newUser(guardianEmail);
+    wrongGuardian = await newUser(wrongGuardianEmail);
 
     churchId = (await coord.rpc("create_church", {
       p_name: "Igreja Kids Scope",
-      p_slug: `kids-scope-${run}`,
+      p_slug: churchSlug,
     })).data;
     kidsId = (await coord.from("ministries").insert({
       church_id: churchId,
@@ -127,9 +135,99 @@ describe("Kids — escala operacional e família", () => {
     expect(guardians.error).toBeNull();
     expect(guardians.data?.[0]?.id).toBe(guardianId);
 
-    const invite = await unscheduled.rpc("create_guardian_invite", { p_guardian: guardianId });
+    const invite = await unscheduled.rpc("create_guardian_invite", {
+      p_guardian: guardianId,
+      p_email: guardianEmail,
+    });
     expect(invite.error).toBeNull();
     expect(invite.data).toMatch(/^[a-f0-9]{48}$/i);
+
+    const preview = await anonymous.rpc("guardian_invite_preview", {
+      p_token: invite.data,
+    });
+    expect(preview.error).toBeNull();
+    expect(preview.data?.[0]).toMatchObject({
+      status: "valid",
+      guardian_name: "Responsável da família",
+      invited_email: guardianEmail,
+      church_name: "Igreja Kids Scope",
+    });
+    expect(Object.keys(preview.data?.[0] ?? {}).sort()).toEqual(
+      ["status", "guardian_name", "invited_email", "church_name"].sort()
+    );
+  });
+
+  it("bloqueia e-mail divergente sem consumir o convite correto", async () => {
+    const invite = await coord.rpc("create_guardian_invite", {
+      p_guardian: guardianId,
+      p_email: guardianEmail,
+    });
+    expect(invite.error).toBeNull();
+
+    const denied = await wrongGuardian.rpc("redeem_guardian_invite", {
+      p_token: invite.data,
+    });
+    expect(denied.error?.message).toContain("invite_email_mismatch");
+
+    const preview = await anonymous.rpc("guardian_invite_preview", {
+      p_token: invite.data,
+    });
+    expect(preview.error).toBeNull();
+    expect(preview.data?.[0]?.status).toBe("valid");
+    expect(preview.data?.[0]?.invited_email).toBe(guardianEmail);
+  });
+
+  it("marca token inexistente como inválido", async () => {
+    const preview = await anonymous.rpc("guardian_invite_preview", {
+      p_token: "f".repeat(48),
+    });
+    expect(preview.error).toBeNull();
+    expect(preview.data?.[0]).toEqual({
+      status: "invalid",
+      guardian_name: null,
+      invited_email: null,
+      church_name: null,
+    });
+  });
+
+  it("marca convite expirado e impede o resgate", async () => {
+    const expiredEmail = `kids-scope-expired-${run}@teste.dev`;
+    const expiredGuardian = await newUser(expiredEmail);
+    const expiredChildId = (await coord.rpc("create_child_with_primary_guardian", {
+      p_church: churchId,
+      p_ministry: kidsId,
+      p_event: eventId,
+      p_full_name: "Criança convite expirado",
+      p_birth_date: "2021-06-01",
+      p_guardian_name: "Responsável convite expirado",
+    })).data as string;
+    const expiredGuardianId = (await admin.from("child_guardians")
+      .select("guardian_id")
+      .eq("child_id", expiredChildId)
+      .single()).data!.guardian_id;
+
+    const invite = await coord.rpc("create_guardian_invite", {
+      p_guardian: expiredGuardianId,
+      p_email: expiredEmail,
+    });
+    expect(invite.error).toBeNull();
+
+    const expire = await admin.from("guardian_invites")
+      .update({ expires_at: new Date(Date.now() - 60_000).toISOString() })
+      .eq("guardian_id", expiredGuardianId)
+      .is("used_at", null);
+    expect(expire.error).toBeNull();
+
+    const preview = await anonymous.rpc("guardian_invite_preview", {
+      p_token: invite.data,
+    });
+    expect(preview.error).toBeNull();
+    expect(preview.data?.[0]?.status).toBe("expired");
+
+    const denied = await expiredGuardian.rpc("redeem_guardian_invite", {
+      p_token: invite.data,
+    });
+    expect(denied.error?.message).toContain("invite_expired");
   });
 
   it("mantém escrita operacional restrita à escala/janela autorizada", async () => {
@@ -148,12 +246,33 @@ describe("Kids — escala operacional e família", () => {
     expect(allowed.data?.[0]?.id).toBe(childId);
   });
 
-  it("convite familiar liga a conta sem torná-la voluntária", async () => {
-    const invite = await coord.rpc("create_guardian_invite", { p_guardian: guardianId });
+  it("convite familiar liga a conta, é idempotente e não troca o vínculo", async () => {
+    const invite = await coord.rpc("create_guardian_invite", {
+      p_guardian: guardianId,
+      p_email: guardianEmail,
+    });
     expect(invite.error).toBeNull();
 
     const redeem = await guardian.rpc("redeem_guardian_invite", { p_token: invite.data });
     expect(redeem.error).toBeNull();
+    expect(redeem.data).toBe(churchSlug);
+
+    const repeated = await guardian.rpc("redeem_guardian_invite", {
+      p_token: invite.data,
+    });
+    expect(repeated.error).toBeNull();
+    expect(repeated.data).toBe(churchSlug);
+
+    const deniedReuse = await wrongGuardian.rpc("redeem_guardian_invite", {
+      p_token: invite.data,
+    });
+    expect(deniedReuse.error?.message).toContain("invite_already_used");
+
+    const storedGuardian = await admin.from("guardians")
+      .select("user_id")
+      .eq("id", guardianId)
+      .single();
+    expect(storedGuardian.data?.user_id).toBe(await uid(guardian));
 
     const churchMembership = await admin.from("church_members")
       .select("user_id")

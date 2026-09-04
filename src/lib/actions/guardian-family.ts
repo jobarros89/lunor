@@ -9,6 +9,7 @@ import type { ActionResult } from "./types";
 const inviteSchema = z.object({
   churchSlug: z.string().min(2),
   guardianId: z.string().uuid(),
+  email: z.string().trim().email("Informe um e-mail válido").transform((value) => value.toLowerCase()),
 });
 
 async function requestOrigin() {
@@ -23,14 +24,24 @@ export async function createGuardianInvite(
   raw: unknown
 ): Promise<ActionResult<{ url: string }>> {
   const parsed = inviteSchema.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: "Dados inválidos" };
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
+  }
 
   const supabase = await createClient();
   const { data: token, error } = await supabase.rpc("create_guardian_invite", {
     p_guardian: parsed.data.guardianId,
+    p_email: parsed.data.email,
   });
 
   if (error || !token) {
+    const message = error?.message ?? "";
+    if (message.includes("guardian_already_linked")) {
+      return { ok: false, error: "Este responsável já possui uma conta LUNOR vinculada." };
+    }
+    if (message.includes("invalid_invite_email")) {
+      return { ok: false, error: "Informe um e-mail válido para o responsável." };
+    }
     return {
       ok: false,
       error: "O convite só pode ser criado por um integrante ativo da equipe Kids.",

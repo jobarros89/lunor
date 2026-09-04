@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getGuardianInvitePreview } from "@/lib/guardian-invite-preview";
 import { cn } from "@/lib/utils";
 
 export default async function FamilyAccessPage({
@@ -16,8 +17,15 @@ export default async function FamilyAccessPage({
   searchParams: Promise<{ erro?: string }>;
 }) {
   const { erro } = await searchParams;
-  const invalidInvite = erro === "convite-invalido";
+  const preview = await getGuardianInvitePreview();
+  const status = preview?.status ?? "invalid";
+  const invalidInvite = erro === "convite-invalido" || status === "invalid";
+  const expiredInvite = erro === "convite-expirado" || status === "expired" || (status === "valid" && !preview?.invitedEmail);
+  const usedInvite = erro === "convite-usado" || status === "used";
+  const emailMismatch = erro === "email";
+  const linkedElsewhere = erro === "vinculado";
   const redeemError = erro === "convite";
+  const validInvite = status === "valid" && Boolean(preview?.invitedEmail) && !invalidInvite && !expiredInvite;
 
   return (
     <main className="dark flex min-h-dvh items-center justify-center bg-[#0b0b0c] px-5 py-8 text-[#f4f3ef]">
@@ -33,25 +41,62 @@ export default async function FamilyAccessPage({
                 Acesse como responsável
               </CardTitle>
               <CardDescription className="text-zinc-400">
-                Entre ou crie sua conta para acompanhar as crianças vinculadas ao seu convite.
+                Este convite dá acesso somente às crianças vinculadas ao responsável.
               </CardDescription>
             </div>
           </CardHeader>
 
           <CardContent className="space-y-4">
+            {(validInvite || usedInvite || expiredInvite) && preview?.guardianName && (
+              <div className="space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Convite para</p>
+                <p className="font-medium text-white">{preview.guardianName}</p>
+                {preview.invitedEmail && (
+                  <p className="break-all text-sm text-zinc-300">{preview.invitedEmail}</p>
+                )}
+                {preview.churchName && (
+                  <p className="text-xs text-zinc-500">{preview.churchName}</p>
+                )}
+              </div>
+            )}
+
             {invalidInvite && (
               <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-red-200">
-                Este convite de responsável é inválido. Peça um novo convite à equipe do Kids.
+                Este convite é inválido. Peça um novo convite à equipe do Kids.
               </p>
             )}
 
-            {redeemError && (
+            {expiredInvite && !invalidInvite && (
               <p className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-                Não foi possível concluir o vínculo agora. Seu convite foi preservado para uma nova tentativa.
+                Este convite expirou ou foi criado antes da validação por e-mail. Peça à equipe do Kids para gerar um novo link.
               </p>
             )}
 
-            {!invalidInvite && (
+            {usedInvite && !expiredInvite && !invalidInvite && (
+              <p className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+                Este convite já foi utilizado. Se a conta é sua, entre com o e-mail indicado para continuar.
+              </p>
+            )}
+
+            {emailMismatch && (
+              <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-red-200">
+                A conta utilizada possui outro e-mail. Entre com o mesmo e-mail para o qual este convite foi gerado.
+              </p>
+            )}
+
+            {linkedElsewhere && (
+              <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-red-200">
+                Este responsável já está vinculado a outra conta LUNOR. A equipe do Kids precisa revisar o vínculo antes de continuar.
+              </p>
+            )}
+
+            {redeemError && !emailMismatch && !linkedElsewhere && (
+              <p className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+                Não foi possível concluir o vínculo agora. O convite foi preservado para uma nova tentativa.
+              </p>
+            )}
+
+            {validInvite && (
               <>
                 <Link
                   href="/login?familia=1"
@@ -74,8 +119,20 @@ export default async function FamilyAccessPage({
               </>
             )}
 
+            {usedInvite && !invalidInvite && !expiredInvite && (
+              <Link
+                href="/login?familia=1"
+                className={cn(
+                  buttonVariants(),
+                  "h-12 w-full rounded-full bg-[#6e5ce6] text-base font-semibold text-white hover:bg-[#5f4fd1]"
+                )}
+              >
+                Entrar para continuar
+              </Link>
+            )}
+
             <p className="pt-1 text-center text-xs leading-relaxed text-zinc-500">
-              Este acesso é exclusivo para responsáveis do LUNOR Kids. Você não precisa criar nem entrar em uma igreja manualmente.
+              Você não precisa criar nem entrar em uma igreja manualmente. O vínculo é concluído automaticamente pelo convite.
             </p>
           </CardContent>
         </Card>

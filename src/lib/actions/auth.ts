@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { resolveAuthenticatedDestination } from "@/lib/auth/post-login";
+import { FAMILY_INVITE_COOKIE } from "@/lib/guardian-invite-preview";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "./types";
 
@@ -31,7 +32,6 @@ const signUpSchema = credentialsSchema.extend({
 });
 
 const SIGNUP_INTENT_COOKIE = "lunor_signup_intent";
-const FAMILY_INVITE_COOKIE = "lunor_family_invite";
 
 async function requestOrigin(): Promise<string> {
   const h = await headers();
@@ -103,9 +103,10 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
       maxAge: 60 * 60 * 24 * 7,
     });
   }
-  const hasFamilyInvite = Boolean(
-    parsed.data.familyToken || cookieStore.get(FAMILY_INVITE_COOKIE)?.value
-  );
+
+  const familyToken =
+    parsed.data.familyToken || cookieStore.get(FAMILY_INVITE_COOKIE)?.value || "";
+  const hasFamilyInvite = Boolean(familyToken);
 
   if (parsed.data.intent !== "direto") {
     cookieStore.set(SIGNUP_INTENT_COOKIE, parsed.data.intent, {
@@ -120,6 +121,37 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
   }
 
   const supabase = await createClient();
+
+  // Não cria uma conta que não poderá resgatar o convite depois. A interface
+  // pré-preenche e bloqueia o e-mail, mas o servidor repete a validação.
+  if (hasFamilyInvite) {
+    if (!/^[a-f0-9]{48}$/i.test(familyToken)) {
+      return { ok: false, error: "Este convite é inválido. Peça um novo link à equipe do Kids." };
+    }
+
+    const { data: previewData, error: previewError } = await supabase.rpc(
+      "guardian_invite_preview",
+      { p_token: familyToken }
+    );
+    const preview = Array.isArray(previewData) ? previewData[0] : previewData;
+
+    if (previewError || !preview || preview.status === "invalid") {
+      return { ok: false, error: "Este convite é inválido. Peça um novo link à equipe do Kids." };
+    }
+    if (preview.status === "expired" || !preview.invited_email) {
+      return { ok: false, error: "Este convite expirou. Peça um novo link à equipe do Kids." };
+    }
+    if (preview.status === "used") {
+      return { ok: false, error: "Este convite já foi utilizado. Entre com a conta vinculada para continuar." };
+    }
+    if (String(preview.invited_email).toLowerCase() !== parsed.data.email) {
+      return {
+        ok: false,
+        error: "Use o mesmo e-mail para o qual este convite foi gerado.",
+      };
+    }
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
