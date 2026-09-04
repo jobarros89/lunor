@@ -25,21 +25,6 @@ const MODULES = [
   { id: "equipment", name: "Equipamentos" },
 ] as const;
 
-const DEPARTMENTS = [
-  "Louvor",
-  "Kids",
-  "Conexão",
-  "Mídia",
-  "Recepção",
-  "Lojinha",
-  "The Table",
-  "Logística",
-  "Intercessão",
-  "MC",
-  "Pastor",
-  "Membro",
-] as const;
-
 function Chip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
   return <button type="button" aria-pressed={selected} onClick={onClick} className={cn(
     "min-h-11 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
@@ -105,48 +90,75 @@ function OwnerWizard({ churchId, churchName }: Props) {
 }
 
 function MemberWizard({ churchId, churchName, ministries }: Props) {
-  const [step, setStep] = useState(0);
   const [ministryIds, setMinistryIds] = useState<string[]>([]);
   const [phone, setPhone] = useState("");
-  const [departments, setDepartments] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
-  const toggle = (list: string[], value: string, setter: (value: string[]) => void) => setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+
+  const toggleMinistry = (id: string) => {
+    setMinistryIds((current) => current.includes(id)
+      ? current.filter((item) => item !== id)
+      : [...current, id]);
+  };
+
   const finish = () => startTransition(async () => {
-    const selectedMinistryNames = ministries
-      .filter((ministry) => ministryIds.includes(ministry.id))
-      .map((ministry) => ministry.name);
-    const result = await completeMemberOnboarding({
-      churchId,
-      ministryIds,
-      phone,
-      departments: [...new Set([...departments, ...selectedMinistryNames])],
-    });
+    const result = await completeMemberOnboarding({ churchId, ministryIds, phone });
     if (result && !result.ok) toast.error(result.error);
   });
 
-  return <div className="space-y-4">
-    <Progress step={step} total={2} />
+  return (
     <Card className={cardClass}>
       <CardHeader className="text-center">
-        <CardTitle>{step === 0 ? `Bem-vindo à ${churchName}` : "Complete seu perfil"}</CardTitle>
-        <CardDescription className="text-zinc-400">{step === 0 ? "Selecione todos os ministérios em que você serve." : "Informe apenas o essencial por enquanto."}</CardDescription>
+        <CardTitle>{`Bem-vindo à ${churchName}`}</CardTitle>
+        <CardDescription className="text-zinc-400">
+          Complete o essencial e informe todos os times em que você serve.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        {step === 0 && (ministries.length ? <div className="flex flex-wrap gap-2">{ministries.map((ministry) => <Chip key={ministry.id} selected={ministryIds.includes(ministry.id)} onClick={() => toggle(ministryIds, ministry.id, setMinistryIds)}>{ministry.name}</Chip>)}</div> : <p className="rounded-2xl border border-white/10 bg-[#0b0b0c] p-4 text-sm text-zinc-400">A igreja ainda não criou um ministério. Peça ao administrador para concluir a configuração inicial.</p>)}
-        {step === 1 && <>
-          <div className="space-y-2"><Label htmlFor="phone">Telefone <span className="text-zinc-500">(opcional)</span></Label><Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} /></div>
-          <div className="space-y-2">
-            <Label>Departamentos</Label>
-            <div className="flex flex-wrap gap-2">{DEPARTMENTS.map((department) => <Chip key={department} selected={departments.includes(department)} onClick={() => toggle(departments, department, setDepartments)}>{department}</Chip>)}</div>
-          </div>
-        </>}
-        <div className="flex gap-3 pt-2">
-          {step > 0 && <Button variant="outline" onClick={() => setStep(0)} className={secondaryButtonClass}>Voltar</Button>}
-          {step === 0 ? <Button disabled={ministryIds.length === 0} onClick={() => setStep(1)} className={primaryButtonClass}>Confirmar ministérios</Button>
-            : <Button disabled={pending} onClick={finish} className={primaryButtonClass}>{pending ? "Salvando…" : "Ver minhas escalas"}</Button>}
+        <div className="space-y-2">
+          <Label htmlFor="phone">Telefone <span className="text-zinc-500">(opcional)</span></Label>
+          <Input
+            id="phone"
+            type="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
+            placeholder="(21) 99999-9999"
+            className={inputClass}
+          />
         </div>
+
+        <div className="space-y-3">
+          <div>
+            <Label>Onde você serve?</Label>
+            <p className="mt-1 text-xs text-zinc-500">Você pode selecionar mais de um ministério.</p>
+          </div>
+          {ministries.length ? (
+            <div className="flex flex-wrap gap-2">
+              {ministries.map((ministry) => (
+                <Chip
+                  key={ministry.id}
+                  selected={ministryIds.includes(ministry.id)}
+                  onClick={() => toggleMinistry(ministry.id)}
+                >
+                  {ministry.name}
+                </Chip>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-2xl border border-white/10 bg-[#0b0b0c] p-4 text-sm text-zinc-400">
+              A igreja ainda não criou um ministério. Peça ao administrador para concluir a configuração inicial.
+            </p>
+          )}
+        </div>
+
+        <Button
+          disabled={pending || ministryIds.length === 0}
+          onClick={finish}
+          className={`${primaryButtonClass} w-full`}
+        >
+          {pending ? "Salvando…" : "Entrar no LUNOR"}
+        </Button>
       </CardContent>
     </Card>
-  </div>;
+  );
 }
-
