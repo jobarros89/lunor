@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   assertWhatsAppSendConfigured,
   sendAssignmentWhatsApp,
+  type SendAssignmentResult,
 } from "@/lib/whatsapp/meta";
 
 const schema = z.object({
@@ -12,6 +13,8 @@ const schema = z.object({
   ministryId: z.string().uuid(),
   eventId: z.string().uuid(),
 });
+
+const SEND_CONCURRENCY = 10;
 
 export type PublishWhatsAppSummary = {
   sent: number;
@@ -85,45 +88,49 @@ export async function publishMinistryScheduleWhatsApp(raw: unknown): Promise<Pub
   if (assignmentsError) return { ok: false, error: "Não foi possível carregar a equipe" };
   if (!assignments?.length) return { ok: false, error: "Ninguém foi escalado ainda" };
 
+  const pendingAssignments = assignments.filter((assignment) => assignment.status === "convidado");
   const summary: PublishWhatsAppSummary = {
     sent: 0,
-    alreadySent: 0,
+    alreadySent: assignments.length - pendingAssignments.length,
     missingPhone: 0,
     failed: 0,
   };
 
-  for (const assignment of assignments) {
-    // Quem já respondeu por outro canal não precisa receber pedido de confirmação.
-    if (assignment.status !== "convidado") {
-      summary.alreadySent += 1;
-      continue;
-    }
-    const profile = assignment.profiles as unknown as {
-      full_name: string;
-      phone: string | null;
-    } | null;
+  // Processa lotes em paralelo sem abrir dezenas de conexões simultâneas com a Meta.
+  for (let offset = 0; offset < pendingAssignments.length; offset += SEND_CONCURRENCY) {
+    const batch = pendingAssignments.slice(offset, offset + SEND_CONCURRENCY);
+    const results = await Promise.all(
+      batch.map(async (assignment): Promise<SendAssignmentResult> => {
+        const profile = assignment.profiles as unknown as {
+          full_name: string;
+          phone: string | null;
+        } | null;
 
-    const result = await sendAssignmentWhatsApp({
-      churchId: input.churchId,
-      eventId: input.eventId,
-      ministryId: input.ministryId,
-      assignmentId: assignment.id,
-      userId: assignment.user_id,
-      volunteerName: profile?.full_name ?? "Voluntário",
-      phone: profile?.phone ?? null,
-      roleName: assignment.role_name,
-      eventTitle: event.title,
-      startsAt: event.starts_at,
-    });
+        return sendAssignmentWhatsApp({
+          churchId: input.churchId,
+          eventId: input.eventId,
+          ministryId: input.ministryId,
+          assignmentId: assignment.id,
+          userId: assignment.user_id,
+          volunteerName: profile?.full_name ?? "Voluntário",
+          phone: profile?.phone ?? null,
+          roleName: assignment.role_name,
+          eventTitle: event.title,
+          startsAt: event.starts_at,
+        });
+      })
+    );
 
-    if (!result.ok) {
-      summary.failed += 1;
-    } else if (!result.skipped) {
-      summary.sent += 1;
-    } else if (result.reason === "missing_phone") {
-      summary.missingPhone += 1;
-    } else {
-      summary.alreadySent += 1;
+    for (const result of results) {
+      if (!result.ok) {
+        summary.failed += 1;
+      } else if (!result.skipped) {
+        summary.sent += 1;
+      } else if (result.reason === "missing_phone") {
+        summary.missingPhone += 1;
+      } else {
+        summary.alreadySent += 1;
+      }
     }
   }
 

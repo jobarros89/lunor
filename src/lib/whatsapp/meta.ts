@@ -37,6 +37,9 @@ type MetaSendResponse = {
 };
 
 export function assertWhatsAppSendConfigured(): void {
+  if (!serverEnv("SUPABASE_SERVICE_ROLE_KEY")) {
+    throw new Error("WhatsApp Cloud API ainda não configurada");
+  }
   getSendConfig("assignment_published");
 }
 

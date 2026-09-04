@@ -1,4 +1,5 @@
 import { getTenant } from "@/lib/tenant";
+import { serverEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { WhatsAppPublishButton } from "@/components/escalas/whatsapp-publish-button";
 
@@ -11,6 +12,16 @@ export async function WhatsAppPublishControl({
   ministryId: string;
   eventId: string;
 }) {
+  // Feature fica invisível até a integração server-to-server estar configurada.
+  // Assim o código pode ser publicado sem expor um botão quebrado no piloto.
+  if (
+    !serverEnv("WHATSAPP_ACCESS_TOKEN") ||
+    !serverEnv("WHATSAPP_PHONE_NUMBER_ID") ||
+    !serverEnv("SUPABASE_SERVICE_ROLE_KEY")
+  ) {
+    return null;
+  }
+
   const tenant = await getTenant(churchSlug);
   const supabase = await createClient();
   const [{ data: membership }, { count }] = await Promise.all([
