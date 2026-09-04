@@ -88,7 +88,6 @@ const memberSetupSchema = z.object({
   churchId: z.string().uuid(),
   ministryIds: z.array(z.string().uuid()).min(1, "Selecione pelo menos um ministério"),
   phone: z.string().trim().max(30).default(""),
-  departments: z.array(z.string().trim().min(1)).default([]),
 });
 
 export async function completeMemberOnboarding(raw: unknown): Promise<ActionResult> {
@@ -131,12 +130,5 @@ export async function completeMemberOnboarding(raw: unknown): Promise<ActionResu
   });
   if (joinError) return { ok: false, error: "Não foi possível concluir seu cadastro" };
 
-  const departments = [...new Set(parsed.data.departments)];
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({ departments })
-    .eq("id", user.id);
-  if (profileError) return { ok: false, error: "Não foi possível salvar os departamentos" };
-
-  redirect(`/${church.slug}/escalas`);
+  redirect(`/${church.slug}?welcome=1`);
 }
