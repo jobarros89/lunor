@@ -7,12 +7,14 @@ import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
 import { loadOperationalSummary } from "@/lib/operational-summary-server";
 import type { OperationalSummary } from "@/lib/operational-summary";
+import { loadOnboardingChecklist } from "@/lib/onboarding-checklist-server";
 import { ASSIGNMENT_STATUS_BADGE, ASSIGNMENT_STATUS_LABELS, formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
 import { resolveServiceWindow, timeLabel } from "@/lib/service-window";
 import { Badge } from "@/components/ui/badge";
 import { QuickConfirm } from "@/components/escalas/quick-confirm";
 import { OperationalSummarySection } from "@/components/home/operational-summary";
+import { OnboardingChecklistCard } from "@/components/home/onboarding-checklist";
 
 type RelatedName = { name: string } | { name: string }[] | null;
 type AssignmentEvent = {
@@ -120,6 +122,29 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         ministryName: activeMinistry.name,
       })
     : Promise.resolve(null);
+
+  let onboardingChecklist: Awaited<ReturnType<typeof loadOnboardingChecklist>> | null = null;
+  if (tenant.isCoord) {
+    const { data: churchSettings } = await supabase
+      .from("churches")
+      .select("settings")
+      .eq("id", tenant.church.id)
+      .single();
+    const settings = churchSettings?.settings && typeof churchSettings.settings === "object" && !Array.isArray(churchSettings.settings)
+      ? churchSettings.settings as Record<string, unknown>
+      : {};
+    if (settings.onboarding_checklist_dismissed !== true) {
+      const initialModules = Array.isArray(settings.initial_modules)
+        ? settings.initial_modules.filter((item): item is string => typeof item === "string")
+        : [];
+      const checklist = await loadOnboardingChecklist({
+        churchId: tenant.church.id,
+        churchSlug,
+        initialModules,
+      });
+      if (!checklist.allDone) onboardingChecklist = checklist;
+    }
+  }
 
   const nowIso = new Date().toISOString();
   const [
@@ -278,6 +303,10 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
           </Link>
         </div>
       </section>
+
+      {onboardingChecklist && (
+        <OnboardingChecklistCard churchId={tenant.church.id} checklist={onboardingChecklist} />
+      )}
 
       {activeMinistry?.canManage && (
         <Suspense fallback={<OperationalSummaryFallback />}>
