@@ -28,6 +28,8 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const shouldConfirmEmail = searchParams.get("cadastro") === "confirme-email";
   const familyAccess = searchParams.get("familia") === "1";
+  const existingFamilyAccount =
+    familyAccess && searchParams.get("conta") === "existente";
   const googleErrorMessage =
     searchParams.get("erro") === "google"
       ? "Não foi possível concluir o login com Google"
@@ -92,6 +94,11 @@ function LoginForm() {
           {shouldConfirmEmail && (
             <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-300">
               Conta criada. Confirme seu e-mail e depois entre no LUNOR. Se você chegou por um convite, continuaremos de onde você parou.
+            </p>
+          )}
+          {existingFamilyAccount && (
+            <p className="rounded-xl border border-[#6e5ce6]/30 bg-[#6e5ce6]/10 px-4 py-3 text-sm text-[#d7d1ff]">
+              Este e-mail já possui uma conta no LUNOR. Entre com a senha dessa conta para concluir o vínculo como responsável.
             </p>
           )}
           <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" name="email" type="email" autoComplete="email" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-[#6e5ce6] focus-visible:ring-[#6e5ce6]/25" /></div>

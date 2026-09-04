@@ -126,6 +126,30 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
     options: { data: { full_name: parsed.data.fullName } },
   });
   if (error) {
+    if (error.code === "user_already_exists") {
+      if (hasFamilyInvite) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: parsed.data.email,
+          password: parsed.data.password,
+        });
+
+        if (!signInError) {
+          const destination = await resolveAuthenticatedDestination(
+            supabase,
+            "/familia/acesso"
+          );
+          redirect(destination);
+        }
+
+        redirect("/login?familia=1&conta=existente");
+      }
+
+      return {
+        ok: false,
+        error: "Este e-mail já possui uma conta no LUNOR. Entre para continuar.",
+      };
+    }
+
     return { ok: false, error: "Não foi possível criar a conta" };
   }
 
