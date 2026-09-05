@@ -2,8 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { formatAge } from "@/lib/infantil";
 import { GuardianKidsDashboard } from "@/components/infantil/guardian-kids-dashboard";
 
-const DEFAULT_EVENT_DURATION_MS = 4 * 60 * 60 * 1000;
-
 type GuardianCheckin = {
   id: string;
   child_id: string;
@@ -25,9 +23,6 @@ export async function GuardianKidsPage({
   userId: string;
 }) {
   const supabase = await createClient();
-  // Momento desta renderização no servidor; não participa da hidratação.
-  // eslint-disable-next-line react-hooks/purity
-  const nowMs = Date.now();
   const [{ data: guardians }, { data: events }] = await Promise.all([
     supabase
       .from("guardians")
@@ -60,19 +55,10 @@ export async function GuardianKidsPage({
         .order("full_name")
     : { data: [] };
 
-  const event =
-    (events ?? []).find((candidate: {
-      id: string;
-      title: string;
-      starts_at: string;
-      ends_at: string | null;
-    }) => {
-      const startsAt = new Date(candidate.starts_at).getTime();
-      const endsAt = candidate.ends_at
-        ? new Date(candidate.ends_at).getTime()
-        : startsAt + DEFAULT_EVENT_DURATION_MS;
-      return nowMs >= startsAt - 90 * 60 * 1000 && nowMs <= endsAt + 60 * 60 * 1000;
-    }) ?? null;
+  // A RPC já aplica a regra operacional completa: janela automática OU
+  // recepção explicitamente aberta pela equipe. Não filtre novamente por horário
+  // aqui, senão uma recepção aberta antecipadamente desaparece para a família.
+  const event = events?.[0] ?? null;
 
   const { data: checkins } = event && childIds.length
     ? await supabase
