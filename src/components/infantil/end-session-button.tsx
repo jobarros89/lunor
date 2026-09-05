@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Megaphone } from "lucide-react";
+import { DoorClosed, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { encerrarSessao } from "@/lib/actions/infantil";
+import { closeKidsReceptionByEvent } from "@/lib/actions/kids-reception";
 
 export function EndSessionButton({
   churchSlug,
@@ -19,21 +21,56 @@ export function EndSessionButton({
   eventId: string;
   presentes: number;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirmando, setConfirmando] = useState(false);
 
-  if (presentes === 0) return null;
-
-  if (!confirmando) {
+  if (presentes === 0) {
     return (
       <Button
         variant="outline"
+        disabled={pending}
         className="h-11 w-full rounded-full"
-        onClick={() => setConfirmando(true)}
+        onClick={() => {
+          if (!window.confirm("Encerrar a recepção do Kids? Os responsáveis não poderão mais fazer check-in nesta sessão.")) return;
+          startTransition(async () => {
+            const r = await closeKidsReceptionByEvent({
+              churchSlug,
+              churchId,
+              ministryId,
+              eventId,
+            });
+            if (!r.ok) {
+              toast.error(r.error);
+              return;
+            }
+            toast.success("Recepção Kids encerrada");
+            router.push(`/${churchSlug}/infantil`);
+            router.refresh();
+          });
+        }}
       >
-        <Megaphone className="size-4" />
-        Encerrar e avisar os responsáveis
+        <DoorClosed className="size-4" />
+        {pending ? "Encerrando…" : "Encerrar recepção"}
       </Button>
+    );
+  }
+
+  if (!confirmando) {
+    return (
+      <div className="space-y-2">
+        <Button
+          variant="outline"
+          className="h-11 w-full rounded-full"
+          onClick={() => setConfirmando(true)}
+        >
+          <Megaphone className="size-4" />
+          Encerrar e avisar os responsáveis
+        </Button>
+        <p className="px-1 text-center text-xs text-muted-foreground">
+          A recepção só pode ser encerrada depois que todas as crianças forem retiradas.
+        </p>
+      </div>
     );
   }
 
