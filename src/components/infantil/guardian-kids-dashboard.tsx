@@ -26,26 +26,26 @@ export function GuardianKidsDashboard({
   churchSlug,
   churchId,
   ministryId,
-  event,
+  reception,
   familyChildren,
 }: {
   churchSlug: string;
   churchId: string;
   ministryId: string;
-  event: { id: string; title: string } | null;
+  reception: { id: string; title: string } | null;
   familyChildren: FamilyChild[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function checkIn(child: FamilyChild) {
-    if (!event) return;
+    if (!reception) return;
     startTransition(async () => {
       const result = await guardianCheckIn({
         churchSlug,
         churchId,
         ministryId,
-        eventId: event.id,
+        sessionId: reception.id,
         childId: child.id,
       });
       if (!result.ok) {
@@ -91,7 +91,7 @@ export function GuardianKidsDashboard({
             <ShieldCheck className="size-4" /> Operação atual
           </CardTitle>
           <CardDescription>
-            {event ? event.title : "Nenhuma recepção do Kids está aberta agora."}
+            {reception ? reception.title : "Nenhuma recepção do Kids está aberta agora."}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -131,7 +131,7 @@ export function GuardianKidsDashboard({
                       <LogOut className="size-4" /> Confirmar check-out
                     </Button>
                   </>
-                ) : event ? (
+                ) : reception ? (
                   <Button
                     type="button"
                     disabled={pending}
@@ -145,7 +145,7 @@ export function GuardianKidsDashboard({
                     <Clock3 className="mt-0.5 size-4 shrink-0" />
                     <p>
                       <strong className="font-medium text-foreground">Check-in ainda não disponível.</strong>{" "}
-                      Ele será liberado automaticamente quando a recepção do Kids estiver aberta para o culto.
+                      Ele será liberado quando a equipe abrir a recepção do Kids.
                     </p>
                   </div>
                 )}
