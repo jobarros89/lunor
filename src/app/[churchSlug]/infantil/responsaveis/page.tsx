@@ -33,7 +33,7 @@ export default async function ResponsaveisPage({
 
   const { data: guardians } = await supabase
     .from("guardians")
-    .select("id, full_name, user_id")
+    .select("id, full_name, user_id, email")
     .eq("church_id", tenant.church.id)
     .eq("ministry_id", ministry.id)
     .order("full_name");
@@ -42,6 +42,7 @@ export default async function ResponsaveisPage({
     id: guardian.id,
     fullName: guardian.full_name,
     userId: guardian.user_id,
+    email: guardian.email,
   }));
 
   return (
