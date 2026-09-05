@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { GuardianInlineInvite } from "@/components/infantil/guardian-inline-invite";
 import {
   addChildGuardian,
   removeChildGuardian,
@@ -17,6 +18,7 @@ import {
 type GuardianLink = {
   id: string;
   fullName: string;
+  email: string | null;
   phone: string | null;
   relationship: string | null;
   canPickup: boolean;
@@ -27,6 +29,7 @@ type GuardianLink = {
 type GuardianOption = {
   id: string;
   fullName: string;
+  email: string | null;
   phone: string | null;
   hasAccount: boolean;
 };
@@ -64,7 +67,10 @@ export function ChildGuardianManager({
   const [editRelationship, setEditRelationship] = useState("");
   const [editCanPickup, setEditCanPickup] = useState(true);
 
-  const linkedIds = useMemo(() => new Set(guardians.map((guardian) => guardian.id)), [guardians]);
+  const linkedIds = useMemo(
+    () => new Set(guardians.map((guardian) => guardian.id)),
+    [guardians]
+  );
   const options = availableGuardians.filter((guardian) => !linkedIds.has(guardian.id));
 
   function run(
@@ -254,7 +260,12 @@ export function ChildGuardianManager({
             </div>
 
             <div className="flex justify-end">
-              <Button type="button" className="rounded-full" disabled={pending} onClick={addGuardian}>
+              <Button
+                type="button"
+                className="rounded-full"
+                disabled={pending}
+                onClick={addGuardian}
+              >
                 <ShieldCheck className="size-4" />
                 {pending ? "Salvando…" : "Vincular responsável"}
               </Button>
@@ -265,6 +276,7 @@ export function ChildGuardianManager({
         <div className="space-y-2">
           {guardians.map((guardian) => {
             const editing = editingId === guardian.id;
+
             return (
               <div key={guardian.id} className="rounded-2xl border p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -354,6 +366,15 @@ export function ChildGuardianManager({
                     </Button>
                   </div>
                 </div>
+
+                {!guardian.hasAccount && (
+                  <GuardianInlineInvite
+                    churchSlug={churchSlug}
+                    guardianId={guardian.id}
+                    guardianName={guardian.fullName}
+                    email={guardian.email}
+                  />
+                )}
 
                 {editing && (
                   <div className="mt-4 grid gap-3 border-t pt-4 sm:grid-cols-[1fr_auto_auto] sm:items-center">
