@@ -56,6 +56,7 @@ export function ChildGuardianManager({
   );
   const [existingId, setExistingId] = useState("");
   const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newRelationship, setNewRelationship] = useState("");
   const [newCanPickup, setNewCanPickup] = useState(true);
@@ -87,6 +88,7 @@ export function ChildGuardianManager({
     setAdding(false);
     setExistingId("");
     setNewName("");
+    setNewEmail("");
     setNewPhone("");
     setNewRelationship("");
     setNewCanPickup(true);
@@ -99,6 +101,10 @@ export function ChildGuardianManager({
     }
     if (mode === "new" && newName.trim().length < 2) {
       toast.error("Informe o nome do responsável");
+      return;
+    }
+    if (mode === "new" && !/^\S+@\S+\.\S+$/.test(newEmail.trim())) {
+      toast.error("Informe um e-mail válido para o responsável");
       return;
     }
     if (newRelationship.trim().length < 2) {
@@ -115,6 +121,7 @@ export function ChildGuardianManager({
           childId,
           guardianId: mode === "existing" ? existingId : null,
           fullName: mode === "new" ? newName : "",
+          email: mode === "new" ? newEmail : "",
           phone: mode === "new" ? newPhone : "",
           relationship: newRelationship,
           canPickup: newCanPickup,
@@ -206,11 +213,21 @@ export function ChildGuardianManager({
                   disabled={pending}
                 />
                 <Input
+                  value={newEmail}
+                  onChange={(event) => setNewEmail(event.target.value)}
+                  placeholder="E-mail do responsável"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  className="h-11 rounded-xl"
+                  disabled={pending}
+                />
+                <Input
                   value={newPhone}
                   onChange={(event) => setNewPhone(event.target.value)}
                   placeholder="Telefone"
                   inputMode="tel"
-                  className="h-11 rounded-xl"
+                  className="h-11 rounded-xl sm:col-span-2"
                   disabled={pending}
                 />
               </div>
