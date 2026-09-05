@@ -11,6 +11,7 @@ import { PickupQr } from "@/components/infantil/pickup-qr";
 import { checkOutChild } from "@/lib/actions/infantil";
 import { chamarResponsavelSeguro } from "@/lib/actions/infantil-call";
 import { checkInOrReenterChild } from "@/lib/actions/infantil-checkin";
+import { checkOutReceptionChild } from "@/lib/actions/kids-reception";
 import type { KidsPrintSettings } from "@/lib/kids-print-settings";
 
 export type Guardian = {
@@ -95,14 +96,21 @@ export function SessionChildRow({
   function retirar() {
     if (!guardianId) return toast.error("Escolha quem está retirando");
     startTransition(async () => {
-      const r = await checkOutChild({
-        churchSlug,
-        sessionId: sessionId ?? null,
-        eventId: eventId ?? null,
-        checkinId: child.checkin!.id,
-        guardianId,
-        overrideReason: justificativa,
-      });
+      const r = sessionId
+        ? await checkOutReceptionChild({
+            churchSlug,
+            sessionId,
+            checkinId: child.checkin!.id,
+            guardianId,
+            overrideReason: justificativa,
+          })
+        : await checkOutChild({
+            churchSlug,
+            eventId: eventId!,
+            checkinId: child.checkin!.id,
+            guardianId,
+            overrideReason: justificativa,
+          });
       if (r.ok) {
         toast.success(`${child.fullName} foi retirado(a)`);
         setRetirando(false);
@@ -305,8 +313,8 @@ export function SessionChildRow({
                 <Button
                   variant="outline"
                   disabled={pending}
-                  className="h-10 rounded-full"
                   onClick={() => setRetirando(false)}
+                  className="h-10 rounded-full"
                 >
                   Cancelar
                 </Button>
