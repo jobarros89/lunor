@@ -36,13 +36,13 @@ export default async function KidsChildPage({
       .maybeSingle(),
     supabase
       .from("child_guardians")
-      .select("guardian_id, relationship, can_pickup, is_primary, guardians!inner(id, full_name, phone, user_id)")
+      .select("guardian_id, relationship, can_pickup, is_primary, guardians!inner(id, full_name, email, phone, user_id)")
       .eq("child_id", childId)
       .eq("church_id", tenant.church.id)
       .order("created_at"),
     supabase
       .from("guardians")
-      .select("id, full_name, phone, user_id")
+      .select("id, full_name, email, phone, user_id")
       .eq("church_id", tenant.church.id)
       .eq("ministry_id", ministry.id)
       .order("full_name"),
@@ -54,12 +54,14 @@ export default async function KidsChildPage({
     const guardian = link.guardians as unknown as {
       id: string;
       full_name: string;
+      email: string | null;
       phone: string | null;
       user_id: string | null;
     };
     return {
       id: guardian.id,
       fullName: guardian.full_name,
+      email: guardian.email,
       phone: guardian.phone,
       relationship: link.relationship,
       canPickup: link.can_pickup,
@@ -71,6 +73,7 @@ export default async function KidsChildPage({
   const guardianOptions = (allGuardians ?? []).map((guardian) => ({
     id: guardian.id,
     fullName: guardian.full_name,
+    email: guardian.email,
     phone: guardian.phone,
     hasAccount: !!guardian.user_id,
   }));
