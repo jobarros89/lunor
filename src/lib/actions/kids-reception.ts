@@ -103,3 +103,50 @@ export async function closeKidsReceptionByEvent(raw: unknown): Promise<ActionRes
     sessionId: current.session_id,
   });
 }
+
+const checkoutSchema = z.object({
+  churchSlug: z.string().min(2),
+  sessionId: z.string().uuid(),
+  checkinId: z.string().uuid(),
+  guardianId: z.string().uuid(),
+  overrideReason: z.string().max(300).default(""),
+});
+
+export async function checkOutReceptionChild(raw: unknown): Promise<ActionResult> {
+  const parsed = checkoutSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Dados inválidos" };
+
+  const d = parsed.data;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from("child_checkins")
+    .update({
+      picked_up_by: d.guardianId,
+      checked_out_at: new Date().toISOString(),
+      checked_out_by: user?.id ?? null,
+      override_reason: d.overrideReason || null,
+    })
+    .eq("id", d.checkinId)
+    .eq("reception_session_id", d.sessionId);
+
+  if (error) {
+    if (error.message.includes("pickup_not_authorized")) {
+      return {
+        ok: false,
+        error: "Essa pessoa não está autorizada a retirar. Chame a liderança para liberar com justificativa.",
+      };
+    }
+    if (error.message.includes("override_requires_leader")) {
+      return { ok: false, error: "Só a liderança do setor pode liberar uma retirada excepcional." };
+    }
+    return { ok: false, error: "Não foi possível registrar a retirada" };
+  }
+
+  revalidatePath(`/${d.churchSlug}/infantil/recepcao/${d.sessionId}`);
+  revalidatePath(`/${d.churchSlug}/infantil`);
+  return { ok: true, data: undefined };
+}
