@@ -38,17 +38,22 @@ export function KidsReceptionBar({
     if (!canManageReception) return null;
 
     return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed px-4 py-3">
-        <div>
-          <p className="text-sm font-medium">Recepção Kids fechada</p>
-          <p className="text-xs text-muted-foreground">
-            Abra quando a equipe estiver pronta. Não precisa existir um culto vinculado.
+      <div className="flex items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-3">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-sm font-medium">
+            <span className="size-2 shrink-0 rounded-full bg-muted-foreground/40" aria-hidden="true" />
+            Recepção fechada
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Abra quando a equipe estiver pronta.
           </p>
         </div>
+
         <Button
           type="button"
+          size="sm"
           disabled={pending}
-          className="rounded-full"
+          className="h-9 shrink-0 rounded-full px-4"
           onClick={() =>
             startTransition(async () => {
               const result = await openStandaloneKidsReception({
@@ -69,7 +74,7 @@ export function KidsReceptionBar({
           }
         >
           <DoorOpen className="size-4" />
-          {pending ? "Abrindo…" : "Abrir recepção"}
+          {pending ? "Abrindo…" : "Abrir"}
         </Button>
       </div>
     );
@@ -85,36 +90,38 @@ export function KidsReceptionBar({
   });
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-emerald-500/5 px-4 py-3">
-      <div className="min-w-0">
-        <p className="flex items-center gap-2 text-sm font-medium">
-          <span className="size-2 rounded-full bg-emerald-500" aria-hidden="true" />
-          Recepção aberta
-        </p>
-        <p className="truncate text-xs text-muted-foreground">
-          {activeReception.title} · aberta às {openedAt}
-        </p>
-      </div>
+    <div className="rounded-2xl border bg-card px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-sm font-medium">
+            <span className="size-2 shrink-0 rounded-full bg-emerald-500" aria-hidden="true" />
+            Recepção aberta
+          </p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {activeReception.title} · desde {openedAt}
+          </p>
+        </div>
 
-      <div className="flex flex-wrap gap-2">
         <Button
           nativeButton={false}
           variant="outline"
           size="sm"
-          className="rounded-full"
+          className="h-9 shrink-0 rounded-full px-3"
           render={<Link href={href} />}
         >
           <ExternalLink className="size-4" />
-          Entrar na recepção
+          Entrar
         </Button>
+      </div>
 
-        {canManageReception && (
+      {canManageReception && (
+        <div className="mt-3 border-t pt-3">
           <Button
             type="button"
-            variant="destructive"
+            variant="ghost"
             size="sm"
             disabled={pending}
-            className="rounded-full"
+            className="h-8 rounded-full px-2 text-xs text-destructive hover:text-destructive"
             onClick={() => {
               if (!window.confirm("Encerrar a recepção do Kids? Depois disso novos check-ins ficam bloqueados.")) return;
               startTransition(async () => {
@@ -134,11 +141,11 @@ export function KidsReceptionBar({
               });
             }}
           >
-            <DoorClosed className="size-4" />
+            <DoorClosed className="size-3.5" />
             {pending ? "Encerrando…" : "Encerrar recepção"}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
