@@ -38,6 +38,7 @@ export function SessionChildRow({
   churchSlug,
   churchId,
   ministryId,
+  sessionId,
   eventId,
   eventTitle,
   eventContext,
@@ -49,7 +50,8 @@ export function SessionChildRow({
   churchSlug: string;
   churchId: string;
   ministryId: string;
-  eventId: string;
+  sessionId?: string | null;
+  eventId?: string | null;
   eventTitle: string;
   eventContext: string;
   podeLiberar: boolean;
@@ -73,7 +75,8 @@ export function SessionChildRow({
         churchSlug,
         churchId,
         ministryId,
-        eventId,
+        sessionId: sessionId ?? null,
+        eventId: eventId ?? null,
         childId: child.id,
         classId: child.classId,
       });
@@ -94,7 +97,8 @@ export function SessionChildRow({
     startTransition(async () => {
       const r = await checkOutChild({
         churchSlug,
-        eventId,
+        sessionId: sessionId ?? null,
+        eventId: eventId ?? null,
         checkinId: child.checkin!.id,
         guardianId,
         overrideReason: justificativa,
@@ -118,7 +122,8 @@ export function SessionChildRow({
           churchSlug,
           churchId,
           ministryId,
-          eventId,
+          sessionId: sessionId ?? null,
+          eventId: eventId ?? null,
           checkinId: child.checkin!.id,
           reason: "",
         });
@@ -178,7 +183,7 @@ export function SessionChildRow({
 
       {child.checkin?.checkedOut && (
         <p className="text-xs text-muted-foreground">
-          Esta criança já saiu deste culto. Você pode fazer um novo check-in e gerar um novo código.
+          Esta criança já saiu desta recepção. Você pode fazer um novo check-in e gerar um novo código.
         </p>
       )}
 
@@ -300,8 +305,8 @@ export function SessionChildRow({
                 <Button
                   variant="outline"
                   disabled={pending}
-                  onClick={() => setRetirando(false)}
                   className="h-10 rounded-full"
+                  onClick={() => setRetirando(false)}
                 >
                   Cancelar
                 </Button>
