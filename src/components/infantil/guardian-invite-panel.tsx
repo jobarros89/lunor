@@ -12,6 +12,7 @@ type Guardian = {
   id: string;
   fullName: string;
   userId: string | null;
+  email: string | null;
 };
 
 export function GuardianInvitePanel({
@@ -27,7 +28,7 @@ export function GuardianInvitePanel({
   const [inviteUrls, setInviteUrls] = useState<Record<string, string>>({});
 
   function createInvite(guardian: Guardian) {
-    const email = (inviteEmails[guardian.id] ?? "").trim().toLowerCase();
+    const email = (inviteEmails[guardian.id] ?? guardian.email ?? "").trim().toLowerCase();
     if (!email) {
       toast.error("Informe o e-mail que o responsável usará no LUNOR.");
       return;
@@ -89,7 +90,7 @@ export function GuardianInvitePanel({
     <div className="space-y-4">
       {guardians.map((guardian) => {
         const inviteUrl = inviteUrls[guardian.id];
-        const email = inviteEmails[guardian.id] ?? "";
+        const email = inviteEmails[guardian.id] ?? guardian.email ?? "";
         const linked = Boolean(guardian.userId);
         return (
           <article key={guardian.id} className="rounded-3xl border bg-card p-5">
