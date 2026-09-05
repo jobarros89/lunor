@@ -15,6 +15,7 @@ const baseSchema = z.object({
 const linkSchema = baseSchema.extend({
   guardianId: z.string().uuid().nullable().default(null),
   fullName: z.string().max(120).default(""),
+  email: z.string().max(254).default(""),
   phone: z.string().max(30).default(""),
   relationship: z.string().max(40).default(""),
   canPickup: z.boolean().default(true),
@@ -32,6 +33,10 @@ const guardianSchema = baseSchema.extend({
 
 function normalizePhone(value: string | null | undefined): string {
   return (value ?? "").replace(/\D/g, "");
+}
+
+function normalizeEmail(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
 }
 
 async function validateChildScope(
@@ -74,6 +79,25 @@ export async function addChildGuardian(raw: unknown): Promise<ActionResult> {
     const fullName = d.fullName.trim();
     if (fullName.length < 2) return { ok: false, error: "Informe o nome do responsável" };
 
+    const email = normalizeEmail(d.email);
+    if (!z.string().email().safeParse(email).success) {
+      return { ok: false, error: "Informe um e-mail válido para o responsável" };
+    }
+
+    const { data: sameEmail } = await supabase
+      .from("guardians")
+      .select("id, full_name")
+      .eq("church_id", d.churchId)
+      .eq("ministry_id", d.ministryId)
+      .ilike("email", email)
+      .maybeSingle();
+    if (sameEmail) {
+      return {
+        ok: false,
+        error: `Este e-mail já está cadastrado para ${sameEmail.full_name}. Se for a mesma pessoa, use “Já cadastrado”.`,
+      };
+    }
+
     const normalizedPhone = normalizePhone(d.phone);
     if (normalizedPhone) {
       const { data: existingGuardians } = await supabase
@@ -98,6 +122,7 @@ export async function addChildGuardian(raw: unknown): Promise<ActionResult> {
         church_id: d.churchId,
         ministry_id: d.ministryId,
         full_name: fullName,
+        email,
         phone: d.phone.trim() || null,
       })
       .select("id")
