@@ -4,7 +4,6 @@ import {
   Baby,
   BellRing,
   ChevronRight,
-  DoorOpen,
   LogIn,
   LogOut,
   TriangleAlert,
@@ -26,8 +25,16 @@ import {
 import { SeedClassesButton } from "@/components/infantil/seed-classes-button";
 import { GuardianAccountLink } from "@/components/infantil/guardian-account-link";
 import { GuardianKidsPage } from "@/components/infantil/guardian-kids-page";
+import { KidsReceptionBar } from "@/components/infantil/kids-reception-bar";
 
 const DEFAULT_EVENT_DURATION_MS = 4 * 60 * 60 * 1000;
+
+type ActiveReception = {
+  session_id: string;
+  title: string;
+  event_id: string | null;
+  opened_at: string;
+};
 
 export default async function InfantilPage({
   params,
@@ -90,17 +97,19 @@ export default async function InfantilPage({
     .eq("user_id", tenant.userId)
     .eq("active", true)
     .maybeSingle();
+
   if (!vinculo && !tenant.isCoord) redirect(`/${churchSlug}`);
+
+  const canManageReception =
+    tenant.isCoord || vinculo?.role === "gerente" || vinculo?.role === "lider";
 
   const { data: canOperate } = await supabase.rpc("can_operate_kids", {
     p_church: tenant.church.id,
     p_ministry: ministry.id,
     p_event: null,
   });
-  const podeGerir = canOperate === true;
+  const podeGerir = canManageReception || canOperate === true;
 
-  // Momento desta renderização no servidor; usado apenas para escolher a
-  // sessão operacional atual/próxima, sem participar de hidratação client-side.
   // eslint-disable-next-line react-hooks/purity
   const requestNowMs = Date.now();
   const sessionWindowStart = new Date(requestNowMs - 6 * 60 * 60 * 1000).toISOString();
@@ -111,6 +120,7 @@ export default async function InfantilPage({
     { data: eventos },
     { data: guardians },
     { data: members },
+    { data: receptionRows },
   ] = await Promise.all([
     supabase
       .from("child_classes")
@@ -140,13 +150,20 @@ export default async function InfantilPage({
       .select("user_id, profiles!inner(full_name)")
       .eq("church_id", tenant.church.id)
       .eq("status", "active"),
+    supabase.rpc("current_kids_reception", {
+      p_church: tenant.church.id,
+      p_ministry: ministry.id,
+    }),
   ]);
+
+  const activeReception = (receptionRows?.[0] ?? null) as ActiveReception | null;
 
   const guardianRows = (guardians ?? []).map((guardian) => ({
     id: guardian.id,
     fullName: guardian.full_name,
     userId: guardian.user_id,
   }));
+
   const accountRows = (members ?? [])
     .map((member) => ({
       id: member.user_id,
@@ -154,28 +171,19 @@ export default async function InfantilPage({
     }))
     .sort((a, b) => a.fullName.localeCompare(b.fullName, "pt-BR"));
 
-  const eventoAtual =
-    eventos?.find((event) => {
-      const startMs = new Date(event.starts_at).getTime();
-      const endMs = event.ends_at
-        ? new Date(event.ends_at).getTime()
-        : startMs + DEFAULT_EVENT_DURATION_MS;
-      return endMs >= requestNowMs;
-    }) ?? null;
-
   let checkins: Array<{ class_id: string | null; checked_out_at: string | null }> = [];
   let chamadasPendentes = 0;
 
-  if (eventoAtual) {
+  if (activeReception) {
     const [{ data: checkinsData }, { count: pagesCount }] = await Promise.all([
       supabase
         .from("child_checkins")
         .select("class_id, checked_out_at")
-        .eq("event_id", eventoAtual.id),
+        .eq("reception_session_id", activeReception.session_id),
       supabase
         .from("child_pages")
         .select("id", { count: "exact", head: true })
-        .eq("event_id", eventoAtual.id)
+        .eq("reception_session_id", activeReception.session_id)
         .is("resolved_at", null),
     ]);
     checkins = checkinsData ?? [];
@@ -198,30 +206,48 @@ export default async function InfantilPage({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            LUNOR Kids
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard Kids</h1>
-          <p className="text-muted-foreground">
-            {podeGerir
-              ? "Veja a operação do Kids e entre rapidamente na recepção."
-              : "A recepção é liberada no horário em que você estiver escalado(a)."}
-          </p>
-        </div>
-        {eventoAtual && podeGerir && (
-          <Button
-            nativeButton={false}
-            className="h-11 rounded-full px-5"
-            render={<Link href={`/${churchSlug}/infantil/sessao/${eventoAtual.id}`} />}
-          >
-            <DoorOpen className="size-4" />
-            Abrir recepção
-          </Button>
-        )}
+    <div className="space-y-5">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          LUNOR Kids
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Dashboard Kids</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Crianças, turmas e operação da recepção em um só lugar.
+        </p>
       </div>
+
+      <KidsReceptionBar
+        churchSlug={churchSlug}
+        churchId={tenant.church.id}
+        ministryId={ministry.id}
+        canManageReception={canManageReception}
+        activeReception={
+          activeReception
+            ? {
+                sessionId: activeReception.session_id,
+                title: activeReception.title,
+                eventId: activeReception.event_id,
+                openedAt: activeReception.opened_at,
+              }
+            : null
+        }
+      />
+
+      {activeReception && (
+        <Card className="rounded-3xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Operação atual</CardTitle>
+            <CardDescription>{activeReception.title}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Metric icon={Users} value={presentes} label="Presentes" />
+            <Metric icon={LogIn} value={entradas} label="Check-ins" />
+            <Metric icon={LogOut} value={saidas} label="Check-outs" />
+            <Metric icon={BellRing} value={chamadasPendentes} label="Chamadas" />
+          </CardContent>
+        </Card>
+      )}
 
       {turmas.length === 0 && podeGerir && (
         <Card className="rounded-3xl">
@@ -237,35 +263,12 @@ export default async function InfantilPage({
         </Card>
       )}
 
-      {eventoAtual ? (
-        <Card className="rounded-3xl">
-          <CardHeader>
-            <CardTitle className="text-base">Operação atual</CardTitle>
-            <CardDescription>
-              {eventoAtual.title} · {formatEventDate(eventoAtual.starts_at)} · {formatEventTime(eventoAtual.starts_at)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Metric icon={Users} value={presentes} label="Presentes agora" />
-            <Metric icon={LogIn} value={entradas} label="Check-ins" />
-            <Metric icon={LogOut} value={saidas} label="Check-outs" />
-            <Metric icon={BellRing} value={chamadasPendentes} label="Chamadas pendentes" />
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="rounded-3xl">
-          <CardContent className="py-6">
-            <p className="text-sm text-muted-foreground">
-              Nenhum culto próximo. Crie um evento em Escalas para iniciar a operação do Kids.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       <Card className="rounded-3xl">
         <CardHeader>
           <CardTitle className="text-base">Turmas</CardTitle>
-          <CardDescription>Presença atual por faixa etária</CardDescription>
+          <CardDescription>
+            {activeReception ? "Presença nesta recepção" : "Nenhuma recepção aberta agora"}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           {turmas.map((turma) => {
@@ -277,7 +280,9 @@ export default async function InfantilPage({
               >
                 <div>
                   <p className="font-medium">{turma.name}</p>
-                  <p className="text-xs text-muted-foreground">{qtd} presentes agora</p>
+                  <p className="text-xs text-muted-foreground">
+                    {qtd} {qtd === 1 ? "presente" : "presentes"}
+                  </p>
                 </div>
                 <Badge variant="secondary" className="rounded-full">
                   {qtd}
@@ -295,7 +300,7 @@ export default async function InfantilPage({
         <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
           <div>
             <CardTitle className="text-base">Crianças</CardTitle>
-            <CardDescription>{children?.length ?? 0} cadastradas no Kids</CardDescription>
+            <CardDescription>{children?.length ?? 0} cadastradas</CardDescription>
           </div>
           {podeGerir && (
             <Button
@@ -356,9 +361,9 @@ export default async function InfantilPage({
       {podeGerir && (
         <Card className="rounded-3xl">
           <CardHeader>
-            <CardTitle className="text-base">Responsáveis e conta LUNOR</CardTitle>
+            <CardTitle className="text-base">Responsáveis</CardTitle>
             <CardDescription>
-              Vincule uma conta existente ou gere um convite familiar com acesso restrito à própria criança.
+              Vincule contas LUNOR ou gere convites de acesso familiar.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -373,41 +378,51 @@ export default async function InfantilPage({
         </Card>
       )}
 
-      <Card className="rounded-3xl">
-        <CardHeader>
-          <CardTitle className="text-base">Próximas sessões</CardTitle>
-          <CardDescription>Abra a recepção diretamente no culto desejado</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {(eventos ?? [])
-            .filter((event) => {
-              const startMs = new Date(event.starts_at).getTime();
-              const endMs = event.ends_at
-                ? new Date(event.ends_at).getTime()
-                : startMs + DEFAULT_EVENT_DURATION_MS;
-              return endMs >= requestNowMs;
-            })
-            .slice(0, 3)
-            .map((e) => (
-              <Link
-                key={e.id}
-                href={`/${churchSlug}/infantil/sessao/${e.id}`}
-                className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors hover:bg-accent/40"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{e.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatEventDate(e.starts_at)} · {formatEventTime(e.starts_at)}
-                  </p>
-                </div>
-                <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-              </Link>
-            ))}
-        </CardContent>
-      </Card>
+      {(eventos ?? []).some((event) => {
+        const startMs = new Date(event.starts_at).getTime();
+        const endMs = event.ends_at
+          ? new Date(event.ends_at).getTime()
+          : startMs + DEFAULT_EVENT_DURATION_MS;
+        return endMs >= requestNowMs;
+      }) && (
+        <Card className="rounded-3xl">
+          <CardHeader>
+            <CardTitle className="text-base">Cultos próximos</CardTitle>
+            <CardDescription>
+              Use um culto como contexto da recepção quando fizer sentido.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(eventos ?? [])
+              .filter((event) => {
+                const startMs = new Date(event.starts_at).getTime();
+                const endMs = event.ends_at
+                  ? new Date(event.ends_at).getTime()
+                  : startMs + DEFAULT_EVENT_DURATION_MS;
+                return endMs >= requestNowMs;
+              })
+              .slice(0, 3)
+              .map((e) => (
+                <Link
+                  key={e.id}
+                  href={`/${churchSlug}/infantil/sessao/${e.id}`}
+                  className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors hover:bg-accent/40"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{e.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatEventDate(e.starts_at)} · {formatEventTime(e.starts_at)}
+                    </p>
+                  </div>
+                  <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+                </Link>
+              ))}
+          </CardContent>
+        </Card>
+      )}
 
       <p className="px-1 text-xs text-muted-foreground">
-        Dados de menores permanecem restritos a quem serve no Kids e à coordenação da igreja.
+        Dados de menores permanecem restritos à equipe Kids e à coordenação da igreja.
       </p>
     </div>
   );
