@@ -59,6 +59,7 @@ export function ReceptionSearch({
   churchSlug,
   churchId,
   ministryId,
+  sessionId,
   eventId,
   eventTitle,
   eventContext,
@@ -70,7 +71,8 @@ export function ReceptionSearch({
   churchSlug: string;
   churchId: string;
   ministryId: string;
-  eventId: string;
+  sessionId?: string | null;
+  eventId?: string | null;
   eventTitle: string;
   eventContext: string;
   podeLiberar: boolean;
@@ -171,6 +173,7 @@ export function ReceptionSearch({
             churchSlug={churchSlug}
             churchId={churchId}
             ministryId={ministryId}
+            sessionId={sessionId}
             eventId={eventId}
             eventTitle={eventTitle}
             eventContext={eventContext}
@@ -203,6 +206,7 @@ export function ReceptionSearch({
                     churchSlug={churchSlug}
                     churchId={churchId}
                     ministryId={ministryId}
+                    sessionId={sessionId}
                     eventId={eventId}
                     eventTitle={eventTitle}
                     eventContext={eventContext}
