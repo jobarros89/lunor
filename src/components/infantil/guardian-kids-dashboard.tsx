@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Baby, LogIn, LogOut, ShieldCheck } from "lucide-react";
+import { Baby, Clock3, LogIn, LogOut, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { guardianCheckIn, guardianCheckOut } from "@/lib/actions/guardian-family";
 import { PickupQr } from "@/components/infantil/pickup-qr";
@@ -131,15 +131,23 @@ export function GuardianKidsDashboard({
                       <LogOut className="size-4" /> Confirmar check-out
                     </Button>
                   </>
-                ) : (
+                ) : event ? (
                   <Button
                     type="button"
-                    disabled={pending || !event}
+                    disabled={pending}
                     onClick={() => checkIn(child)}
                     className="h-11 w-full rounded-full"
                   >
                     <LogIn className="size-4" /> Fazer check-in
                   </Button>
+                ) : (
+                  <div className="flex items-start gap-3 rounded-2xl border border-dashed px-4 py-3 text-sm text-muted-foreground">
+                    <Clock3 className="mt-0.5 size-4 shrink-0" />
+                    <p>
+                      <strong className="font-medium text-foreground">Check-in ainda não disponível.</strong>{" "}
+                      Ele será liberado automaticamente quando a recepção do Kids estiver aberta para o culto.
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
