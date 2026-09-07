@@ -286,6 +286,15 @@ describe("Kids — escala operacional e família", () => {
     expect((visible.data ?? []).map((row) => row.id)).toEqual([childId]);
     expect((visible.data ?? []).map((row) => row.id)).not.toContain(otherChildId);
 
+    // A partir da recepção viva, o check-in do responsável exige uma sessão
+    // explicitamente aberta pela equipe para o culto — reflete o fluxo atual.
+    const openReception = await coord.rpc("open_kids_reception", {
+      p_church: churchId,
+      p_ministry: kidsId,
+      p_event: eventId,
+    });
+    expect(openReception.error).toBeNull();
+
     const checkin = await guardian.rpc("guardian_checkin_child", {
       p_church: churchId,
       p_ministry: kidsId,
