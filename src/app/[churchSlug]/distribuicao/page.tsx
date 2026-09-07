@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertTriangle, ArrowRight, HeartHandshake, RotateCcw, Users } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
-import { createClient } from "@/lib/supabase/server";
+import { loadDistributionOverview } from "@/lib/distribution-server";
+import { relativeLastService, type DistributionPerson } from "@/lib/distribution";
 import {
   Card,
   CardContent,
@@ -11,75 +12,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const HISTORY_DAYS = 60;
-const UPCOMING_DAYS = 45;
-
-type EventRef = { id: string; title: string; starts_at: string };
-type AssignmentRef = {
-  user_id: string;
-  status: string;
-  events: EventRef | EventRef[];
-};
-
-type RadarPerson = {
-  userId: string;
-  name: string;
-  last30: number;
-  last60: number;
-  upcoming: number;
-  consecutiveWeeks: number;
-  lastServedAt: string | null;
-  nextEvent: EventRef | null;
-  signal: "attention" | "balanced" | "reconnect";
-};
-
-function eventOf(value: EventRef | EventRef[]): EventRef | null {
-  return Array.isArray(value) ? value[0] ?? null : value;
-}
-
-function startOfWeek(date: Date) {
-  const value = new Date(date);
-  const day = value.getDay();
-  const distance = day === 0 ? 6 : day - 1;
-  value.setDate(value.getDate() - distance);
-  value.setHours(0, 0, 0, 0);
-  return value;
-}
-
-function weekKey(date: Date) {
-  return startOfWeek(date).toISOString().slice(0, 10);
-}
-
-function countConsecutiveWeeks(dates: string[], now: Date) {
-  if (dates.length === 0) return 0;
-  const servedWeeks = new Set(dates.map((iso) => weekKey(new Date(iso))));
-  let cursor = startOfWeek(now);
-  let count = 0;
-
-  // Se ainda não serviu na semana atual, a sequência pode continuar a partir da anterior.
-  if (!servedWeeks.has(weekKey(cursor))) {
-    cursor = new Date(cursor.getTime() - 7 * DAY_MS);
-  }
-
-  while (servedWeeks.has(weekKey(cursor))) {
-    count += 1;
-    cursor = new Date(cursor.getTime() - 7 * DAY_MS);
-  }
-  return count;
-}
-
-function relativeLastService(iso: string | null, now: Date) {
-  if (!iso) return "Sem serviço recente";
-  const days = Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / DAY_MS));
-  if (days === 0) return "Serviu hoje";
-  if (days === 1) return "Serviu ontem";
-  if (days < 7) return `Serviu há ${days} dias`;
-  const weeks = Math.floor(days / 7);
-  if (weeks === 1) return "Serviu há 1 semana";
-  return `Serviu há ${weeks} semanas`;
-}
 
 export default async function DistribuicaoPage({
   params,
@@ -90,84 +22,12 @@ export default async function DistribuicaoPage({
   const tenant = await getTenant(churchSlug);
   if (!tenant.isLeader) redirect(`/${churchSlug}`);
 
-  const supabase = await createClient();
-  const cid = tenant.church.id;
-  const now = new Date();
-  const historyFrom = new Date(now.getTime() - HISTORY_DAYS * DAY_MS).toISOString();
-  const last30From = new Date(now.getTime() - 30 * DAY_MS).getTime();
-  const upcomingTo = new Date(now.getTime() + UPCOMING_DAYS * DAY_MS).toISOString();
+  // Visão da igreja inteira — quem responde pela igreja toda enxerga todos os
+  // setores aqui. O painel por setor (na Home) usa a mesma lib, escopado ao
+  // time que a pessoa lidera.
+  const overview = await loadDistributionOverview({ churchId: tenant.church.id });
 
-  const [{ data: roster }, { data: assignments }] = await Promise.all([
-    supabase
-      .from("church_members")
-      .select("user_id, profiles!inner(full_name)")
-      .eq("church_id", cid)
-      .eq("status", "active"),
-    supabase
-      .from("assignments")
-      .select("user_id, status, events!inner(id, title, starts_at)")
-      .eq("church_id", cid)
-      .gte("events.starts_at", historyFrom)
-      .lte("events.starts_at", upcomingTo),
-  ]);
-
-  const byUser = new Map<string, AssignmentRef[]>();
-  for (const assignment of (assignments ?? []) as unknown as AssignmentRef[]) {
-    byUser.set(assignment.user_id, [...(byUser.get(assignment.user_id) ?? []), assignment]);
-  }
-
-  const people: RadarPerson[] = (roster ?? []).map((member) => {
-    const personAssignments = byUser.get(member.user_id) ?? [];
-    const past = personAssignments
-      .map((assignment) => ({ assignment, event: eventOf(assignment.events) }))
-      .filter(({ assignment, event }) =>
-        !!event &&
-        new Date(event.starts_at) <= now &&
-        !["ausente", "substituicao_solicitada", "substituido"].includes(assignment.status)
-      ) as { assignment: AssignmentRef; event: EventRef }[];
-
-    const future = personAssignments
-      .map((assignment) => ({ assignment, event: eventOf(assignment.events) }))
-      .filter(({ assignment, event }) =>
-        !!event &&
-        new Date(event.starts_at) > now &&
-        !["ausente", "substituicao_solicitada", "substituido"].includes(assignment.status)
-      )
-      .sort((a, b) => new Date(a.event!.starts_at).getTime() - new Date(b.event!.starts_at).getTime()) as { assignment: AssignmentRef; event: EventRef }[];
-
-    const pastDates = past.map(({ event }) => event.starts_at);
-    const last30 = past.filter(({ event }) => new Date(event.starts_at).getTime() >= last30From).length;
-    const last60 = past.length;
-    const consecutiveWeeks = countConsecutiveWeeks(pastDates, now);
-    const lastServedAt = pastDates.sort((a, b) => b.localeCompare(a))[0] ?? null;
-    const daysSinceLast = lastServedAt
-      ? Math.floor((now.getTime() - new Date(lastServedAt).getTime()) / DAY_MS)
-      : Number.POSITIVE_INFINITY;
-
-    let signal: RadarPerson["signal"] = "balanced";
-    if (last30 >= 4 || consecutiveWeeks >= 4) signal = "attention";
-    else if (daysSinceLast >= 42 && future.length === 0) signal = "reconnect";
-
-    return {
-      userId: member.user_id,
-      name: (member.profiles as unknown as { full_name: string }).full_name?.trim() || "Sem nome",
-      last30,
-      last60,
-      upcoming: future.length,
-      consecutiveWeeks,
-      lastServedAt,
-      nextEvent: future[0]?.event ?? null,
-      signal,
-    };
-  });
-
-  const attention = people
-    .filter((person) => person.signal === "attention")
-    .sort((a, b) => b.last30 - a.last30 || b.consecutiveWeeks - a.consecutiveWeeks);
-  const reconnect = people
-    .filter((person) => person.signal === "reconnect")
-    .sort((a, b) => (a.lastServedAt ?? "").localeCompare(b.lastServedAt ?? ""));
-  const balanced = people.filter((person) => person.signal === "balanced").length;
+  const { attention, reconnect, balancedCount: balanced, people } = overview;
 
   return (
     <div className="space-y-8">
@@ -195,7 +55,7 @@ export default async function DistribuicaoPage({
             <CardDescription>Considere revezar ou conversar antes de montar as próximas escalas.</CardDescription>
           </CardHeader>
           <CardContent className="divide-y">
-            {attention.map((person) => <PersonRow key={person.userId} person={person} churchSlug={churchSlug} now={now} />)}
+            {attention.map((person) => <PersonRow key={person.userId} person={person} churchSlug={churchSlug} />)}
           </CardContent>
         </Card>
       )}
@@ -210,7 +70,7 @@ export default async function DistribuicaoPage({
             <CardDescription>Pessoas ativas que não serviram nas últimas seis semanas e também não têm escala futura nesta janela.</CardDescription>
           </CardHeader>
           <CardContent className="divide-y">
-            {reconnect.map((person) => <PersonRow key={person.userId} person={person} churchSlug={churchSlug} now={now} />)}
+            {reconnect.map((person) => <PersonRow key={person.userId} person={person} churchSlug={churchSlug} />)}
           </CardContent>
         </Card>
       )}
@@ -223,7 +83,7 @@ export default async function DistribuicaoPage({
         <CardContent className="divide-y">
           {[...people]
             .sort((a, b) => b.last30 - a.last30 || a.name.localeCompare(b.name, "pt-BR"))
-            .map((person) => <PersonRow key={person.userId} person={person} churchSlug={churchSlug} now={now} compact />)}
+            .map((person) => <PersonRow key={person.userId} person={person} churchSlug={churchSlug} compact />)}
         </CardContent>
       </Card>
     </div>
@@ -245,7 +105,7 @@ function SummaryCard({ icon, value, label, description }: { icon: React.ReactNod
   );
 }
 
-function PersonRow({ person, churchSlug, now, compact = false }: { person: RadarPerson; churchSlug: string; now: Date; compact?: boolean }) {
+function PersonRow({ person, churchSlug, compact = false }: { person: DistributionPerson; churchSlug: string; compact?: boolean }) {
   const initials = person.name.split(" ").filter(Boolean).map((word) => word[0]).slice(0, 2).join("").toUpperCase();
   const signalLabel = person.signal === "attention" ? "Atenção" : person.signal === "reconnect" ? "Reconectar" : "Equilibrado";
   const signalClass = person.signal === "attention"
@@ -261,8 +121,8 @@ function PersonRow({ person, churchSlug, now, compact = false }: { person: Radar
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{person.name}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {relativeLastService(person.lastServedAt, now)}
-            {person.nextEvent ? ` · Próxima: ${new Date(person.nextEvent.starts_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}` : " · Sem próxima escala"}
+            {relativeLastService(person.daysSinceLast)}
+            {person.nextEvent ? ` · Próxima: ${new Date(person.nextEvent.startsAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}` : " · Sem próxima escala"}
           </p>
         </div>
       </div>

@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import { loadOperationalSummary } from "@/lib/operational-summary-server";
 import type { OperationalSummary } from "@/lib/operational-summary";
 import { loadOnboardingChecklist } from "@/lib/onboarding-checklist-server";
+import { loadDistributionOverview } from "@/lib/distribution-server";
+import type { DistributionOverview } from "@/lib/distribution";
 import { ASSIGNMENT_STATUS_BADGE, ASSIGNMENT_STATUS_LABELS, formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
 import { resolveServiceWindow, timeLabel } from "@/lib/service-window";
@@ -17,6 +19,7 @@ import { OperationalSummarySection } from "@/components/home/operational-summary
 import { OnboardingChecklistCard } from "@/components/home/onboarding-checklist";
 import { CultModeBanner } from "@/components/home/cult-mode-banner";
 import { AssistantHomeInput } from "@/components/home/assistant-home-input";
+import { DistributionPanel } from "@/components/home/distribution-panel";
 
 type RelatedName = { name: string } | { name: string }[] | null;
 type AssignmentEvent = {
@@ -110,6 +113,49 @@ function OperationalSummaryFallback() {
   );
 }
 
+async function DeferredDistributionPanel({
+  churchSlug,
+  ministryName,
+  overviewPromise,
+}: {
+  churchSlug: string;
+  ministryName: string;
+  overviewPromise: Promise<DistributionOverview | null>;
+}) {
+  const overview = await overviewPromise;
+  if (!overview) return null;
+  return (
+    <DistributionPanel
+      churchSlug={churchSlug}
+      ministryName={ministryName}
+      overview={overview}
+    />
+  );
+}
+
+function DistributionPanelFallback() {
+  return (
+    <section
+      className="rounded-3xl border bg-card"
+      aria-label="Carregando distribuição do time"
+    >
+      <div className="border-b px-5 py-4">
+        <div className="h-5 w-48 rounded bg-muted" />
+        <div className="mt-2 h-3 w-32 rounded bg-muted" />
+      </div>
+      <div className="grid grid-cols-2 divide-x divide-y border-b md:grid-cols-4 md:divide-y-0">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="px-5 py-4">
+            <div className="h-8 w-12 rounded bg-muted" />
+            <div className="mt-2 h-3 w-24 rounded bg-muted" />
+          </div>
+        ))}
+      </div>
+      <div className="h-40" />
+    </section>
+  );
+}
+
 export default async function HomePage({ params }: { params: Promise<{ churchSlug: string }> }) {
   const { churchSlug } = await params;
   const tenant = await getTenant(churchSlug);
@@ -122,6 +168,15 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         churchId: tenant.church.id,
         ministryId: activeMinistry.id,
         ministryName: activeMinistry.name,
+      })
+    : Promise.resolve(null);
+
+  // Radar de distribuição: exclusivo de quem responde pelo time.
+  // Voluntário não vê carga de colegas — é dado de gestão, não de escala.
+  const distributionPromise: Promise<DistributionOverview | null> = activeMinistry?.canManage
+    ? loadDistributionOverview({
+        churchId: tenant.church.id,
+        ministryId: activeMinistry.id,
       })
     : Promise.resolve(null);
 
@@ -346,6 +401,16 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
           <DeferredOperationalSummary
             churchSlug={churchSlug}
             summaryPromise={operationalSummaryPromise}
+          />
+        </Suspense>
+      )}
+
+      {activeMinistry?.canManage && (
+        <Suspense fallback={<DistributionPanelFallback />}>
+          <DeferredDistributionPanel
+            churchSlug={churchSlug}
+            ministryName={activeMinistry.name}
+            overviewPromise={distributionPromise}
           />
         </Suspense>
       )}
