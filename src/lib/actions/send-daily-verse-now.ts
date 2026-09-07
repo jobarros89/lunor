@@ -4,11 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { runDailyVerseSend, type DailyVerseSendResult } from "@/lib/bible/send-daily-verse";
 
 /**
- * Dispara o envio do versículo do dia para uma igreja específica, agora.
+ * Dispara o envio manual do versículo para uma igreja específica.
  *
- * As RPCs de envio são gated por CRON_SECRET, não por RLS — então a
- * checagem de permissão precisa ser explícita aqui, antes de chamar
- * runDailyVerseSend. Mesmo padrão de canManageMusic em actions/youtube.ts.
+ * O envio manual é deliberadamente independente da trava diária do cron:
+ * pode rodar antes ou depois do automático e pode ser repetido. A proteção
+ * aqui é de autorização — somente coordenadores da igreja podem dispará-lo.
  */
 export async function sendDailyVerseNowAction(
   churchId: string
@@ -22,5 +22,5 @@ export async function sendDailyVerseNowAction(
     return { ok: false, igrejas: 0, enviados: 0, erro: "Sem permissão para esta igreja." };
   }
 
-  return runDailyVerseSend({ churchId });
+  return runDailyVerseSend({ churchId, force: true });
 }
