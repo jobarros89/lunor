@@ -48,12 +48,14 @@ export async function runDailyVerseSend({
   }
 
   const url = await serverEnvAsync("NEXT_PUBLIC_SUPABASE_URL");
-  const anon = await serverEnvAsync("NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  if (!url || !anon) {
+  const publicKey =
+    (await serverEnvAsync("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")) ??
+    (await serverEnvAsync("NEXT_PUBLIC_SUPABASE_ANON_KEY"));
+  if (!url || !publicKey) {
     return { ok: false, igrejas: 0, enviados: 0, erro: "supabase não configurado" };
   }
 
-  const supabase = createClient(url, anon, {
+  const supabase = createClient(url, publicKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
