@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateDailyVerseSettings } from "@/lib/actions/daily-verse-settings";
+import { sendDailyVerseNowAction } from "@/lib/actions/send-daily-verse-now";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -52,6 +53,9 @@ export function DailyVerseSettings({
   const [theme, setTheme] = useState<Theme>(currentConfig?.daily_verse_theme ?? "auto");
   const [message, setMessage] = useState<string | null>(null);
 
+  const [sending, startSendTransition] = useTransition();
+  const [sendMessage, setSendMessage] = useState<string | null>(null);
+
   function handleSave() {
     setMessage(null);
     startTransition(async () => {
@@ -60,6 +64,26 @@ export function DailyVerseSettings({
         setMessage("Preferências salvas.");
       } catch {
         setMessage("Não foi possível salvar. Tente novamente.");
+      }
+    });
+  }
+
+  function handleSendNow() {
+    setSendMessage(null);
+    startSendTransition(async () => {
+      try {
+        const resultado = await sendDailyVerseNowAction(churchId);
+        if (!resultado.ok) {
+          setSendMessage(resultado.erro ?? "Não foi possível enviar.");
+        } else if (resultado.enviados === 0) {
+          setSendMessage("Nada para enviar agora — já foi hoje, ou ninguém está inscrito em notificações.");
+        } else {
+          setSendMessage(
+            `Enviado agora para ${resultado.enviados} ${resultado.enviados === 1 ? "pessoa" : "pessoas"}.`
+          );
+        }
+      } catch {
+        setSendMessage("Não foi possível enviar. Tente novamente.");
       }
     });
   }
@@ -129,6 +153,20 @@ export function DailyVerseSettings({
           </Button>
           {message && <span className="text-xs text-muted-foreground">{message}</span>}
         </div>
+
+        {enabled && (
+          <div className="space-y-2 border-t pt-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="outline" onClick={handleSendNow} disabled={sending}>
+                {sending ? "Enviando..." : "Enviar agora"}
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                Testa o envio de hoje sem esperar o horário do cron.
+              </span>
+            </div>
+            {sendMessage && <p className="text-xs text-muted-foreground">{sendMessage}</p>}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
