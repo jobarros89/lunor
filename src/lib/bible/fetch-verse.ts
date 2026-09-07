@@ -1,4 +1,5 @@
 import type { VerseReference } from "./references";
+import { fetchVerseTextFromFree } from "./fetch-verse-free";
 
 /**
  * O LUNOR nunca armazena o texto bíblico no repositório nem no banco além
@@ -11,10 +12,13 @@ import type { VerseReference } from "./references";
  * seria incompatível com um SaaS pago. Mantendo o texto fora do nosso código
  * e deixando a tradução configurável, cada igreja usa a versão que tem
  * direito de usar.
+ *
+ * Padrão: Bíblia Livre (BLT, CC0, permissiva, sem custo, risco zero de licença).
+ * Alternativas: nvi, acf, ra, etc. via ABíbliaDigital (se configurado).
  */
 
 const DEFAULT_BASE_URL = "https://www.abibliadigital.com.br/api";
-/** Tradução padrão: escolhida por ter licenciamento permissivo. */
+/** Tradução padrão: Bíblia Livre, CC0, permissiva. */
 const DEFAULT_VERSION = "blt";
 const TIMEOUT_MS = 5_000;
 
@@ -32,6 +36,13 @@ export async function fetchVerseText({
   version?: string | null;
 }): Promise<FetchedVerse | null> {
   const resolvedVersion = (version || DEFAULT_VERSION).toLowerCase();
+
+  // Bíblia Livre: cliente direto (sem ABíbliaDigital)
+  if (resolvedVersion === "blt") {
+    return await fetchVerseTextFromFree(reference);
+  }
+
+  // Outras versões: via ABíbliaDigital
   const baseUrl = process.env.BIBLE_API_BASE_URL?.trim() || DEFAULT_BASE_URL;
   const token = process.env.BIBLE_API_TOKEN?.trim();
 
