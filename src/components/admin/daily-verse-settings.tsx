@@ -76,7 +76,7 @@ export function DailyVerseSettings({
         if (!resultado.ok) {
           setSendMessage(resultado.erro ?? "Não foi possível enviar.");
         } else if (resultado.enviados === 0) {
-          setSendMessage("Nada para enviar agora — já foi hoje, ou ninguém está inscrito em notificações.");
+          setSendMessage("Nenhum usuário vinculado à igreja autorizou notificações neste dispositivo.");
         } else {
           setSendMessage(
             `Enviado agora para ${resultado.enviados} ${resultado.enviados === 1 ? "pessoa" : "pessoas"}.`
@@ -161,7 +161,7 @@ export function DailyVerseSettings({
                 {sending ? "Enviando..." : "Enviar agora"}
               </Button>
               <span className="text-xs text-muted-foreground">
-                Testa o envio de hoje sem esperar o horário do cron.
+                Envio manual independente do cron; pode ser usado a qualquer momento.
               </span>
             </div>
             {sendMessage && <p className="text-xs text-muted-foreground">{sendMessage}</p>}
