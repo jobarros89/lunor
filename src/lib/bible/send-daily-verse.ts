@@ -29,19 +29,20 @@ export type DailyVerseSendResult = {
  * Envia o versículo do dia.
  *
  * Sem `churchId`: roda para todas as igrejas elegíveis — é o que o cron
- * (`/api/cron/verse`) chama todo dia às 12h.
+ * (`/api/cron/verse`) chama todo dia às 12h. Nesse modo, a reserva diária
+ * (`versiculo_registrar`) continua garantindo no máximo um envio por igreja.
  *
- * Com `churchId`: filtra para essa igreja só — é o que o botão "Enviar
- * agora" do admin chama. Mesma reserva de dia (`versiculo_registrar`), então
- * clicar duas vezes no mesmo dia não manda duas vezes: a segunda chamada
- * simplesmente não encontra nada pendente para essa igreja.
+ * Com `churchId` + `force`: é o botão "Enviar agora" do admin. O envio manual
+ * é intencionalmente independente da reserva do cron, então funciona antes ou
+ * depois do envio automático e pode ser repetido quando o coordenador quiser.
  *
  * Mesmo desenho de segurança nos dois casos: as RPCs exigem o CRON_SECRET
  * internamente, lido aqui do ambiente do servidor — nunca chega ao cliente.
  */
 export async function runDailyVerseSend({
   churchId,
-}: { churchId?: string } = {}): Promise<DailyVerseSendResult> {
+  force = false,
+}: { churchId?: string; force?: boolean } = {}): Promise<DailyVerseSendResult> {
   const segredo = await serverEnvAsync("CRON_SECRET");
   if (!segredo) {
     return { ok: false, igrejas: 0, enviados: 0, erro: "CRON_SECRET não configurado" };
@@ -76,8 +77,8 @@ export async function runDailyVerseSend({
   }
 
   const hoje = new Date().toISOString().slice(0, 10);
+  const usuariosEnviados = new Set<string>();
   let igrejas = 0;
-  let enviados = 0;
 
   for (const [cId, inscricoes] of porIgreja) {
     const primeira = inscricoes[0];
@@ -93,15 +94,17 @@ export async function runDailyVerseSend({
       recentLabels: primeira.recent_references ?? [],
     });
 
-    // Reserva o dia antes de enviar: se duas execuções coincidirem (cron +
-    // botão manual, ou dois cliques), só uma passa daqui.
-    const { data: reservou, error: erroReserva } = await supabase.rpc("versiculo_registrar", {
-      p_secret: segredo,
-      p_church_id: cId,
-      p_theme: tema,
-      p_reference: referencia.label,
-    });
-    if (erroReserva || reservou !== true) continue;
+    if (!force) {
+      // O cron reserva o dia antes de enviar. Se duas execuções automáticas
+      // coincidirem, apenas uma consegue a reserva e segue para o push.
+      const { data: reservou, error: erroReserva } = await supabase.rpc("versiculo_registrar", {
+        p_secret: segredo,
+        p_church_id: cId,
+        p_theme: tema,
+        p_reference: referencia.label,
+      });
+      if (erroReserva || reservou !== true) continue;
+    }
 
     const versiculo = await fetchVerseText({ reference: referencia, version: primeira.version });
     if (!versiculo) {
@@ -121,12 +124,12 @@ export async function runDailyVerseSend({
             tag: "versiculo-do-dia",
           }
         );
-        enviados++;
+        usuariosEnviados.add(inscricao.user_id);
       } catch (err) {
         console.error("runDailyVerseSend: push falhou", err);
       }
     }
   }
 
-  return { ok: true, igrejas, enviados };
+  return { ok: true, igrejas, enviados: usuariosEnviados.size };
 }
