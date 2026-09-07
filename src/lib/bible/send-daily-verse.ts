@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { serverEnv } from "@/lib/env";
+import { serverEnvAsync } from "@/lib/env";
 import { sendWebPush } from "@/lib/push/send";
 import { isVerseTheme } from "@/lib/bible/references";
 import { rotateTheme } from "@/lib/bible/select-theme";
@@ -42,13 +42,13 @@ export type DailyVerseSendResult = {
 export async function runDailyVerseSend({
   churchId,
 }: { churchId?: string } = {}): Promise<DailyVerseSendResult> {
-  const segredo = serverEnv("CRON_SECRET");
+  const segredo = await serverEnvAsync("CRON_SECRET");
   if (!segredo) {
     return { ok: false, igrejas: 0, enviados: 0, erro: "CRON_SECRET não configurado" };
   }
 
-  const url = serverEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const anon = serverEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  const url = await serverEnvAsync("NEXT_PUBLIC_SUPABASE_URL");
+  const anon = await serverEnvAsync("NEXT_PUBLIC_SUPABASE_ANON_KEY");
   if (!url || !anon) {
     return { ok: false, igrejas: 0, enviados: 0, erro: "supabase não configurado" };
   }
