@@ -76,7 +76,7 @@ export function DailyVerseSettings({
         if (!resultado.ok) {
           setSendMessage(resultado.erro ?? "Não foi possível enviar.");
         } else if (resultado.enviados === 0) {
-          setSendMessage("Nenhum usuário vinculado à igreja autorizou notificações neste dispositivo.");
+          setSendMessage("Nenhum usuário vinculado à igreja possui notificações ativadas.");
         } else {
           setSendMessage(
             `Enviado agora para ${resultado.enviados} ${resultado.enviados === 1 ? "pessoa" : "pessoas"}.`
