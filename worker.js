@@ -10,13 +10,23 @@ export default {
   fetch: openNext.fetch,
 
   async scheduled(event, env, ctx) {
-    const requisicao = new Request("https://cron.interno/api/cron", {
-      method: "POST",
-      headers: { "x-cron-secret": env.CRON_SECRET ?? "" },
-    });
-    const resposta = await openNext.fetch(requisicao, env, ctx);
-    // O log vai para o observability do Worker, que já está ligado.
-    console.log("cron", event.cron, resposta.status, await resposta.text());
+    const chamar = async (caminho) => {
+      const requisicao = new Request(`https://cron.interno${caminho}`, {
+        method: "POST",
+        headers: { "x-cron-secret": env.CRON_SECRET ?? "" },
+      });
+      const resposta = await openNext.fetch(requisicao, env, ctx);
+      // O log vai para o observability do Worker, que já está ligado.
+      console.log("cron", event.cron, caminho, resposta.status, await resposta.text());
+    };
+
+    await chamar("/api/cron");
+
+    // Versículo diário só no cron diário das 12h UTC (09h em Brasília). O
+    // trigger de sexta 22h UTC é exclusivo da preparação para o fim de semana.
+    if (event.cron === "0 12 * * *") {
+      await chamar("/api/cron/verse");
+    }
   },
 };
 

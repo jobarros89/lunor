@@ -17,6 +17,7 @@ import { EditChurchName } from "@/components/admin/edit-church-name";
 import { DepartmentsManager } from "@/components/admin/departments-manager";
 import { CampusesManager } from "@/components/admin/campuses-manager";
 import { InviteLink } from "@/components/invite-link";
+import { DailyVerseSettings } from "@/components/admin/daily-verse-settings";
 
 export default async function AdminPage({
   params,
@@ -37,6 +38,7 @@ export default async function AdminPage({
     { data: interesses },
     { data: aptas },
     { data: campuses },
+    { data: church },
   ] = await Promise.all([
     supabase
       .from("ministries")
@@ -68,7 +70,20 @@ export default async function AdminPage({
       .eq("church_id", cid)
       .order("sort_order")
       .order("name"),
+    supabase
+      .from("churches")
+      .select("settings")
+      .eq("id", cid)
+      .single(),
   ]);
+  const churchSettings =
+    church?.settings && typeof church.settings === "object" && !Array.isArray(church.settings)
+      ? (church.settings as Record<string, unknown>)
+      : {};
+  const notificationSettings =
+    churchSettings.notifications && typeof churchSettings.notifications === "object"
+      ? (churchSettings.notifications as Record<string, unknown>)
+      : {};
   const { data: inviteCode } = isAdmin
     ? await supabase.rpc("get_church_invite_code", { p_church: cid })
     : { data: null };
@@ -271,6 +286,30 @@ export default async function AdminPage({
           </div>
         </CardContent>
       </Card>
+
+      <DailyVerseSettings
+        churchId={tenant.church.id}
+        currentConfig={{
+          daily_verse_enabled: notificationSettings.daily_verse_enabled === true,
+          daily_verse_version:
+            (notificationSettings.daily_verse_version as
+              | "blt"
+              | "nvi"
+              | "acf"
+              | "ra"
+              | undefined) ?? "blt",
+          daily_verse_theme:
+            (notificationSettings.daily_verse_theme as string | undefined) as
+              | "auto"
+              | "gratidao"
+              | "fe"
+              | "amor"
+              | "esperanca"
+              | "sabedoria"
+              | "paz"
+              | undefined,
+        }}
+      />
 
       {isAdmin && (
         <DeleteChurchZone
