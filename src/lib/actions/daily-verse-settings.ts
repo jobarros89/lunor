@@ -2,17 +2,43 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+type DailyVerseVersion = "blt" | "nvi" | "acf" | "ra";
+type DailyVerseTheme =
+  | "auto"
+  | "servir"
+  | "encorajamento"
+  | "descanso"
+  | "gratidao"
+  | "perseveranca"
+  | "unidade";
+
+const VALID_VERSIONS = new Set<DailyVerseVersion>(["blt", "nvi", "acf", "ra"]);
+const VALID_THEMES = new Set<DailyVerseTheme>([
+  "auto",
+  "servir",
+  "encorajamento",
+  "descanso",
+  "gratidao",
+  "perseveranca",
+  "unidade",
+]);
+
 export async function updateDailyVerseSettings(
   churchId: string,
   settings: {
     enabled: boolean;
-    version?: "blt" | "nvi" | "acf" | "ra";
-    theme?: string;
+    version?: DailyVerseVersion;
+    theme?: DailyVerseTheme;
   }
 ) {
+  const version = settings.version ?? "blt";
+  const theme = settings.theme ?? "auto";
+  if (!VALID_VERSIONS.has(version) || !VALID_THEMES.has(theme)) {
+    throw new Error("Configuração inválida para o versículo do dia.");
+  }
+
   const supabase = await createClient();
 
-  // Ler settings atuais
   const { data: church, error: readError } = await supabase
     .from("churches")
     .select("settings")
@@ -21,19 +47,17 @@ export async function updateDailyVerseSettings(
 
   if (readError) throw readError;
 
-  // Mesclar com settings existentes
   const currentSettings = (church?.settings || {}) as Record<string, Record<string, unknown>>;
   const updatedSettings = {
     ...currentSettings,
     notifications: {
       ...(currentSettings.notifications || {}),
       daily_verse_enabled: settings.enabled,
-      daily_verse_version: settings.version || "blt",
-      daily_verse_theme: settings.theme || "auto",
+      daily_verse_version: version,
+      daily_verse_theme: theme,
     },
   };
 
-  // Salvar
   const { error: updateError } = await supabase
     .from("churches")
     .update({ settings: updatedSettings })
