@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useRef, useState, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { deleteFutureEvent } from "@/lib/actions/event-delete";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 type DeleteContext = {
   churchSlug: string;
@@ -174,15 +174,27 @@ export function DeleteFutureEventButton({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="destructive"
-        className="h-11 rounded-full px-5"
-        onClick={() => setConfirming(true)}
-      >
-        <Trash2 className="size-4" />
-        Apagar culto
-      </Button>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Link
+          href={`/${context.churchSlug}/escalas/${context.eventId}/editar`}
+          className={buttonVariants({
+            variant: "outline",
+            className: "h-11 rounded-full px-5",
+          })}
+        >
+          <Pencil className="size-4" />
+          Editar data e horário
+        </Link>
+        <Button
+          type="button"
+          variant="destructive"
+          className="h-11 rounded-full px-5"
+          onClick={() => setConfirming(true)}
+        >
+          <Trash2 className="size-4" />
+          Apagar culto
+        </Button>
+      </div>
       <ConfirmDeleteDialog
         context={context}
         open={confirming}
