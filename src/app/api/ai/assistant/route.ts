@@ -104,7 +104,7 @@ export async function POST(request: Request) {
       const existing = recurring.skippedExisting;
       const answer = count > 0
         ? `Encontrei o padrão existente de ${recurring.title} no campus ${recurring.campus.name}. Preparei ${count} culto${count === 1 ? "" : "s"} que ainda falta${count === 1 ? "" : "m"}${existing > 0 ? ` e preservei ${existing} data${existing === 1 ? "" : "s"} já cadastrada${existing === 1 ? "" : "s"}` : ""}. Revise a série abaixo e confirme para criar.`
-        : `Os cultos desse padrão já estão cadastrados no período solicitado. ${existing} data${existing === 1 ? "" : "s"} existente${existing === 1 ? "" : "s"} foi${existing === 1 ? "" : "ram"} preservada${existing === 1 ? "" : "s"}; nenhuma duplicação foi criada.`;
+        : `Os cultos desse padrão já estão cadastrados no período solicitado. ${existing} ${existing === 1 ? "data existente foi preservada" : "datas existentes foram preservadas"}; nenhuma duplicação foi criada.`;
       return Response.json(
         {
           answer,
