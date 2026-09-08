@@ -6,6 +6,7 @@ import {
   getAssistantAppOperationalOverview,
   resolveAssistantMinistryContext,
 } from "@/lib/ai/app-context";
+import { getLeadershipInsights } from "@/lib/ai/leadership-insights";
 import {
   buildAssignmentProposal,
   loadScheduleCandidates,
@@ -59,6 +60,29 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
           minimum: 1,
           maximum: 4,
           description: "Quantidade de próximos cultos por ministério. Padrão: 2.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_leadership_insights",
+    description:
+      "Gera insights operacionais priorizados para liderança cruzando escalas, confirmações e disponibilidade dos ministérios autorizados. Retorna somente dados agregados e ações sugeridas. Use para perguntas sobre riscos, prioridades, gargalos, panorama, reunião de líderes ou o que precisa de atenção.",
+    parameters: {
+      type: "object",
+      properties: {
+        eventLimit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 4,
+          description: "Quantidade de próximos cultos analisados por ministério. Padrão: 3.",
+        },
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 12,
+          description: "Quantidade máxima de insights priorizados. Padrão: 8.",
         },
       },
       additionalProperties: false,
@@ -275,6 +299,10 @@ const ministryTargetSchema = z.object({ ministryId: z.string().uuid().optional()
 const appOverviewSchema = z.object({
   eventLimit: z.number().int().min(1).max(4).optional(),
 });
+const leadershipInsightsSchema = z.object({
+  eventLimit: z.number().int().min(1).max(4).optional(),
+  limit: z.number().int().min(1).max(12).optional(),
+});
 const ministryOperationalSchema = z.object({
   ministryId: z.string().uuid(),
   limit: z.number().int().min(1).max(8).optional(),
@@ -339,6 +367,13 @@ export async function executeInternalAiTool(
       const input = appOverviewSchema.parse(args);
       return getAssistantAppOperationalOverview(context, {
         eventLimit: input.eventLimit ?? 2,
+      });
+    }
+    case "get_leadership_insights": {
+      const input = leadershipInsightsSchema.parse(args);
+      return getLeadershipInsights(context, {
+        eventLimit: input.eventLimit ?? 3,
+        limit: input.limit ?? 8,
       });
     }
     case "get_ministry_operational_summary": {
