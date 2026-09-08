@@ -60,6 +60,16 @@ const WEEKDAY_INDEX: Record<WeekdayName, number> = {
   sabado: 6,
 };
 
+const WEEKDAY_TERMS: Array<[WeekdayName, string[]]> = [
+  ["domingo", ["domingo", "domingos"]],
+  ["segunda", ["segunda", "segundas", "segunda-feira", "segundas-feiras"]],
+  ["terca", ["terca", "tercas", "terca-feira", "tercas-feiras"]],
+  ["quarta", ["quarta", "quartas", "quarta-feira", "quartas-feiras"]],
+  ["quinta", ["quinta", "quintas", "quinta-feira", "quintas-feiras"]],
+  ["sexta", ["sexta", "sextas", "sexta-feira", "sextas-feiras"]],
+  ["sabado", ["sabado", "sabados"]],
+];
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function normalize(value: string) {
@@ -298,6 +308,65 @@ export async function buildRecurringEventProposal(
     occurrences,
     skippedExisting,
   };
+}
+
+function parseUntil(normalizedQuestion: string) {
+  if (
+    normalizedQuestion.includes("fim do ano") ||
+    normalizedQuestion.includes("final do ano") ||
+    normalizedQuestion.includes("ate dezembro")
+  ) {
+    return "end_of_year";
+  }
+
+  const iso = normalizedQuestion.match(/\b(20\d{2}-\d{2}-\d{2})\b/)?.[1];
+  if (iso) return iso;
+
+  const br = normalizedQuestion.match(/\b(\d{1,2})\/(\d{1,2})\/(20\d{2})\b/);
+  if (br) {
+    return `${br[3]}-${br[2].padStart(2, "0")}-${br[1].padStart(2, "0")}`;
+  }
+  return null;
+}
+
+export async function tryBuildRecurringEventProposalFromQuestion(
+  context: SchedulingContext,
+  question: string
+): Promise<RecurringEventProposal | null> {
+  const normalizedQuestion = normalize(question);
+  const actionTerms = ["crie", "criar", "cadastre", "cadastrar", "adicione", "adicionar", "gere", "gerar"];
+  if (!actionTerms.some((term) => normalizedQuestion.includes(term))) return null;
+
+  const weekday = WEEKDAY_TERMS.find(([, terms]) =>
+    terms.some((term) => normalizedQuestion.includes(term))
+  )?.[0];
+  const servicePeriod: ServicePeriod | null = normalizedQuestion.includes("manha")
+    ? "manha"
+    : normalizedQuestion.includes("tarde")
+      ? "tarde"
+      : normalizedQuestion.includes("noite")
+        ? "noite"
+        : null;
+  const until = parseUntil(normalizedQuestion);
+  if (!weekday || !servicePeriod || !until) return null;
+
+  const supabase = await createClient();
+  const { data: campuses } = await supabase
+    .from("campuses")
+    .select("name")
+    .eq("church_id", context.churchId)
+    .eq("active", true);
+  const campus = (campuses ?? [])
+    .filter((item) => normalizedQuestion.includes(normalize(item.name)))
+    .sort((a, b) => normalize(b.name).length - normalize(a.name).length)[0];
+  if (!campus) return null;
+
+  return buildRecurringEventProposal(context, {
+    campusName: campus.name,
+    servicePeriod,
+    weekday,
+    until,
+  });
 }
 
 export function isRecurringEventProposal(value: unknown): value is RecurringEventProposal {
