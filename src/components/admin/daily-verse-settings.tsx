@@ -31,14 +31,19 @@ const THEMES = [
 
 type Version = (typeof VERSIONS)[number]["value"];
 type Theme = (typeof THEMES)[number]["value"];
+type LegacyTheme = "fe" | "amor" | "esperanca" | "sabedoria" | "paz";
 
 export type DailyVerseConfig = {
   daily_verse_enabled?: boolean;
   daily_verse_version?: Version;
-  daily_verse_theme?: Theme;
+  daily_verse_theme?: Theme | LegacyTheme;
 };
 
 const selectCls = "h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm";
+
+function normalizeTheme(value: DailyVerseConfig["daily_verse_theme"]): Theme {
+  return THEMES.some((item) => item.value === value) ? (value as Theme) : "auto";
+}
 
 export function DailyVerseSettings({
   churchId,
@@ -50,7 +55,7 @@ export function DailyVerseSettings({
   const [pending, startTransition] = useTransition();
   const [enabled, setEnabled] = useState(currentConfig?.daily_verse_enabled ?? false);
   const [version, setVersion] = useState<Version>(currentConfig?.daily_verse_version ?? "blt");
-  const [theme, setTheme] = useState<Theme>(currentConfig?.daily_verse_theme ?? "auto");
+  const [theme, setTheme] = useState<Theme>(normalizeTheme(currentConfig?.daily_verse_theme));
   const [message, setMessage] = useState<string | null>(null);
 
   const [sending, startSendTransition] = useTransition();
