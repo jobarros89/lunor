@@ -31,14 +31,19 @@ const THEMES = [
 
 type Version = (typeof VERSIONS)[number]["value"];
 type Theme = (typeof THEMES)[number]["value"];
+type LegacyTheme = "fe" | "amor" | "esperanca" | "sabedoria" | "paz";
 
 export type DailyVerseConfig = {
   daily_verse_enabled?: boolean;
   daily_verse_version?: Version;
-  daily_verse_theme?: Theme;
+  daily_verse_theme?: Theme | LegacyTheme;
 };
 
 const selectCls = "h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm";
+
+function normalizeTheme(value: DailyVerseConfig["daily_verse_theme"]): Theme {
+  return THEMES.some((item) => item.value === value) ? (value as Theme) : "auto";
+}
 
 export function DailyVerseSettings({
   churchId,
@@ -50,7 +55,7 @@ export function DailyVerseSettings({
   const [pending, startTransition] = useTransition();
   const [enabled, setEnabled] = useState(currentConfig?.daily_verse_enabled ?? false);
   const [version, setVersion] = useState<Version>(currentConfig?.daily_verse_version ?? "blt");
-  const [theme, setTheme] = useState<Theme>(currentConfig?.daily_verse_theme ?? "auto");
+  const [theme, setTheme] = useState<Theme>(normalizeTheme(currentConfig?.daily_verse_theme));
   const [message, setMessage] = useState<string | null>(null);
 
   const [sending, startSendTransition] = useTransition();
@@ -75,11 +80,23 @@ export function DailyVerseSettings({
         const resultado = await sendDailyVerseNowAction(churchId);
         if (!resultado.ok) {
           setSendMessage(resultado.erro ?? "Não foi possível enviar.");
-        } else if (resultado.enviados === 0) {
-          setSendMessage("Nenhum usuário elegível possui notificações Push ativadas nesta igreja.");
-        } else {
+          return;
+        }
+
+        if (resultado.enviados > 0) {
           setSendMessage(
             `Enviado agora para ${resultado.enviados} ${resultado.enviados === 1 ? "pessoa" : "pessoas"}.`
+          );
+          return;
+        }
+
+        if (resultado.motivo === "sem_alvos") {
+          setSendMessage("Nenhuma pessoa vinculada à igreja possui uma inscrição Push ativa.");
+        } else if (resultado.motivo === "texto_indisponivel") {
+          setSendMessage("Há pessoas com notificações ativas, mas o texto bíblico não pôde ser carregado. Tente novamente em instantes.");
+        } else {
+          setSendMessage(
+            `Há ${resultado.elegiveis} ${resultado.elegiveis === 1 ? "pessoa elegível" : "pessoas elegíveis"}, mas o serviço de Push não confirmou o envio. Tente novamente.`
           );
         }
       } catch {
@@ -166,7 +183,7 @@ export function DailyVerseSettings({
                 {sending ? "Enviando..." : "Enviar agora"}
               </Button>
               <span className="text-xs text-muted-foreground">
-                Envia imediatamente; o envio automático diário continua normalmente.
+                “Enviar agora” não altera nem consome o envio automático do dia.
               </span>
             </div>
             {sendMessage && <p className="text-xs text-muted-foreground">{sendMessage}</p>}

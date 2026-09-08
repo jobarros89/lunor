@@ -2,18 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-type DailyVerseVersion = "blt" | "nvi" | "acf" | "ra";
-type DailyVerseTheme =
-  | "auto"
-  | "servir"
-  | "encorajamento"
-  | "descanso"
-  | "gratidao"
-  | "perseveranca"
-  | "unidade";
-
-const VALID_VERSIONS = new Set<DailyVerseVersion>(["blt", "nvi", "acf", "ra"]);
-const VALID_THEMES = new Set<DailyVerseTheme>([
+const ALLOWED_THEMES = [
   "auto",
   "servir",
   "encorajamento",
@@ -21,13 +10,15 @@ const VALID_THEMES = new Set<DailyVerseTheme>([
   "gratidao",
   "perseveranca",
   "unidade",
-]);
+] as const;
+
+type DailyVerseTheme = (typeof ALLOWED_THEMES)[number];
 
 export async function updateDailyVerseSettings(
   churchId: string,
   settings: {
     enabled: boolean;
-    version?: DailyVerseVersion;
+    version?: "blt" | "nvi" | "acf" | "ra";
     theme?: DailyVerseTheme;
   }
 ) {
@@ -38,6 +29,11 @@ export async function updateDailyVerseSettings(
   }
 
   const supabase = await createClient();
+
+  const theme = settings.theme || "auto";
+  if (!(ALLOWED_THEMES as readonly string[]).includes(theme)) {
+    throw new Error("Tema de versículo inválido.");
+  }
 
   const { data: church, error: readError } = await supabase
     .from("churches")
@@ -53,7 +49,7 @@ export async function updateDailyVerseSettings(
     notifications: {
       ...(currentSettings.notifications || {}),
       daily_verse_enabled: settings.enabled,
-      daily_verse_version: version,
+      daily_verse_version: settings.version || "blt",
       daily_verse_theme: theme,
     },
   };

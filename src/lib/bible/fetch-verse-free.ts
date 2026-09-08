@@ -1,25 +1,22 @@
 /**
- * Cliente da Bíblia Livre (BLIVRE) usando a fonte oficial do projeto.
+ * Cliente direto da Bíblia Livre (BLIVRE) pela fonte oficial.
  *
- * A Bíblia Livre é distribuída sob Creative Commons Atribuição 3.0 Brasil.
- * Para o envio diário, buscamos somente o livro necessário e extraímos o
- * versículo selecionado; o texto completo não é persistido pelo LUNOR.
- *
- * Fonte oficial: https://github.com/blivre/BibliaLivre
+ * O texto vem do repositório blivre/BibliaLivre, nos arquivos F4 oficiais,
+ * licenciados sob CC BY 3.0 BR. O LUNOR guarda apenas a referência e busca o
+ * texto no momento do envio.
  */
 
 import type { VerseReference } from "./references";
 
-const BLIVRE_BASE =
+const BLIVRE_BASE_URL =
   "https://raw.githubusercontent.com/blivre/BibliaLivre/master/textos/f4/n4";
 const TIMEOUT_MS = 8_000;
 
 /**
- * As referências internas seguem as abreviações da ABíbliaDigital. O projeto
- * oficial da Bíblia Livre usa outros nomes de arquivo, então mantemos somente
- * o pequeno mapa necessário ao acervo curado de Versículo do Dia.
+ * As abreviações do acervo curado seguem o padrão usado pela API do LUNOR;
+ * os arquivos oficiais da BLIVRE usam nomes próprios em alguns livros.
  */
-const BOOK_FILES: Record<string, string> = {
+const BOOK_FILE_BY_ABBREV: Record<string, string> = {
   sl: "sal",
   cl: "col",
   gl: "gal",
@@ -40,55 +37,50 @@ const BOOK_FILES: Record<string, string> = {
   rm: "rom",
 };
 
-const bookCache = new Map<string, string>();
+const cachedBooks = new Map<string, string>();
 
-async function getBookSource(file: string): Promise<string> {
-  const cached = bookCache.get(file);
+async function getBookSource(book: string): Promise<string> {
+  const normalized = book.trim().toLowerCase();
+  const file = BOOK_FILE_BY_ABBREV[normalized] ?? normalized;
+  const cached = cachedBooks.get(file);
   if (cached) return cached;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${BLIVRE_BASE}/${file}.txt`, {
+    const response = await fetch(`${BLIVRE_BASE_URL}/${file}.txt`, {
       signal: controller.signal,
-      cache: "force-cache",
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
     const source = await response.text();
-    bookCache.set(file, source);
+    cachedBooks.set(file, source);
     return source;
   } finally {
     clearTimeout(timeout);
   }
 }
 
-function cleanF4Verse(raw: string): string {
-  return raw
+function extractVerse(source: string, reference: VerseReference): string | null {
+  // Exemplo do F4 oficial: "\\v Ef.4.3" seguido pelo texto na linha abaixo.
+  const marker = new RegExp(
+    `^\\\\v\\s+\\S+\\.${reference.chapter}\\.${reference.verse}\\s*$`,
+    "m"
+  );
+  const match = marker.exec(source);
+  if (!match) return null;
+
+  const afterMarker = source.slice(match.index + match[0].length);
+  const nextVerse = afterMarker.search(/^\\v\s+/m);
+  const raw = nextVerse >= 0 ? afterMarker.slice(0, nextVerse) : afterMarker;
+
+  // Remove notas e marcadores F4, preservando apenas o texto legível.
+  const text = raw
     .replace(/\\fn[\s\S]*?\\\*fn/g, " ")
-    .replace(/\\ref[\s\S]*?\\\*ref/g, " ")
-    .replace(/\\key[\s\S]*?\\\*key/g, " ")
     .replace(/\\\*?[a-z0-9-]+/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
-}
 
-function extractVerse(
-  source: string,
-  chapter: number,
-  verse: number
-): string | null {
-  // O F4 usa marcadores como: \\v Ef.4.3, \\v Sl.100.2 etc.
-  // O prefixo do livro varia, então capítulo/versículo são a parte estável.
-  const marker = new RegExp(
-    `\\\\v\\s+\\S+\\.${chapter}\\.${verse}\\s*\\r?\\n([\\s\\S]*?)(?=\\r?\\n\\\\v\\s+|$)`,
-    "i"
-  );
-  const match = source.match(marker);
-  if (!match?.[1]) return null;
-
-  const text = cleanF4Verse(match[1]);
   return text || null;
 }
 
@@ -96,16 +88,10 @@ export async function fetchVerseTextFromFree(
   reference: VerseReference
 ): Promise<{ text: string; label: string; version: string } | null> {
   try {
-    const file = BOOK_FILES[reference.book.toLowerCase()];
-    if (!file) {
-      console.error("fetchVerseTextFromFree: livro sem mapeamento", reference.book);
-      return null;
-    }
-
-    const source = await getBookSource(file);
-    const text = extractVerse(source, reference.chapter, reference.verse);
+    const source = await getBookSource(reference.book);
+    const text = extractVerse(source, reference);
     if (!text) {
-      console.error("fetchVerseTextFromFree: versículo não encontrado", reference.label);
+      console.error("fetchVerseTextFromFree: referência não encontrada", reference.label);
       return null;
     }
 
@@ -116,7 +102,7 @@ export async function fetchVerseTextFromFree(
     };
   } catch (error) {
     console.error(
-      "fetchVerseTextFromFree failed:",
+      "fetchVerseTextFromFree: falha ao buscar Bíblia Livre",
       error instanceof Error ? error.message : "unknown"
     );
     return null;
