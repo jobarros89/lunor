@@ -2,23 +2,18 @@ import type { VerseReference } from "./references";
 import { fetchVerseTextFromFree } from "./fetch-verse-free";
 
 /**
- * O LUNOR nunca armazena o texto bíblico no repositório nem no banco além
- * do cache de envio do dia. O texto é sempre buscado na API, na tradução
- * que a igreja configurou.
+ * O LUNOR não mantém um acervo próprio de textos bíblicos no repositório ou
+ * no banco. O texto é buscado no momento do envio na tradução configurada.
  *
- * Isso é deliberado: as traduções modernas em português (NVI, ARA, ACF, AA)
- * são obras protegidas das respectivas sociedades bíblicas, e vários dos
- * datasets públicos disponíveis são licenciados como não-comercial — o que
- * seria incompatível com um SaaS pago. Mantendo o texto fora do nosso código
- * e deixando a tradução configurável, cada igreja usa a versão que tem
- * direito de usar.
+ * Padrão: Bíblia Livre (BLIVRE), distribuída sob Creative Commons Atribuição
+ * 3.0 Brasil. Nas notificações, onde o espaço é restrito, a sigla BLIVRE
+ * identifica a tradução; no Admin exibimos também a licença.
  *
- * Padrão: Bíblia Livre (BLT, CC0, permissiva, sem custo, risco zero de licença).
- * Alternativas: nvi, acf, ra, etc. via ABíbliaDigital (se configurado).
+ * Alternativas configuradas (NVI, ACF e RA) são consultadas via
+ * ABíbliaDigital quando a integração correspondente estiver disponível.
  */
 
 const DEFAULT_BASE_URL = "https://www.abibliadigital.com.br/api";
-/** Tradução padrão: Bíblia Livre, CC0, permissiva. */
 const DEFAULT_VERSION = "blt";
 const TIMEOUT_MS = 5_000;
 
@@ -37,12 +32,12 @@ export async function fetchVerseText({
 }): Promise<FetchedVerse | null> {
   const resolvedVersion = (version || DEFAULT_VERSION).toLowerCase();
 
-  // Bíblia Livre: cliente direto (sem ABíbliaDigital)
+  // Bíblia Livre: cliente direto da fonte oficial, sem ABíbliaDigital.
   if (resolvedVersion === "blt") {
     return await fetchVerseTextFromFree(reference);
   }
 
-  // Outras versões: via ABíbliaDigital
+  // Outras versões: via ABíbliaDigital.
   const baseUrl = process.env.BIBLE_API_BASE_URL?.trim() || DEFAULT_BASE_URL;
   const token = process.env.BIBLE_API_TOKEN?.trim();
 
