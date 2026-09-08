@@ -46,6 +46,15 @@ function emptyResult(erro: string): DailyVerseSendResult {
   };
 }
 
+function todayInSaoPaulo(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 /**
  * Envia o versículo do dia.
  *
@@ -95,10 +104,6 @@ export async function runDailyVerseSend({
       falhas: 0,
       motivo: "sem_alvos",
     };
-  }
-
-  if (alvos.length === 0) {
-    return { ok: true, igrejas: 0, enviados: 0 };
   }
 
   const porIgreja = new Map<string, Alvo[]>();

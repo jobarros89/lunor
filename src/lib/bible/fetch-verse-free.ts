@@ -50,6 +50,7 @@ async function getBookSource(book: string): Promise<string> {
 
   try {
     const response = await fetch(`${BLIVRE_BASE_URL}/${file}.txt`, {
+      cache: "force-cache",
       signal: controller.signal,
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
