@@ -2,6 +2,7 @@ import { z } from "zod";
 import { runLunorAssistant } from "@/lib/ai/assistant";
 import { runDirectOperationalAnswer } from "@/lib/ai/direct-operational-answer";
 import { classifyAssistantRequest } from "@/lib/ai/intent-router";
+import { tryBuildRecurringEventProposalFromQuestion } from "@/lib/ai/recurring-events";
 import { checkAndLogAiUsage } from "@/lib/ai/rate-limit-server";
 import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
@@ -28,6 +29,23 @@ const requestSchema = z.object({
     .max(8)
     .default([]),
 });
+
+function recurringProposalError(error: unknown) {
+  const code = error instanceof Error ? error.message : "unknown";
+  if (code === "recurring_event_permission_denied") {
+    return "Encontrei o padrão dos cultos, mas sua conta não tem permissão para criar essa série.";
+  }
+  if (code === "recurring_event_template_not_found") {
+    return "Não encontrei um culto anterior com o mesmo campus, período e dia da semana para usar como modelo.";
+  }
+  if (code === "recurring_event_campus_ambiguous") {
+    return "Encontrei mais de um campus compatível. Informe o nome completo do campus.";
+  }
+  if (code === "recurring_event_range_invalid") {
+    return "O período solicitado já terminou. Informe uma nova data final.";
+  }
+  return null;
+}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -73,6 +91,63 @@ export async function POST(request: Request) {
     allowedMinistries,
   };
 
+  // Criação recorrente de cultos é uma ação estrutural e previsível. O servidor
+  // reconhece o padrão antes do modelo, usa os cultos reais como template e
+  // devolve apenas uma proposta confirmável. Nenhuma escrita acontece aqui.
+  try {
+    const recurring = await tryBuildRecurringEventProposalFromQuestion(
+      context,
+      parsed.data.question
+    );
+    if (recurring) {
+      const count = recurring.occurrences.length;
+      const existing = recurring.skippedExisting;
+      const answer = count > 0
+        ? `Encontrei o padrão existente de ${recurring.title} no campus ${recurring.campus.name}. Preparei ${count} culto${count === 1 ? "" : "s"} que ainda falta${count === 1 ? "" : "m"}${existing > 0 ? ` e preservei ${existing} data${existing === 1 ? "" : "s"} já cadastrada${existing === 1 ? "" : "s"}` : ""}. Revise a série abaixo e confirme para criar.`
+        : `Os cultos desse padrão já estão cadastrados no período solicitado. ${existing} data${existing === 1 ? "" : "s"} existente${existing === 1 ? "" : "s"} foi${existing === 1 ? "" : "ram"} preservada${existing === 1 ? "" : "s"}; nenhuma duplicação foi criada.`;
+      return Response.json(
+        {
+          answer,
+          model: "lunor-deterministic",
+          usedTools: ["recurring_event_template"],
+          proposals: [],
+          worshipSetlistProposals: [],
+          recurringEventProposals: count > 0 ? [recurring] : [],
+          scope: {
+            ministryId: ministry.id,
+            ministryName: ministry.name,
+            availableMinistries: allowedMinistries.length,
+          },
+        },
+        { headers: HEADERS }
+      );
+    }
+  } catch (error) {
+    const friendly = recurringProposalError(error);
+    if (friendly) {
+      return Response.json(
+        {
+          answer: friendly,
+          model: "lunor-deterministic",
+          usedTools: ["recurring_event_template"],
+          proposals: [],
+          worshipSetlistProposals: [],
+          recurringEventProposals: [],
+          scope: {
+            ministryId: ministry.id,
+            ministryName: ministry.name,
+            availableMinistries: allowedMinistries.length,
+          },
+        },
+        { headers: HEADERS }
+      );
+    }
+    console.error(
+      "lunor recurring events:",
+      error instanceof Error ? error.message : "unknown_error"
+    );
+  }
+
   const requestProfile = classifyAssistantRequest({
     question: parsed.data.question,
     currentMinistryId: ministry.id,
@@ -97,6 +172,7 @@ export async function POST(request: Request) {
             usedTools: direct.usedTools,
             proposals: [],
             worshipSetlistProposals: [],
+            recurringEventProposals: [],
             requestProfile,
             scope: {
               ministryId: ministry.id,
@@ -151,6 +227,7 @@ export async function POST(request: Request) {
         usedTools: result.usedTools,
         proposals: result.proposals,
         worshipSetlistProposals: result.worshipSetlistProposals,
+        recurringEventProposals: [],
         requestProfile,
         scope: {
           ministryId: ministry.id,
