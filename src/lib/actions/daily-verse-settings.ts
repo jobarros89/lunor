@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+const ALLOWED_VERSIONS = ["blt", "nvi", "acf", "ra"] as const;
 const ALLOWED_THEMES = [
   "auto",
   "servir",
@@ -12,28 +13,27 @@ const ALLOWED_THEMES = [
   "unidade",
 ] as const;
 
+type DailyVerseVersion = (typeof ALLOWED_VERSIONS)[number];
 type DailyVerseTheme = (typeof ALLOWED_THEMES)[number];
 
 export async function updateDailyVerseSettings(
   churchId: string,
   settings: {
     enabled: boolean;
-    version?: "blt" | "nvi" | "acf" | "ra";
+    version?: DailyVerseVersion;
     theme?: DailyVerseTheme;
   }
 ) {
   const version = settings.version ?? "blt";
   const theme = settings.theme ?? "auto";
-  if (!VALID_VERSIONS.has(version) || !VALID_THEMES.has(theme)) {
+  if (
+    !(ALLOWED_VERSIONS as readonly string[]).includes(version) ||
+    !(ALLOWED_THEMES as readonly string[]).includes(theme)
+  ) {
     throw new Error("Configuração inválida para o versículo do dia.");
   }
 
   const supabase = await createClient();
-
-  const theme = settings.theme || "auto";
-  if (!(ALLOWED_THEMES as readonly string[]).includes(theme)) {
-    throw new Error("Tema de versículo inválido.");
-  }
 
   const { data: church, error: readError } = await supabase
     .from("churches")
@@ -49,7 +49,7 @@ export async function updateDailyVerseSettings(
     notifications: {
       ...(currentSettings.notifications || {}),
       daily_verse_enabled: settings.enabled,
-      daily_verse_version: settings.version || "blt",
+      daily_verse_version: version,
       daily_verse_theme: theme,
     },
   };
