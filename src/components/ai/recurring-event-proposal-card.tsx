@@ -68,7 +68,7 @@ export function RecurringEventProposalCard({
       setSuccess(
         created === 0
           ? "Todos esses cultos já estavam cadastrados. Nenhuma duplicação foi criada."
-          : `${created} culto${created === 1 ? "" : "s"} criado${created === 1 ? "" : "s"}${skippedExisting > 0 ? ` · ${skippedExisting} já existente${skippedExisting === 1 ? "" : "s"} preservado${skippedExisting === 1 ? "" : "s"}` : ""}.`
+          : `${created} culto${created === 1 ? "" : "s"} criado${created === 1 ? "" : "s"}${skippedExisting > 0 ? ` · ${skippedExisting} data${skippedExisting === 1 ? "" : "s"} já existente${skippedExisting === 1 ? "" : "s"} preservada${skippedExisting === 1 ? "" : "s"}` : ""}.`
       );
     });
   }
@@ -86,7 +86,7 @@ export function RecurringEventProposalCard({
           <p className="mt-1 font-semibold">{proposal.title}</p>
           <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
             <MapPin className="size-3.5" />
-            {proposal.campus.name} · {PERIOD_LABELS[proposal.servicePeriod]} · {proposal.occurrences.length} nova{proposal.occurrences.length === 1 ? " data" : "s datas"}
+            {proposal.campus.name} · {PERIOD_LABELS[proposal.servicePeriod]} · {proposal.occurrences.length} {proposal.occurrences.length === 1 ? "nova data" : "novas datas"}
           </p>
         </div>
       </div>
@@ -104,7 +104,7 @@ export function RecurringEventProposalCard({
 
       {proposal.skippedExisting > 0 && (
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-          {proposal.skippedExisting} data{proposal.skippedExisting === 1 ? " já está" : "s já estão"} cadastrada{proposal.skippedExisting === 1 ? "" : "s"} e será{proposal.skippedExisting === 1 ? "" : "ão"} preservada{proposal.skippedExisting === 1 ? "" : "s"}.
+          {proposal.skippedExisting} {proposal.skippedExisting === 1 ? "data já está cadastrada e será preservada" : "datas já estão cadastradas e serão preservadas"}.
         </p>
       )}
       <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
@@ -134,7 +134,7 @@ export function RecurringEventProposalCard({
         ) : confirmed ? (
           <>
             <CheckCircle2 className="size-4" />
-            Cultos criados
+            Série confirmada
           </>
         ) : (
           `Criar ${proposal.occurrences.length} culto${proposal.occurrences.length === 1 ? "" : "s"}`
