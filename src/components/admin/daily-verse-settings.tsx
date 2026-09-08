@@ -86,7 +86,7 @@ export function DailyVerseSettings({
         }
 
         if (resultado.motivo === "sem_alvos") {
-          setSendMessage("Nenhuma pessoa vinculada à igreja possui uma inscrição de notificação ativa neste dispositivo/navegador.");
+          setSendMessage("Nenhuma pessoa vinculada à igreja possui uma inscrição Push ativa.");
         } else if (resultado.motivo === "texto_indisponivel") {
           setSendMessage("Há pessoas com notificações ativas, mas o texto bíblico não pôde ser carregado. Tente novamente em instantes.");
         } else {
