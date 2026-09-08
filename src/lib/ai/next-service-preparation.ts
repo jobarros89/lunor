@@ -2,35 +2,7 @@ import { getKidsOperationalInsights, isKidsMinistryName } from "@/lib/ai/kids";
 import type { SchedulingContext } from "@/lib/ai/scheduling";
 import { getTeamWorkloadInsights } from "@/lib/ai/workload-insights";
 import { analyzeWorshipSetlist, isWorshipMinistryName } from "@/lib/ai/worship";
-import { executeLunorTool } from "@/lib/ai/tools";
 import { loadOperationalSummary } from "@/lib/operational-summary-server";
-
-type EventTeamPerson = {
-  userId: string;
-  name: string;
-  roleName: string;
-  status: string;
-  statusLabel: string;
-  arrival: string | null;
-  release: string | null;
-};
-
-type EventTeamResult = {
-  people: EventTeamPerson[];
-};
-
-type EventAvailabilityPerson = {
-  userId: string;
-  name: string;
-  role: string;
-  status: "available" | "unavailable" | null;
-  statusLabel: string;
-  source: string | null;
-};
-
-type EventAvailabilityResult = {
-  people: EventAvailabilityPerson[];
-};
 
 type Captured<T> =
   | { available: true; data: T }
@@ -63,14 +35,6 @@ const PRIORITY_ORDER: Record<PreparationPriority, number> = {
   medium: 2,
   info: 3,
 };
-
-function compactPeople<T>(people: T[], limit = 12) {
-  return {
-    total: people.length,
-    truncated: people.length > limit,
-    people: people.slice(0, limit),
-  };
-}
 
 export async function prepareNextService(
   context: SchedulingContext,
@@ -108,51 +72,15 @@ export async function prepareNextService(
         )
       : Promise.resolve<Captured<null>>({ available: true, data: null });
 
-  const [teamResult, availabilityResult, workloadResult, specialtyResult] =
-    await Promise.all([
-      capture(async () =>
-        (await executeLunorTool("get_event_team", { eventId: event.id }, context)) as EventTeamResult
-      ),
-      capture(async () =>
-        (await executeLunorTool(
-          "get_event_availability",
-          { eventId: event.id },
-          context
-        )) as EventAvailabilityResult
-      ),
-      capture(() =>
-        getTeamWorkloadInsights(context, {
-          historyDays: days,
-          limit: 8,
-        })
-      ),
-      specialtyPromise,
-    ]);
-
-  const team = teamResult.available ? teamResult.data.people : [];
-  const availability = availabilityResult.available
-    ? availabilityResult.data.people
-    : [];
-  const assignedUserIds = new Set(team.map((person) => person.userId));
-
-  const pendingConfirmation = team.filter((person) => person.status === "convidado");
-  const wantsLeader = team.filter((person) => person.status === "falar_lider");
-  const substitutionNeeded = team.filter(
-    (person) => person.status === "substituicao_solicitada"
-  );
-  const absent = team.filter((person) => person.status === "ausente");
-  const confirmed = team.filter((person) =>
-    ["confirmado", "presente"].includes(person.status)
-  );
-  const assignedUnavailable = availability.filter(
-    (person) => assignedUserIds.has(person.userId) && person.status === "unavailable"
-  );
-  const availableNotAssigned = availability.filter(
-    (person) => !assignedUserIds.has(person.userId) && person.status === "available"
-  );
-  const noAvailabilityResponse = availability.filter(
-    (person) => person.status === null
-  );
+  const [workloadResult, specialtyResult] = await Promise.all([
+    capture(() =>
+      getTeamWorkloadInsights(context, {
+        historyDays: days,
+        limit: 8,
+      })
+    ),
+    specialtyPromise,
+  ]);
 
   const priorities: PreparationItem[] = [];
 
@@ -165,57 +93,60 @@ export async function prepareNextService(
       suggestedAction: "Montar e revisar a escala antes das demais otimizações.",
     });
   }
-  if (substitutionNeeded.length > 0) {
+  if (event.assignments.substitutionNeeded > 0) {
     priorities.push({
       priority: "high",
       area: "scale",
       title: "Substituição pendente",
-      evidence: `${substitutionNeeded.length} função(ões) têm solicitação de substituição.`,
+      evidence: `${event.assignments.substitutionNeeded} função(ões) têm solicitação de substituição.`,
       suggestedAction: "Resolver as substituições antes de considerar a escala pronta.",
     });
   }
-  if (assignedUnavailable.length > 0) {
+  if (event.assignments.assignedUnavailable > 0) {
     priorities.push({
       priority: "high",
       area: "availability",
       title: "Pessoa escalada está indisponível",
-      evidence: `${assignedUnavailable.length} pessoa(s) escalada(s) constam como indisponíveis.`,
-      suggestedAction: "Revisar essas posições e avaliar substitutos disponíveis.",
+      evidence: `${event.assignments.assignedUnavailable} pessoa(s) escalada(s) constam como indisponíveis.`,
+      suggestedAction: "Revisar essas posições e consultar alternativas disponíveis.",
     });
   }
-  if (absent.length > 0) {
+  if (event.assignments.absent > 0) {
     priorities.push({
       priority: "high",
       area: "scale",
       title: "Ausência registrada",
-      evidence: `${absent.length} pessoa(s) da escala estão marcadas como ausentes.`,
+      evidence: `${event.assignments.absent} atribuição(ões) estão marcadas como ausência.`,
       suggestedAction: "Cobrir as funções afetadas antes do culto.",
     });
   }
-  if (wantsLeader.length > 0) {
+  if (event.assignments.wantsLeader > 0) {
     priorities.push({
       priority: "medium",
       area: "scale",
       title: "Voluntário pediu contato da liderança",
-      evidence: `${wantsLeader.length} pessoa(s) estão com status “Falar com líder”.`,
+      evidence: `${event.assignments.wantsLeader} atribuição(ões) estão com status “Falar com líder”.`,
       suggestedAction: "Fazer o contato antes de fechar a escala.",
     });
   }
-  if (pendingConfirmation.length > 0) {
+  if (event.assignments.awaitingConfirmation > 0) {
     priorities.push({
       priority: "medium",
       area: "scale",
       title: "Confirmações pendentes",
-      evidence: `${pendingConfirmation.length} atribuição(ões) ainda aguardam confirmação.`,
+      evidence: `${event.assignments.awaitingConfirmation} atribuição(ões) ainda aguardam confirmação.`,
       suggestedAction: "Cobrar confirmação e manter alternativas em vista.",
     });
   }
-  if (availability.length > 0 && noAvailabilityResponse.length / availability.length >= 0.4) {
+  if (
+    event.availability.totalMembers > 0 &&
+    event.availability.unknown / event.availability.totalMembers >= 0.4
+  ) {
     priorities.push({
       priority: "medium",
       area: "availability",
       title: "Baixa cobertura de disponibilidade",
-      evidence: `${noAvailabilityResponse.length} de ${availability.length} membros ainda estão sem resposta de disponibilidade.`,
+      evidence: `${event.availability.unknown} de ${event.availability.totalMembers} membros ainda estão sem resposta de disponibilidade.`,
       suggestedAction: "Solicitar disponibilidade ao restante do time antes de preencher lacunas.",
     });
   }
@@ -235,6 +166,7 @@ export async function prepareNextService(
 
   if (specialtyResult.available && specialtyResult.data) {
     const specialty = specialtyResult.data as Record<string, unknown>;
+
     if (specialty.kind === "worship_setlist_analysis") {
       const worshipSummary = specialty.summary as {
         songs: number;
@@ -296,8 +228,6 @@ export async function prepareNextService(
   priorities.sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
 
   const dataWarnings = [
-    !teamResult.available ? `equipe:${teamResult.error}` : null,
-    !availabilityResult.available ? `disponibilidade:${availabilityResult.error}` : null,
     !workloadResult.available ? `carga:${workloadResult.error}` : null,
     !specialtyResult.available ? `modulo:${specialtyResult.error}` : null,
   ].filter((item): item is string => Boolean(item));
@@ -314,40 +244,8 @@ export async function prepareNextService(
       startsAt: event.startsAt,
       readiness: event.readiness,
     },
-    scale: {
-      totalAssignments: team.length,
-      confirmed: confirmed.length,
-      pendingConfirmation: compactPeople(
-        pendingConfirmation.map(({ name, roleName, statusLabel }) => ({ name, roleName, statusLabel }))
-      ),
-      wantsLeader: compactPeople(
-        wantsLeader.map(({ name, roleName, statusLabel }) => ({ name, roleName, statusLabel }))
-      ),
-      substitutionNeeded: compactPeople(
-        substitutionNeeded.map(({ name, roleName, statusLabel }) => ({ name, roleName, statusLabel }))
-      ),
-      absent: compactPeople(
-        absent.map(({ name, roleName, statusLabel }) => ({ name, roleName, statusLabel }))
-      ),
-      assignments: team.slice(0, 24).map(({ name, roleName, statusLabel, arrival, release }) => ({
-        name,
-        roleName,
-        statusLabel,
-        arrival,
-        release,
-      })),
-      assignmentsTruncated: team.length > 24,
-    },
-    availability: {
-      ...event.availability,
-      availableNotAssigned: compactPeople(
-        availableNotAssigned.map(({ name, role, statusLabel }) => ({ name, role, statusLabel }))
-      ),
-      assignedUnavailable: compactPeople(
-        assignedUnavailable.map(({ name, role, statusLabel }) => ({ name, role, statusLabel }))
-      ),
-      noResponse: noAvailabilityResponse.length,
-    },
+    scale: event.assignments,
+    availability: event.availability,
     workload: workloadResult.available
       ? {
           summary: workloadResult.data.summary,
@@ -360,6 +258,6 @@ export async function prepareNextService(
     priorities,
     dataWarnings,
     guidance:
-      "Use este pacote como briefing operacional do próximo culto. Priorize riscos concretos, diferencie ausência de resposta de indisponibilidade e não transforme sinais de carga em julgamento sobre pessoas.",
+      "Use este pacote como briefing operacional do próximo culto. Se precisar dos nomes envolvidos em pendências ou de substitutos concretos, consulte get_event_team, get_event_availability e get_schedule_candidates usando o event.id retornado. Diferencie ausência de resposta de indisponibilidade e não transforme sinais de carga em julgamento sobre pessoas.",
   };
 }
