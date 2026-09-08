@@ -5,24 +5,31 @@ import { serverEnv } from "@/lib/env";
 export type PushTarget = { id?: string; endpoint: string; p256dh: string; auth: string };
 export type PushMessage = { title: string; body: string; url?: string; tag?: string };
 
+export type PushDeliveryResult = {
+  staleIds: string[];
+  accepted: number;
+  failed: number;
+};
+
 /**
- * Envia uma notificação Web Push para os alvos (best-effort).
- * Roda no runtime do Worker via WebCrypto (o `web-push` do Node não funciona lá).
- * Assina com a chave privada VAPID (secret de runtime).
- * Retorna somente ids conhecidos de inscrições que o provedor confirmou como
- * expiradas (HTTP 404/410), para limpeza posterior no banco.
+ * Envia Web Push e informa quantas inscrições foram efetivamente aceitas pelo
+ * provedor. 404/410 continuam sendo devolvidos como staleIds para limpeza.
  */
-export async function sendWebPush(targets: PushTarget[], message: PushMessage): Promise<string[]> {
-  if (targets.length === 0) return [];
+export async function sendWebPushDetailed(
+  targets: PushTarget[],
+  message: PushMessage
+): Promise<PushDeliveryResult> {
+  if (targets.length === 0) return { staleIds: [], accepted: 0, failed: 0 };
+
   const publicKey = serverEnv("NEXT_PUBLIC_VAPID_PUBLIC_KEY");
   const privateKey = serverEnv("VAPID_PRIVATE_KEY");
   const subject = serverEnv("VAPID_SUBJECT") ?? "mailto:contato@lunorservice.com";
   if (!publicKey || !privateKey) {
     console.warn("sendWebPush: chaves VAPID ausentes — notificação ignorada");
-    return [];
+    return { staleIds: [], accepted: 0, failed: targets.length };
   }
-  const vapid = { subject, publicKey, privateKey };
 
+  const vapid = { subject, publicKey, privateKey };
   const results = await Promise.all(
     targets.map(async (t) => {
       const subscription = {
@@ -33,6 +40,7 @@ export async function sendWebPush(targets: PushTarget[], message: PushMessage): 
       const data: Record<string, string> = { title: message.title, body: message.body };
       if (message.url) data.url = message.url;
       if (message.tag) data.tag = message.tag;
+
       try {
         const payload = await buildPushPayload(
           { data, options: { ttl: 60 * 60 * 24, urgency: "normal" } },
@@ -44,18 +52,38 @@ export async function sendWebPush(targets: PushTarget[], message: PushMessage): 
           headers: payload.headers,
           body: payload.body as BodyInit,
         });
+
+        if (res.ok) return { accepted: true, staleId: null as string | null };
         if ((res.status === 404 || res.status === 410) && t.id) {
-          return t.id;
+          return { accepted: false, staleId: t.id };
         }
-        if (!res.ok) {
-          console.warn("sendWebPush: provedor recusou notificação", res.status);
-        }
+
+        console.warn("sendWebPush: provedor recusou notificação", res.status);
+        return { accepted: false, staleId: null as string | null };
       } catch (err) {
         console.error("sendWebPush: falha ao enviar", err);
+        return { accepted: false, staleId: null as string | null };
       }
-      return null;
     })
   );
 
-  return results.filter((id): id is string => !!id);
+  const staleIds = results
+    .map((result) => result.staleId)
+    .filter((id): id is string => !!id);
+  const accepted = results.filter((result) => result.accepted).length;
+
+  return {
+    staleIds,
+    accepted,
+    failed: results.length - accepted,
+  };
+}
+
+/**
+ * API compatível com os chamadores existentes: retorna somente inscrições
+ * expiradas. Novos fluxos que precisam confirmar entrega usam a versão detalhada.
+ */
+export async function sendWebPush(targets: PushTarget[], message: PushMessage): Promise<string[]> {
+  const result = await sendWebPushDetailed(targets, message);
+  return result.staleIds;
 }
