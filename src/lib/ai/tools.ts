@@ -11,6 +11,7 @@ import {
   type TeamRecurringAvailabilityEntry,
 } from "@/lib/availability-overview";
 import type { LunorAiTool } from "@/lib/ai/cloudflare";
+import { prepareNextService } from "@/lib/ai/next-service-preparation";
 import { ASSIGNMENT_STATUS_LABELS } from "@/lib/escalas";
 import { loadOperationalSummary } from "@/lib/operational-summary-server";
 import { resolveServiceWindow, timeLabel } from "@/lib/service-window";
@@ -51,6 +52,24 @@ export const LUNOR_TOOLS: LunorToolDescriptor[] = [
           minimum: 1,
           maximum: 8,
           description: "Quantidade de próximos cultos a analisar. Padrão: 4.",
+        },
+      },
+      additionalProperties: false,
+    },
+    annotations: READ_ONLY,
+  },
+  {
+    name: "prepare_next_service",
+    description:
+      "Prepara um briefing inteligente e somente leitura do próximo culto no ministério atual, cruzando prontidão da escala, confirmações, disponibilidade, carga recente do time e sinais específicos do Louvor ou Kids. Use diretamente para pedidos como ‘Prepare meu próximo culto’, ‘O que preciso resolver antes do próximo culto?’ ou ‘Me dê um plano para domingo’. Depois, consulte get_event_team, get_event_availability ou get_schedule_candidates apenas se precisar identificar pessoas ou substitutos concretos.",
+    parameters: {
+      type: "object",
+      properties: {
+        historyDays: {
+          type: "integer",
+          minimum: 14,
+          maximum: 180,
+          description: "Janela histórica para analisar carga e rodízio. Padrão: 60 dias.",
         },
       },
       additionalProperties: false,
@@ -105,6 +124,9 @@ export function lunorAiTools(): LunorAiTool[] {
 
 const operationalSummaryInput = z.object({
   limit: z.number().int().min(1).max(8).optional(),
+});
+const nextServicePreparationInput = z.object({
+  historyDays: z.number().int().min(14).max(180).optional(),
 });
 const eventInput = z.object({ eventId: z.string().uuid() });
 
@@ -311,6 +333,12 @@ export async function executeLunorTool(
         ministryId: context.ministryId,
         ministryName: context.ministryName,
         limit: input.limit ?? 4,
+      });
+    }
+    case "prepare_next_service": {
+      const input = nextServicePreparationInput.parse(args);
+      return prepareNextService(context, {
+        historyDays: input.historyDays ?? 60,
       });
     }
     case "get_event_team":

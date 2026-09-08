@@ -6,6 +6,8 @@ import {
   getAssistantAppOperationalOverview,
   resolveAssistantMinistryContext,
 } from "@/lib/ai/app-context";
+import { getLeadershipInsights } from "@/lib/ai/leadership-insights";
+import { getTeamWorkloadInsights } from "@/lib/ai/workload-insights";
 import {
   buildAssignmentProposal,
   loadScheduleCandidates,
@@ -59,6 +61,53 @@ const INTERNAL_TOOLS: LunorAiTool[] = [
           minimum: 1,
           maximum: 4,
           description: "Quantidade de próximos cultos por ministério. Padrão: 2.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_leadership_insights",
+    description:
+      "Gera insights operacionais priorizados para liderança cruzando escalas, confirmações e disponibilidade dos ministérios autorizados. Retorna somente dados agregados e ações sugeridas. Use para perguntas sobre riscos, prioridades, gargalos, panorama, reunião de líderes ou o que precisa de atenção.",
+    parameters: {
+      type: "object",
+      properties: {
+        eventLimit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 4,
+          description: "Quantidade de próximos cultos analisados por ministério. Padrão: 3.",
+        },
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 12,
+          description: "Quantidade máxima de insights priorizados. Padrão: 8.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "get_team_workload_insights",
+    description:
+      "Analisa a carga recente de voluntários de um ministério autorizado usando apenas participações confirmadas/presentes. Mostra concentração de carga, pessoas acima da média e oportunidades de rotação. Use para perguntas como quem está sendo muito escalado, equilíbrio do time ou rodízio. Somente leitura.",
+    parameters: {
+      type: "object",
+      properties: {
+        ministryId: ministryIdProperty,
+        historyDays: {
+          type: "integer",
+          minimum: 14,
+          maximum: 180,
+          description: "Janela histórica em dias. Padrão: 60.",
+        },
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 12,
+          description: "Máximo de pessoas em cada grupo. Padrão: 8.",
         },
       },
       additionalProperties: false,
@@ -275,6 +324,14 @@ const ministryTargetSchema = z.object({ ministryId: z.string().uuid().optional()
 const appOverviewSchema = z.object({
   eventLimit: z.number().int().min(1).max(4).optional(),
 });
+const leadershipInsightsSchema = z.object({
+  eventLimit: z.number().int().min(1).max(4).optional(),
+  limit: z.number().int().min(1).max(12).optional(),
+});
+const workloadInsightsSchema = ministryTargetSchema.extend({
+  historyDays: z.number().int().min(14).max(180).optional(),
+  limit: z.number().int().min(1).max(12).optional(),
+});
 const ministryOperationalSchema = z.object({
   ministryId: z.string().uuid(),
   limit: z.number().int().min(1).max(8).optional(),
@@ -339,6 +396,21 @@ export async function executeInternalAiTool(
       const input = appOverviewSchema.parse(args);
       return getAssistantAppOperationalOverview(context, {
         eventLimit: input.eventLimit ?? 2,
+      });
+    }
+    case "get_leadership_insights": {
+      const input = leadershipInsightsSchema.parse(args);
+      return getLeadershipInsights(context, {
+        eventLimit: input.eventLimit ?? 3,
+        limit: input.limit ?? 8,
+      });
+    }
+    case "get_team_workload_insights": {
+      const input = workloadInsightsSchema.parse(args);
+      const target = resolveAssistantMinistryContext(context, input.ministryId);
+      return getTeamWorkloadInsights(target, {
+        historyDays: input.historyDays ?? 60,
+        limit: input.limit ?? 8,
       });
     }
     case "get_ministry_operational_summary": {

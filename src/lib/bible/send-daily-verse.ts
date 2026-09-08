@@ -97,12 +97,16 @@ export async function runDailyVerseSend({
     };
   }
 
+  if (alvos.length === 0) {
+    return { ok: true, igrejas: 0, enviados: 0 };
+  }
+
   const porIgreja = new Map<string, Alvo[]>();
   for (const alvo of alvos) {
     porIgreja.set(alvo.church_id, [...(porIgreja.get(alvo.church_id) ?? []), alvo]);
   }
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = todayInSaoPaulo();
   const usuariosEnviados = new Set<string>();
   let igrejas = 0;
   let falhas = 0;

@@ -142,6 +142,11 @@ export function DailyVerseSettings({
                   </option>
                 ))}
               </select>
+              {version === "blt" && (
+                <p className="text-xs text-muted-foreground">
+                  Bíblia Livre (BLIVRE) · CC BY 3.0 BR.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">

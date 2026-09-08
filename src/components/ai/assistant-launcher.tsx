@@ -22,6 +22,8 @@ export function AssistantLauncher({
   ministryId: string;
   ministryName: string;
 }) {
+  const assistantScopeLabel = "Sua igreja";
+
   return (
     <Sheet>
       <SheetTrigger
@@ -43,6 +45,7 @@ export function AssistantLauncher({
       <SheetContent
         side="right"
         showCloseButton={false}
+        data-current-ministry={ministryName}
         className="h-[100dvh] w-full max-w-none gap-0 overflow-hidden border-l-0 data-[side=right]:w-full data-[side=right]:max-w-none sm:data-[side=right]:w-[min(100vw,42rem)] sm:data-[side=right]:border-l"
       >
         <SheetHeader className="sticky top-0 z-20 shrink-0 border-b bg-popover/95 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur sm:px-5 sm:pt-4">
@@ -54,9 +57,9 @@ export function AssistantLauncher({
             <div className="min-w-0 flex-1">
               <SheetTitle className="truncate text-lg">Assistente LUNOR</SheetTitle>
               <SheetDescription className="mt-0.5 truncate">
-                <span className="sm:hidden">Contexto: {ministryName}</span>
+                <span className="sm:hidden">{assistantScopeLabel}</span>
                 <span className="hidden sm:inline">
-                  Contexto atual: {ministryName} · você pode perguntar sobre outros módulos que gerencia.
+                  {assistantScopeLabel} · pergunte sobre cultos e ministérios que você gerencia.
                 </span>
               </SheetDescription>
             </div>
@@ -81,7 +84,7 @@ export function AssistantLauncher({
           <AssistantPanel
             churchSlug={churchSlug}
             ministryId={ministryId}
-            ministryName={ministryName}
+            ministryName={assistantScopeLabel}
             compact
           />
         </div>

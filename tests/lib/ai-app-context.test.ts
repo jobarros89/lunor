@@ -58,12 +58,14 @@ describe("Assistente LUNOR transversal", () => {
     ).toThrow("ministry_scope_forbidden");
   });
 
-  it("expõe ferramentas internas para visão global e consultas entre ministérios", () => {
+  it("expõe ferramentas internas para visão global, insights e consultas entre ministérios", () => {
     const names = internalAiTools().map((tool) => tool.name);
     expect(names).toEqual(
       expect.arrayContaining([
         "get_app_context",
         "get_app_operational_overview",
+        "get_leadership_insights",
+        "get_team_workload_insights",
         "get_ministry_operational_summary",
         "get_ministry_event_team",
         "get_ministry_event_availability",

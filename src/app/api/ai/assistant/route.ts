@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { checkAndLogAiUsage } from "@/lib/ai/rate-limit-server";
 import { runLunorAssistant } from "@/lib/ai/assistant";
 import { runDirectOperationalAnswer } from "@/lib/ai/direct-operational-answer";
-import { runDirectScheduleDraft } from "@/lib/ai/direct-schedule-draft";
+import { classifyAssistantRequest } from "@/lib/ai/intent-router";
+import { checkAndLogAiUsage } from "@/lib/ai/rate-limit-server";
 import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
 import { getTenant } from "@/lib/tenant";
@@ -28,42 +28,6 @@ const requestSchema = z.object({
     .max(8)
     .default([]),
 });
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLocaleLowerCase("pt-BR");
-}
-
-function shouldUseGlobalOrchestration(
-  question: string,
-  currentMinistryId: string,
-  allowedMinistries: Array<{ id: string; name: string }>
-) {
-  const normalized = normalize(question);
-  const broadIntent = [
-    "igreja",
-    "visao geral",
-    "panorama geral",
-    "todos os ministerios",
-    "todos os ministérios",
-    "reuniao de lideres",
-    "reunião de líderes",
-    "app como um todo",
-    "lunor como um todo",
-  ].some((term) => normalized.includes(normalize(term)));
-
-  const mentionsOtherMinistry = allowedMinistries.some(
-    (item) =>
-      item.id !== currentMinistryId &&
-      normalize(item.name).length >= 3 &&
-      normalized.includes(normalize(item.name))
-  );
-
-  return broadIntent || mentionsOtherMinistry;
-}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -102,7 +66,57 @@ export async function POST(request: Request) {
     .filter((item) => item.canManage)
     .map((item) => ({ id: item.id, name: item.name }));
 
-  // Rate limiting: máx 20 mensagens/hora por usuário + igreja
+  const context = {
+    churchId: tenant.church.id,
+    ministryId: ministry.id,
+    ministryName: ministry.name,
+    allowedMinistries,
+  };
+
+  const requestProfile = classifyAssistantRequest({
+    question: parsed.data.question,
+    currentMinistryId: ministry.id,
+    allowedMinistries,
+  });
+
+  // Consultas factuais, locais e de alta confiança continuam no caminho
+  // determinístico: menor latência, menor custo e resposta diretamente baseada
+  // no banco. Análises, planos, ações e qualquer escopo transversal seguem para
+  // o orquestrador com ferramentas.
+  if (requestProfile.strategy === "direct_lookup") {
+    try {
+      const direct = await runDirectOperationalAnswer({
+        question: parsed.data.question,
+        context,
+      });
+      if (direct) {
+        return Response.json(
+          {
+            answer: direct.answer,
+            model: "lunor-deterministic",
+            usedTools: direct.usedTools,
+            proposals: [],
+            worshipSetlistProposals: [],
+            requestProfile,
+            scope: {
+              ministryId: ministry.id,
+              ministryName: ministry.name,
+              availableMinistries: allowedMinistries.length,
+            },
+          },
+          { headers: HEADERS }
+        );
+      }
+    } catch (error) {
+      console.error(
+        "lunor direct assistant:",
+        error instanceof Error ? error.message : "unknown_error"
+      );
+    }
+  }
+
+  // O limite é de consumo de IA. Consultas resolvidas de forma determinística
+  // acima não consomem a cota do modelo.
   const rateLimitResult = await checkAndLogAiUsage({
     userId: user.id,
     churchId: tenant.church.id,
@@ -122,87 +136,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const context = {
-    churchId: tenant.church.id,
-    ministryId: ministry.id,
-    ministryName: ministry.name,
-    allowedMinistries,
-  };
-
-  const globalOrCrossModule = shouldUseGlobalOrchestration(
-    parsed.data.question,
-    ministry.id,
-    allowedMinistries
-  );
-
-  // Atalhos determinísticos permanecem para perguntas claramente locais ao
-  // contexto visual. Perguntas globais ou sobre outro ministério seguem para o
-  // orquestrador do Assistente LUNOR, que pode cruzar módulos autorizados.
-  if (!globalOrCrossModule) {
-    try {
-      const draft = await runDirectScheduleDraft({
-        question: parsed.data.question,
-        context,
-      });
-      if (draft) {
-        return Response.json(
-          {
-            answer: draft.answer,
-            model: "lunor-deterministic",
-            usedTools: draft.usedTools,
-            proposals: draft.proposals,
-            worshipSetlistProposals: [],
-            scope: {
-              ministryId: ministry.id,
-              ministryName: ministry.name,
-              availableMinistries: allowedMinistries.length,
-            },
-          },
-          { headers: HEADERS }
-        );
-      }
-    } catch (error) {
-      console.error(
-        "lunor direct schedule draft:",
-        error instanceof Error ? error.message : "unknown_error"
-      );
-    }
-
-    try {
-      const direct = await runDirectOperationalAnswer({
-        question: parsed.data.question,
-        context,
-      });
-      if (direct) {
-        return Response.json(
-          {
-            answer: direct.answer,
-            model: "lunor-deterministic",
-            usedTools: direct.usedTools,
-            proposals: [],
-            worshipSetlistProposals: [],
-            scope: {
-              ministryId: ministry.id,
-              ministryName: ministry.name,
-              availableMinistries: allowedMinistries.length,
-            },
-          },
-          { headers: HEADERS }
-        );
-      }
-    } catch (error) {
-      console.error(
-        "lunor direct assistant:",
-        error instanceof Error ? error.message : "unknown_error"
-      );
-    }
-  }
-
   try {
     const result = await runLunorAssistant({
       question: parsed.data.question,
       history: parsed.data.history,
       context,
+      requestProfile,
     });
 
     return Response.json(
@@ -212,6 +151,7 @@ export async function POST(request: Request) {
         usedTools: result.usedTools,
         proposals: result.proposals,
         worshipSetlistProposals: result.worshipSetlistProposals,
+        requestProfile,
         scope: {
           ministryId: ministry.id,
           ministryName: ministry.name,

@@ -22,6 +22,12 @@ export async function updateDailyVerseSettings(
     theme?: DailyVerseTheme;
   }
 ) {
+  const version = settings.version ?? "blt";
+  const theme = settings.theme ?? "auto";
+  if (!VALID_VERSIONS.has(version) || !VALID_THEMES.has(theme)) {
+    throw new Error("Configuração inválida para o versículo do dia.");
+  }
+
   const supabase = await createClient();
 
   const theme = settings.theme || "auto";

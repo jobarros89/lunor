@@ -14,6 +14,10 @@ import {
   isWorshipSetlistProposal,
   type WorshipSetlistProposal,
 } from "@/lib/ai/internal-tools";
+import {
+  assistantRequestProfileDescription,
+  type AssistantRequestProfile,
+} from "@/lib/ai/intent-router";
 import type { AssignmentProposal } from "@/lib/ai/scheduling";
 import {
   executeLunorTool,
@@ -30,6 +34,8 @@ Baseie respostas factuais atuais nos dados retornados pelas ferramentas.
 "Sem resposta" é diferente de "indisponível".
 O escopo da igreja e a lista de ministérios autorizados são definidos pelo servidor, nunca pelo modelo.
 Quando a pergunta for ampla sobre a igreja, atravessar módulos, mencionar outro ministério ou pedir um resumo para líderes, consulte get_app_context primeiro. Para panorama geral, use também get_app_operational_overview.
+Quando a pergunta pedir análise, riscos, prioridades, gargalos, tendências operacionais, preparação de reunião ou "o que precisa de atenção", use get_leadership_insights antes de concluir. Use os insights como evidência, não como ordens automáticas.
+Ao apresentar insights, priorize: 1) risco imediato, 2) evidência objetiva, 3) impacto operacional e 4) próximo passo sugerido. Não transforme correlação em certeza.
 Nunca invente ministryId. Para consultar um ministério diferente do contexto visual, use somente IDs retornados por get_app_context e as ferramentas get_ministry_* ou ferramentas específicas de leitura com ministryId.
 Nesta etapa, a leitura é transversal entre módulos; propostas que podem virar escrita após confirmação continuam vinculadas ao ministério atualmente aberto. Se o usuário pedir uma proposta de escrita para outro ministério, faça a análise de leitura que for útil e informe que a confirmação deve ser iniciada com esse ministério como contexto visual.
 Para consultar escala/equipe/disponibilidade de outro ministério, use get_ministry_operational_summary, get_ministry_event_team e get_ministry_event_availability.
@@ -157,13 +163,15 @@ export async function runLunorAssistant({
   question,
   history = [],
   context,
-  maxToolRounds = 5,
+  requestProfile,
+  maxToolRounds,
   runner = runLunorAiTurn,
   toolExecutor = executeAssistantTool,
 }: {
   question: string;
   history?: LunorAssistantHistoryItem[];
   context: LunorToolContext;
+  requestProfile?: AssistantRequestProfile;
   maxToolRounds?: number;
   runner?: TurnRunner;
   toolExecutor?: ToolExecutor;
@@ -176,10 +184,13 @@ export async function runLunorAssistant({
     .slice(-8)
     .map((item) => ({ ...item, content: item.content.trim().slice(0, 1_500) }))
     .filter((item) => item.content.length > 0);
+  const profileContext = requestProfile
+    ? `\n\n${assistantRequestProfileDescription(requestProfile)}`
+    : "";
   const messages: LunorAiMessage[] = [
     {
       role: "system",
-      content: `${SYSTEM_PROMPT}\n\n${internalAssistantScopeDescription(context)}`,
+      content: `${SYSTEM_PROMPT}\n\n${internalAssistantScopeDescription(context)}${profileContext}`,
     },
     ...recentHistory,
     { role: "user", content: cleanQuestion },
@@ -188,13 +199,19 @@ export async function runLunorAssistant({
   const proposals: AssignmentProposal[] = [];
   const worshipSetlistProposals: WorshipSetlistProposal[] = [];
   const tools = [...lunorAiTools(), ...internalAiTools()];
+  const deeperRequest =
+    requestProfile?.intent === "analysis" ||
+    requestProfile?.intent === "plan" ||
+    requestProfile?.intent === "action";
+  const effectiveMaxToolRounds = maxToolRounds ?? (deeperRequest ? 7 : 5);
+  const answerTokenBudget = deeperRequest ? 760 : 620;
   let usedModel = LUNOR_AI_MODEL;
 
-  for (let round = 0; round < maxToolRounds; round += 1) {
+  for (let round = 0; round < effectiveMaxToolRounds; round += 1) {
     const turn = await runner({
       messages,
       tools,
-      maxTokens: 620,
+      maxTokens: answerTokenBudget,
       temperature: 0.1,
     });
     if (turn.model) usedModel = turn.model;
@@ -248,7 +265,12 @@ export async function runLunorAssistant({
     role: "user",
     content: "Responda usando somente os resultados das ferramentas acima. Se faltar um dado, informe que ele não foi encontrado.",
   });
-  const finalTurn = await runner({ messages, tools: [], maxTokens: 620, temperature: 0.1 });
+  const finalTurn = await runner({
+    messages,
+    tools: [],
+    maxTokens: answerTokenBudget,
+    temperature: 0.1,
+  });
   if (finalTurn.model) usedModel = finalTurn.model;
   if (!finalTurn.text) throw new Error("assistant_empty_answer");
 

@@ -301,12 +301,12 @@ export default async function AdminPage({
           daily_verse_theme:
             (notificationSettings.daily_verse_theme as string | undefined) as
               | "auto"
+              | "servir"
+              | "encorajamento"
+              | "descanso"
               | "gratidao"
-              | "fe"
-              | "amor"
-              | "esperanca"
-              | "sabedoria"
-              | "paz"
+              | "perseveranca"
+              | "unidade"
               | undefined,
         }}
       />

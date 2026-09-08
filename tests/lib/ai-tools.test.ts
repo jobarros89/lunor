@@ -5,6 +5,7 @@ describe("LUNOR AI tools", () => {
   it("expõe apenas ferramentas read-only nesta fase", () => {
     expect(LUNOR_TOOLS.map((tool) => tool.name)).toEqual([
       "get_operational_summary",
+      "prepare_next_service",
       "get_event_team",
       "get_event_availability",
     ]);
