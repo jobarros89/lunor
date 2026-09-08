@@ -135,7 +135,7 @@ export async function runDailyVerseSend({
           {
             title: `Versículo do dia · ${versiculo.label}`,
             body: versiculo.text,
-            url: `/${inscricao.church_slug}`,
+            url: `/${inscricao.church_slug}/versiculo-do-dia`,
             tag: "versiculo-do-dia",
           }
         );

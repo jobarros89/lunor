@@ -103,6 +103,23 @@ export default async function MaisPage({
         />
       </section>
 
+      <Link href={`/${churchSlug}/versiculo-do-dia`} className="block">
+        <Card className="rounded-3xl transition-colors hover:bg-accent/40">
+          <CardContent className="flex items-center gap-4 py-4">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-muted">
+              <BookOpen className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">Versículo do dia</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                Leia o versículo de hoje e compartilhe com alguém
+              </p>
+            </div>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </Link>
+
       {tenant.role === "admin" && inviteCode && (
         <Card className="rounded-3xl border-[#6e5ce6]/35 bg-[#6e5ce6]/8">
           <CardHeader>
