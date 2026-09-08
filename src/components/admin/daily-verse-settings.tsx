@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 
 const VERSIONS = [
-  { value: "blt", label: "Bíblia Livre (CC0)" },
+  { value: "blt", label: "Bíblia Livre (BLIVRE)" },
   { value: "nvi", label: "NVI" },
   { value: "acf", label: "ACF" },
   { value: "ra", label: "RA" },
@@ -21,12 +21,12 @@ const VERSIONS = [
 
 const THEMES = [
   { value: "auto", label: "Rotação automática" },
+  { value: "servir", label: "Servir" },
+  { value: "encorajamento", label: "Encorajamento" },
+  { value: "descanso", label: "Descanso" },
   { value: "gratidao", label: "Gratidão" },
-  { value: "fe", label: "Fé" },
-  { value: "amor", label: "Amor" },
-  { value: "esperanca", label: "Esperança" },
-  { value: "sabedoria", label: "Sabedoria" },
-  { value: "paz", label: "Paz" },
+  { value: "perseveranca", label: "Perseverança" },
+  { value: "unidade", label: "Unidade" },
 ] as const;
 
 type Version = (typeof VERSIONS)[number]["value"];
@@ -75,11 +75,23 @@ export function DailyVerseSettings({
         const resultado = await sendDailyVerseNowAction(churchId);
         if (!resultado.ok) {
           setSendMessage(resultado.erro ?? "Não foi possível enviar.");
-        } else if (resultado.enviados === 0) {
-          setSendMessage("Nenhum usuário vinculado à igreja possui notificações ativadas.");
-        } else {
+          return;
+        }
+
+        if (resultado.enviados > 0) {
           setSendMessage(
             `Enviado agora para ${resultado.enviados} ${resultado.enviados === 1 ? "pessoa" : "pessoas"}.`
+          );
+          return;
+        }
+
+        if (resultado.motivo === "sem_alvos") {
+          setSendMessage("Nenhuma pessoa vinculada à igreja possui uma inscrição de notificação ativa neste dispositivo/navegador.");
+        } else if (resultado.motivo === "texto_indisponivel") {
+          setSendMessage("Há pessoas com notificações ativas, mas o texto bíblico não pôde ser carregado. Tente novamente em instantes.");
+        } else {
+          setSendMessage(
+            `Há ${resultado.elegiveis} ${resultado.elegiveis === 1 ? "pessoa elegível" : "pessoas elegíveis"}, mas o serviço de Push não confirmou o envio. Tente novamente.`
           );
         }
       } catch {
@@ -161,7 +173,7 @@ export function DailyVerseSettings({
                 {sending ? "Enviando..." : "Enviar agora"}
               </Button>
               <span className="text-xs text-muted-foreground">
-                Envio manual independente do cron; pode ser usado a qualquer momento.
+                “Enviar agora” não altera nem consome o envio automático do dia.
               </span>
             </div>
             {sendMessage && <p className="text-xs text-muted-foreground">{sendMessage}</p>}
