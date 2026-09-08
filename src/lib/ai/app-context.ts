@@ -127,6 +127,7 @@ export async function getAssistantAppOperationalOverview(
             startsAt: event.startsAt,
             readiness: event.readiness,
             assignments: event.assignments,
+            availability: event.availability,
           })),
         };
       } catch {
