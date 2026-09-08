@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 
 const VERSIONS = [
-  { value: "blt", label: "Bíblia Livre (CC0)" },
+  { value: "blt", label: "Bíblia Livre (BLIVRE)" },
   { value: "nvi", label: "NVI" },
   { value: "acf", label: "ACF" },
   { value: "ra", label: "RA" },
@@ -21,12 +21,12 @@ const VERSIONS = [
 
 const THEMES = [
   { value: "auto", label: "Rotação automática" },
+  { value: "servir", label: "Servir" },
+  { value: "encorajamento", label: "Encorajamento" },
+  { value: "descanso", label: "Descanso" },
   { value: "gratidao", label: "Gratidão" },
-  { value: "fe", label: "Fé" },
-  { value: "amor", label: "Amor" },
-  { value: "esperanca", label: "Esperança" },
-  { value: "sabedoria", label: "Sabedoria" },
-  { value: "paz", label: "Paz" },
+  { value: "perseveranca", label: "Perseverança" },
+  { value: "unidade", label: "Unidade" },
 ] as const;
 
 type Version = (typeof VERSIONS)[number]["value"];
@@ -76,7 +76,7 @@ export function DailyVerseSettings({
         if (!resultado.ok) {
           setSendMessage(resultado.erro ?? "Não foi possível enviar.");
         } else if (resultado.enviados === 0) {
-          setSendMessage("Nenhum usuário vinculado à igreja possui notificações ativadas.");
+          setSendMessage("Nenhum usuário elegível possui notificações Push ativadas nesta igreja.");
         } else {
           setSendMessage(
             `Enviado agora para ${resultado.enviados} ${resultado.enviados === 1 ? "pessoa" : "pessoas"}.`
@@ -125,6 +125,11 @@ export function DailyVerseSettings({
                   </option>
                 ))}
               </select>
+              {version === "blt" && (
+                <p className="text-xs text-muted-foreground">
+                  Bíblia Livre (BLIVRE) · CC BY 3.0 BR.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -161,7 +166,7 @@ export function DailyVerseSettings({
                 {sending ? "Enviando..." : "Enviar agora"}
               </Button>
               <span className="text-xs text-muted-foreground">
-                Envio manual independente do cron; pode ser usado a qualquer momento.
+                Envia imediatamente; o envio automático diário continua normalmente.
               </span>
             </div>
             {sendMessage && <p className="text-xs text-muted-foreground">{sendMessage}</p>}

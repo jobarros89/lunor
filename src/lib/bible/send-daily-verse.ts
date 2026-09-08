@@ -25,6 +25,15 @@ export type DailyVerseSendResult = {
   erro?: string;
 };
 
+function todayInSaoPaulo(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 /**
  * Envia o versículo do dia.
  *
@@ -71,14 +80,19 @@ export async function runDailyVerseSend({
     alvos = alvos.filter((alvo) => alvo.church_id === churchId);
   }
 
+  if (alvos.length === 0) {
+    return { ok: true, igrejas: 0, enviados: 0 };
+  }
+
   const porIgreja = new Map<string, Alvo[]>();
   for (const alvo of alvos) {
     porIgreja.set(alvo.church_id, [...(porIgreja.get(alvo.church_id) ?? []), alvo]);
   }
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = todayInSaoPaulo();
   const usuariosEnviados = new Set<string>();
   let igrejas = 0;
+  let textoIndisponivel = false;
 
   for (const [cId, inscricoes] of porIgreja) {
     const primeira = inscricoes[0];
@@ -108,6 +122,7 @@ export async function runDailyVerseSend({
 
     const versiculo = await fetchVerseText({ reference: referencia, version: primeira.version });
     if (!versiculo) {
+      textoIndisponivel = true;
       console.error("runDailyVerseSend: texto indisponível", referencia.label);
       continue;
     }
@@ -118,7 +133,7 @@ export async function runDailyVerseSend({
         await sendWebPush(
           [{ endpoint: inscricao.endpoint, p256dh: inscricao.p256dh, auth: inscricao.auth }],
           {
-            title: `Palavra de hoje · ${versiculo.label}`,
+            title: `Versículo do dia · ${versiculo.label}`,
             body: versiculo.text,
             url: `/${inscricao.church_slug}`,
             tag: "versiculo-do-dia",
@@ -129,6 +144,15 @@ export async function runDailyVerseSend({
         console.error("runDailyVerseSend: push falhou", err);
       }
     }
+  }
+
+  if (textoIndisponivel && igrejas === 0) {
+    return {
+      ok: false,
+      igrejas: 0,
+      enviados: 0,
+      erro: "Não foi possível carregar o texto do versículo. Tente novamente em instantes.",
+    };
   }
 
   return { ok: true, igrejas, enviados: usuariosEnviados.size };
