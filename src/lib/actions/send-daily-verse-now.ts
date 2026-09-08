@@ -19,7 +19,15 @@ export async function sendDailyVerseNowAction(
   });
 
   if (error || !isCoord) {
-    return { ok: false, igrejas: 0, enviados: 0, erro: "Sem permissão para esta igreja." };
+    return {
+      ok: false,
+      igrejas: 0,
+      enviados: 0,
+      elegiveis: 0,
+      inscricoes: 0,
+      falhas: 0,
+      erro: "Sem permissão para esta igreja.",
+    };
   }
 
   return runDailyVerseSend({ churchId, force: true });
