@@ -81,6 +81,61 @@ function messageFromChoice(result: Record<string, unknown>) {
   return first ? recordOf(first.message) : null;
 }
 
+function unwrapJsonFence(value: string) {
+  const trimmed = value.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fenced?.[1]?.trim() ?? trimmed;
+}
+
+function toolCallsSerializedAsText(
+  text: string,
+  allowedToolNames: Set<string>
+): LunorAiToolCall[] {
+  if (!text || allowedToolNames.size === 0) return [];
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(unwrapJsonFence(text));
+  } catch {
+    return [];
+  }
+
+  const candidates = Array.isArray(parsed) ? parsed : [parsed];
+  if (candidates.length === 0 || candidates.length > 3) return [];
+
+  const calls = candidates.map((candidate, index) => parseToolCall(candidate, index));
+  if (calls.some((call) => !call)) return [];
+
+  const normalized = calls as LunorAiToolCall[];
+  return normalized.every((call) => allowedToolNames.has(call.name)) ? normalized : [];
+}
+
+/**
+ * Alguns modelos do Workers AI eventualmente serializam uma chamada de
+ * ferramenta dentro de `response` em vez de preencher `tool_calls`. Quando o
+ * JSON referencia exclusivamente ferramentas realmente oferecidas naquela
+ * rodada, recuperamos a chamada e impedimos que esse payload técnico apareça
+ * para o usuário final.
+ */
+export function normalizeWorkersAiTurnForTools(
+  turn: LunorAiTurn,
+  tools: LunorAiTool[]
+): LunorAiTurn {
+  if (turn.toolCalls.length > 0 || !turn.text || tools.length === 0) return turn;
+
+  const recoveredCalls = toolCallsSerializedAsText(
+    turn.text,
+    new Set(tools.map((tool) => tool.name))
+  );
+  if (recoveredCalls.length === 0) return turn;
+
+  return {
+    ...turn,
+    text: "",
+    toolCalls: recoveredCalls,
+  };
+}
+
 /**
  * Normaliza respostas do binding Workers AI. Mantemos suporte tanto ao formato
  * direto do binding (`response`/`tool_calls`) quanto ao formato compatível com
@@ -120,10 +175,11 @@ async function workersAi() {
 async function runModel(
   ai: WorkersAI,
   model: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  tools: LunorAiTool[]
 ): Promise<LunorAiTurn> {
   const result = await ai.run(model, input);
-  const turn = parseWorkersAiTurn(result);
+  const turn = normalizeWorkersAiTurnForTools(parseWorkersAiTurn(result), tools);
   if (!turn.text && turn.toolCalls.length === 0) {
     throw new Error("workers_ai_empty_response");
   }
@@ -160,14 +216,14 @@ export async function runLunorAiTurn({
   };
 
   try {
-    return await runModel(ai, LUNOR_AI_MODEL, input);
+    return await runModel(ai, LUNOR_AI_MODEL, input, tools);
   } catch (primaryError) {
     console.warn(
       "lunor ai primary unavailable, using fallback:",
       primaryError instanceof Error ? primaryError.message : "unknown_error"
     );
     try {
-      return await runModel(ai, LUNOR_AI_FALLBACK_MODEL, input);
+      return await runModel(ai, LUNOR_AI_FALLBACK_MODEL, input, tools);
     } catch (fallbackError) {
       console.error(
         "lunor ai fallback unavailable:",
