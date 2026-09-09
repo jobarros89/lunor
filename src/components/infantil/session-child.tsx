@@ -86,7 +86,7 @@ export function SessionChildRow({
   const restritos = child.guardians.filter((g) => !g.canPickup).map((g) => g.name);
   const activeClassId =
     child.checkin && !child.checkin.checkedOut ? child.checkin.classId ?? child.classId : null;
-  const displayClassId = activeClassId ?? selectedClassId || null;
+  const displayClassId = activeClassId ?? (selectedClassId || null);
   const displayClassName =
     classOptions.find((item) => item.id === displayClassId)?.name ?? child.className;
 
