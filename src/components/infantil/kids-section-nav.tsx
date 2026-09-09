@@ -7,6 +7,7 @@ import {
   CalendarDays,
   LayoutDashboard,
   Settings2,
+  UserPlus,
   Users,
 } from "lucide-react";
 
@@ -18,6 +19,7 @@ export function KidsSectionNav({
   canManageSettings?: boolean;
 }) {
   const pathname = usePathname();
+  const registerActive = pathname.includes(`/${churchSlug}/infantil/nova`);
   const scalesActive = pathname.includes(`/${churchSlug}/infantil/escalas`);
   const availabilityActive = pathname.includes(`/${churchSlug}/infantil/disponibilidade`);
   const guardiansActive = pathname.includes(`/${churchSlug}/infantil/responsaveis`);
@@ -29,7 +31,20 @@ export function KidsSectionNav({
       label: "Visão",
       href: `/${churchSlug}/infantil`,
       icon: <LayoutDashboard className="size-4" />,
-      active: !scalesActive && !availabilityActive && !guardiansActive && !settingsActive,
+      active:
+        !registerActive &&
+        !scalesActive &&
+        !availabilityActive &&
+        !guardiansActive &&
+        !settingsActive,
+      visible: true,
+    },
+    {
+      key: "cadastrar",
+      label: "Cadastrar",
+      href: `/${churchSlug}/infantil/nova`,
+      icon: <UserPlus className="size-4" />,
+      active: registerActive,
       visible: true,
     },
     {

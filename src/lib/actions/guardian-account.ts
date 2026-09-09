@@ -13,38 +13,42 @@ const linkSchema = z.object({
   userId: z.string().uuid(),
 });
 
+function guardianAccountError(message: string) {
+  if (message.includes("target_user_not_active")) {
+    return "Essa conta não está ativa nesta igreja";
+  }
+  if (message.includes("guardian_not_found")) {
+    return "Responsável não encontrado";
+  }
+  if (message.includes("not_allowed")) {
+    return "Você precisa fazer parte da equipe Kids para realizar esta ação";
+  }
+  return "Não foi possível atualizar o acesso familiar";
+}
+
+function revalidateGuardianPages(churchSlug: string) {
+  revalidatePath(`/${churchSlug}/infantil`);
+  revalidatePath(`/${churchSlug}/infantil/responsaveis`);
+}
+
 export async function linkGuardianAccount(raw: unknown): Promise<ActionResult> {
   const parsed = linkSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Dados inválidos" };
   const d = parsed.data;
   const supabase = await createClient();
 
-  const { data: membership, error: membershipError } = await supabase
-    .from("church_members")
-    .select("user_id")
-    .eq("church_id", d.churchId)
-    .eq("user_id", d.userId)
-    .eq("status", "active")
-    .maybeSingle();
+  const { data: linked, error } = await supabase.rpc("link_guardian_account", {
+    p_church: d.churchId,
+    p_ministry: d.ministryId,
+    p_guardian: d.guardianId,
+    p_user: d.userId,
+  });
 
-  if (membershipError || !membership) {
-    return { ok: false, error: "Essa conta não está ativa nesta igreja" };
+  if (error || linked !== true) {
+    return { ok: false, error: guardianAccountError(error?.message ?? "") };
   }
 
-  const { data: guardian, error } = await supabase
-    .from("guardians")
-    .update({ user_id: d.userId })
-    .eq("id", d.guardianId)
-    .eq("church_id", d.churchId)
-    .eq("ministry_id", d.ministryId)
-    .select("id")
-    .maybeSingle();
-
-  if (error || !guardian) {
-    return { ok: false, error: "Sem permissão ou não foi possível vincular a conta" };
-  }
-
-  revalidatePath(`/${d.churchSlug}/infantil`);
+  revalidateGuardianPages(d.churchSlug);
   return { ok: true, data: undefined };
 }
 
@@ -56,19 +60,16 @@ export async function unlinkGuardianAccount(raw: unknown): Promise<ActionResult>
   const d = parsed.data;
   const supabase = await createClient();
 
-  const { data: guardian, error } = await supabase
-    .from("guardians")
-    .update({ user_id: null })
-    .eq("id", d.guardianId)
-    .eq("church_id", d.churchId)
-    .eq("ministry_id", d.ministryId)
-    .select("id")
-    .maybeSingle();
+  const { data: unlinked, error } = await supabase.rpc("unlink_guardian_account", {
+    p_church: d.churchId,
+    p_ministry: d.ministryId,
+    p_guardian: d.guardianId,
+  });
 
-  if (error || !guardian) {
-    return { ok: false, error: "Sem permissão ou não foi possível remover o vínculo" };
+  if (error || unlinked !== true) {
+    return { ok: false, error: guardianAccountError(error?.message ?? "") };
   }
 
-  revalidatePath(`/${d.churchSlug}/infantil`);
+  revalidateGuardianPages(d.churchSlug);
   return { ok: true, data: undefined };
 }
