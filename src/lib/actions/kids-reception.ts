@@ -12,6 +12,7 @@ const contextSchema = z.object({
 });
 
 const openSchema = contextSchema.extend({
+  campusId: z.string().uuid(),
   title: z.string().trim().min(2).max(120).default("Recepção Kids"),
 });
 
@@ -28,12 +29,16 @@ export async function openStandaloneKidsReception(
     p_ministry: d.ministryId,
     p_title: d.title,
     p_event: null,
+    p_campus: d.campusId,
   });
 
   if (error || !sessionId) {
     const message = error?.message ?? "";
     if (message.includes("reception_already_open")) {
-      return { ok: false, error: "Já existe uma recepção Kids aberta." };
+      return { ok: false, error: "Já existe uma recepção Kids aberta neste campus." };
+    }
+    if (message.includes("campus_required") || message.includes("invalid_campus")) {
+      return { ok: false, error: "Escolha um campus ativo para abrir a recepção." };
     }
     return { ok: false, error: "Não foi possível abrir a recepção Kids." };
   }
@@ -93,7 +98,9 @@ export async function closeKidsReceptionByEvent(raw: unknown): Promise<ActionRes
   });
 
   if (currentError) return { ok: false, error: "Não foi possível localizar a recepção atual." };
-  const current = (rows ?? []).find((row: { session_id: string; event_id: string | null }) => row.event_id === d.eventId);
+  const current = (rows ?? []).find(
+    (row: { session_id: string; event_id: string | null }) => row.event_id === d.eventId
+  );
   if (!current) return { ok: false, error: "Esta recepção já foi encerrada." };
 
   return closeKidsReception({
