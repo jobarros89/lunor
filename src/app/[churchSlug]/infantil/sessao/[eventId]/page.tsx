@@ -51,25 +51,31 @@ export default async function SessaoInfantilPage({
   const podeLiberar =
     tenant.isCoord || vinculo?.role === "gerente" || vinculo?.role === "lider";
 
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, title, starts_at, location, service_period, campus_id, campuses(name)")
+    .eq("id", eventId)
+    .eq("church_id", tenant.church.id)
+    .maybeSingle();
+  if (!event) notFound();
+
+  let classQuery = supabase
+    .from("child_classes")
+    .select("id, name, min_age_months, max_age_months")
+    .eq("ministry_id", ministry.id)
+    .order("sort_order");
+  classQuery = event.campus_id
+    ? classQuery.eq("campus_id", event.campus_id)
+    : classQuery.is("campus_id", null);
+
   const [
-    { data: event },
     { data: classes },
     { data: children },
     { data: checkins },
     { data: deliveryRows },
     { data: printSettingsRow },
   ] = await Promise.all([
-    supabase
-      .from("events")
-      .select("id, title, starts_at, location, service_period, campuses(name)")
-      .eq("id", eventId)
-      .eq("church_id", tenant.church.id)
-      .maybeSingle(),
-    supabase
-      .from("child_classes")
-      .select("id, name, min_age_months, max_age_months")
-      .eq("ministry_id", ministry.id)
-      .order("sort_order"),
+    classQuery,
     supabase
       .from("children")
       .select("id, full_name, birth_date, allergies, special_needs")
@@ -78,7 +84,7 @@ export default async function SessaoInfantilPage({
       .order("full_name"),
     supabase
       .from("child_checkins")
-      .select("id, child_id, code, pickup_qr_token, checked_out_at, checked_in_at")
+      .select("id, child_id, class_id, code, pickup_qr_token, checked_out_at, checked_in_at")
       .eq("event_id", eventId)
       .order("checked_in_at", { ascending: true }),
     supabase.rpc("child_page_delivery_status", { p_event: eventId }),
@@ -90,8 +96,6 @@ export default async function SessaoInfantilPage({
       .eq("ministry_id", ministry.id)
       .maybeSingle(),
   ]);
-
-  if (!event) notFound();
 
   const printSettings = kidsPrintSettingsFromRow(printSettingsRow);
   const campus = event.campuses as unknown as { name: string } | null;
@@ -136,11 +140,13 @@ export default async function SessaoInfantilPage({
         code: k.code,
         pickupToken: k.pickup_qr_token,
         checkedOut: !!k.checked_out_at,
+        classId: k.class_id,
       },
     ])
   );
 
   const turmas = (classes ?? []) as ChildClass[];
+  const classOptions = turmas.map((item) => ({ id: item.id, name: item.name }));
   const sessionChildren: SessionChild[] = (children ?? []).map((child) => {
     const turma = suggestClass(child.birth_date, turmas);
     return {
@@ -194,6 +200,18 @@ export default async function SessaoInfantilPage({
         </p>
       </div>
 
+      {!event.campus_id && (
+        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground">
+          Este culto não possui campus definido. Defina o campus do evento antes de operar o Kids.
+        </p>
+      )}
+
+      {event.campus_id && turmas.length === 0 && (
+        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground">
+          Nenhuma turma está configurada para {campus?.name ?? "este campus"}. Configure em Kids → Configurações.
+        </p>
+      )}
+
       <div className="grid grid-cols-3 gap-3">
         <Card className="rounded-3xl">
           <CardContent className="px-4 py-5">
@@ -228,6 +246,7 @@ export default async function SessaoInfantilPage({
       {sessionChildren.length > 0 ? (
         <ReceptionSearch
           sessionChildren={sessionChildren}
+          classOptions={classOptions}
           churchName={tenant.church.name}
           churchSlug={churchSlug}
           churchId={tenant.church.id}
@@ -249,8 +268,7 @@ export default async function SessaoInfantilPage({
       )}
 
       <p className="px-1 text-xs text-muted-foreground">
-        A criança só sai com responsável autorizado. Exceções exigem justificativa
-        e ficam registradas.
+        A criança só sai com responsável autorizado. Exceções exigem justificativa e ficam registradas.
       </p>
     </div>
   );
