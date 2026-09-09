@@ -242,8 +242,28 @@ returns boolean
 language plpgsql
 security definer
 set search_path = public
-as $$;
+as $$
 begin
-  return false;
+  if auth.uid() is null
+     or not public.is_active_ministry_member(p_church, p_ministry) then
+    raise exception 'not_allowed';
+  end if;
+
+  update public.guardians
+  set user_id = null
+  where id = p_guardian
+    and church_id = p_church
+    and ministry_id = p_ministry;
+
+  if not found then
+    raise exception 'guardian_not_found';
+  end if;
+
+  return true;
 end;
 $$;
+
+revoke all on function public.link_guardian_account(uuid, uuid, uuid, uuid) from public;
+revoke all on function public.unlink_guardian_account(uuid, uuid, uuid) from public;
+grant execute on function public.link_guardian_account(uuid, uuid, uuid, uuid) to authenticated;
+grant execute on function public.unlink_guardian_account(uuid, uuid, uuid) to authenticated;
