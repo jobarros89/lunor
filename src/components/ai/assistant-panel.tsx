@@ -20,6 +20,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  RecurringEventProposalCard,
+  type RecurringEventProposal,
+} from "@/components/ai/recurring-event-proposal-card";
 import { cn } from "@/lib/utils";
 
 type AssignmentProposal = {
@@ -61,12 +65,14 @@ type Message = {
   content: string;
   proposals?: AssignmentProposal[];
   worshipSetlistProposals?: WorshipSetlistProposal[];
+  recurringEventProposals?: RecurringEventProposal[];
 };
 
 type AssistantResponse = {
   answer?: string;
   proposals?: AssignmentProposal[];
   worshipSetlistProposals?: WorshipSetlistProposal[];
+  recurringEventProposals?: RecurringEventProposal[];
   error?: string;
 };
 
@@ -83,6 +89,12 @@ function proposalKey(proposal: AssignmentProposal) {
 
 function worshipProposalKey(proposal: WorshipSetlistProposal) {
   return `${proposal.event.id}:${proposal.songs.map((song) => song.songId).join(",")}`;
+}
+
+function recurringProposalKey(proposal: RecurringEventProposal) {
+  const first = proposal.occurrences.at(0)?.startsAt ?? "none";
+  const last = proposal.occurrences.at(-1)?.startsAt ?? "none";
+  return `${proposal.templateEventId}:${first}:${last}`;
 }
 
 function eventDateLabel(startsAt: string) {
@@ -157,6 +169,9 @@ export function AssistantPanel({
           proposals: response.ok ? payload.proposals ?? [] : [],
           worshipSetlistProposals: response.ok
             ? payload.worshipSetlistProposals ?? []
+            : [],
+          recurringEventProposals: response.ok
+            ? payload.recurringEventProposals ?? []
             : [],
         },
       ]);
@@ -514,6 +529,15 @@ export function AssistantPanel({
                     </div>
                   );
                 })}
+
+              {message.role === "assistant" &&
+                message.recurringEventProposals?.map((proposal) => (
+                  <RecurringEventProposalCard
+                    key={recurringProposalKey(proposal)}
+                    churchSlug={churchSlug}
+                    proposal={proposal}
+                  />
+                ))}
             </div>
           </div>
         ))}
