@@ -13,9 +13,15 @@ import {
 
 export type KidsClassSettingsRow = {
   id: string;
+  campusId: string;
   name: string;
   minAgeMonths: number;
   maxAgeMonths: number;
+};
+
+type CampusOption = {
+  id: string;
+  name: string;
 };
 
 function yearsFromMonths(months: number) {
@@ -23,23 +29,41 @@ function yearsFromMonths(months: number) {
 }
 
 function sortByAge(items: KidsClassSettingsRow[]) {
-  return [...items].sort((a, b) => a.minAgeMonths - b.minAgeMonths || a.name.localeCompare(b.name, "pt-BR"));
+  return [...items].sort(
+    (a, b) => a.minAgeMonths - b.minAgeMonths || a.name.localeCompare(b.name, "pt-BR")
+  );
 }
 
 export function KidsClassSettingsForm({
   churchSlug,
   ministryId,
+  campuses,
+  initialCampusId,
   initialClasses,
 }: {
   churchSlug: string;
   ministryId: string;
+  campuses: CampusOption[];
+  initialCampusId: string;
   initialClasses: KidsClassSettingsRow[];
 }) {
-  const [classes, setClasses] = useState(sortByAge(initialClasses));
+  const [classes, setClasses] = useState(initialClasses);
+  const [selectedCampusId, setSelectedCampusId] = useState(initialCampusId);
   const [pending, startTransition] = useTransition();
   const [newName, setNewName] = useState("");
   const [newMinAge, setNewMinAge] = useState("");
   const [newMaxAge, setNewMaxAge] = useState("");
+
+  const currentCampus = campuses.find((campus) => campus.id === selectedCampusId) ?? null;
+  const currentClasses = sortByAge(
+    classes.filter((item) => item.campusId === selectedCampusId)
+  );
+
+  function clearNewClass() {
+    setNewName("");
+    setNewMinAge("");
+    setNewMaxAge("");
+  }
 
   function updateClass(
     id: string,
@@ -51,11 +75,13 @@ export function KidsClassSettingsForm({
   }
 
   function save() {
+    if (!selectedCampusId || currentClasses.length === 0) return;
     startTransition(async () => {
       const result = await saveKidsClasses({
         churchSlug,
         ministryId,
-        classes: classes.map((item) => ({
+        campusId: selectedCampusId,
+        classes: currentClasses.map((item) => ({
           id: item.id,
           name: item.name,
           minAgeYears: yearsFromMonths(item.minAgeMonths),
@@ -64,7 +90,7 @@ export function KidsClassSettingsForm({
       });
       if (result.ok) {
         setClasses((current) => sortByAge(current));
-        toast.success("Turmas salvas");
+        toast.success(`Turmas de ${currentCampus?.name ?? "campus"} salvas`);
       } else {
         toast.error(result.error);
       }
@@ -72,6 +98,7 @@ export function KidsClassSettingsForm({
   }
 
   function addClass() {
+    if (!selectedCampusId) return toast.error("Escolha um campus");
     const minAgeYears = Number(newMinAge);
     const maxAgeYears = Number(newMaxAge);
     if (!newName.trim() || newMinAge === "" || newMaxAge === "") {
@@ -83,6 +110,7 @@ export function KidsClassSettingsForm({
       const result = await createKidsClass({
         churchSlug,
         ministryId,
+        campusId: selectedCampusId,
         name: newName,
         minAgeYears,
         maxAgeYears,
@@ -92,17 +120,23 @@ export function KidsClassSettingsForm({
         return;
       }
 
-      setClasses((current) => sortByAge([...current, result.data]));
-      setNewName("");
-      setNewMinAge("");
-      setNewMaxAge("");
+      setClasses((current) =>
+        sortByAge([
+          ...current,
+          {
+            ...result.data,
+            campusId: selectedCampusId,
+          },
+        ])
+      );
+      clearNewClass();
       toast.success("Turma adicionada");
     });
   }
 
   function removeClass(item: KidsClassSettingsRow) {
     const confirmed = window.confirm(
-      `Remover a turma “${item.name}”?\n\nTurmas com histórico de check-in não podem ser excluídas.`
+      `Remover a turma “${item.name}” de ${currentCampus?.name ?? "este campus"}?\n\nTurmas com histórico de check-in não podem ser excluídas.`
     );
     if (!confirmed) return;
 
@@ -110,6 +144,7 @@ export function KidsClassSettingsForm({
       const result = await deleteKidsClass({
         churchSlug,
         ministryId,
+        campusId: selectedCampusId,
         classId: item.id,
       });
       if (!result.ok) {
@@ -119,6 +154,17 @@ export function KidsClassSettingsForm({
       setClasses((current) => current.filter((row) => row.id !== item.id));
       toast.success("Turma removida");
     });
+  }
+
+  if (campuses.length === 0) {
+    return (
+      <section className="rounded-3xl border p-5">
+        <h2 className="text-lg font-semibold">Turmas</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Cadastre pelo menos um campus na Administração antes de configurar as turmas do Kids.
+        </p>
+      </section>
+    );
   }
 
   return (
@@ -131,14 +177,39 @@ export function KidsClassSettingsForm({
           <div>
             <h2 className="text-lg font-semibold">Turmas</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Defina o nome e a faixa etária usada automaticamente no Kids, check-in e etiquetas.
+              Cada campus possui suas próprias turmas e faixas etárias. A criança recebe a sugestão conforme o campus da recepção.
             </p>
           </div>
         </div>
+
+        <label className="min-w-52 space-y-2 text-sm font-medium">
+          Campus
+          <select
+            value={selectedCampusId}
+            onChange={(event) => {
+              setSelectedCampusId(event.target.value);
+              clearNewClass();
+            }}
+            className="h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
+          >
+            {campuses.map((campus) => (
+              <option key={campus.id} value={campus.id}>
+                {campus.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="mt-5 rounded-2xl bg-muted/40 px-4 py-3">
+        <p className="text-sm font-medium">Campus {currentCampus?.name}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          As turmas abaixo serão usadas somente nas recepções deste campus.
+        </p>
       </div>
 
       <div className="mt-5 space-y-3">
-        {classes.map((item) => (
+        {currentClasses.map((item) => (
           <div
             key={item.id}
             className="grid gap-3 rounded-2xl border p-4 lg:grid-cols-[minmax(0,1fr)_140px_140px_auto] lg:items-end"
@@ -161,13 +232,14 @@ export function KidsClassSettingsForm({
                   min={0}
                   max={18}
                   value={yearsFromMonths(item.minAgeMonths)}
-                  onChange={(event) => {
-                    const years = Number(event.target.value);
-                    updateClass(item.id, { minAgeMonths: years * 12 });
-                  }}
+                  onChange={(event) =>
+                    updateClass(item.id, { minAgeMonths: Number(event.target.value) * 12 })
+                  }
                   className="h-11 rounded-xl pr-12"
                 />
-                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">anos</span>
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                  anos
+                </span>
               </div>
             </label>
 
@@ -179,13 +251,14 @@ export function KidsClassSettingsForm({
                   min={0}
                   max={18}
                   value={yearsFromMonths(item.maxAgeMonths)}
-                  onChange={(event) => {
-                    const years = Number(event.target.value);
-                    updateClass(item.id, { maxAgeMonths: years * 12 + 11 });
-                  }}
+                  onChange={(event) =>
+                    updateClass(item.id, { maxAgeMonths: Number(event.target.value) * 12 + 11 })
+                  }
                   className="h-11 rounded-xl pr-12"
                 />
-                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">anos</span>
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                  anos
+                </span>
               </div>
             </label>
 
@@ -201,13 +274,19 @@ export function KidsClassSettingsForm({
             </Button>
           </div>
         ))}
+
+        {currentClasses.length === 0 && (
+          <div className="rounded-2xl border border-dashed p-5 text-sm text-muted-foreground">
+            Nenhuma turma configurada para {currentCampus?.name}. Adicione a primeira turma abaixo.
+          </div>
+        )}
       </div>
 
       <div className="mt-5 rounded-2xl border border-dashed p-4">
         <div>
-          <p className="font-medium">Adicionar nova turma</p>
+          <p className="font-medium">Adicionar nova turma em {currentCampus?.name}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            A faixa não pode se sobrepor às turmas existentes.
+            A faixa não pode se sobrepor às outras turmas deste campus.
           </p>
         </div>
 
@@ -217,7 +296,7 @@ export function KidsClassSettingsForm({
             <Input
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
-              placeholder="Ex.: 10-11 anos"
+              placeholder="Ex.: Kids 1"
               maxLength={50}
               className="h-11 rounded-xl"
             />
@@ -230,7 +309,7 @@ export function KidsClassSettingsForm({
               max={18}
               value={newMinAge}
               onChange={(event) => setNewMinAge(event.target.value)}
-              placeholder="10"
+              placeholder="3"
               className="h-11 rounded-xl"
             />
           </label>
@@ -242,7 +321,7 @@ export function KidsClassSettingsForm({
               max={18}
               value={newMaxAge}
               onChange={(event) => setNewMaxAge(event.target.value)}
-              placeholder="11"
+              placeholder="5"
               className="h-11 rounded-xl"
             />
           </label>
@@ -261,17 +340,19 @@ export function KidsClassSettingsForm({
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
-          A faixa etária é usada para sugerir automaticamente a turma da criança no check-in.
+          A faixa etária sugere a turma no check-in. A equipe pode alterar a turma manualmente quando necessário.
         </p>
-        <Button
-          type="button"
-          disabled={pending || classes.some((item) => !item.name.trim())}
-          onClick={save}
-          className="h-11 rounded-full px-5"
-        >
-          <Save className="size-4" />
-          {pending ? "Salvando…" : "Salvar turmas"}
-        </Button>
+        {currentClasses.length > 0 && (
+          <Button
+            type="button"
+            disabled={pending || currentClasses.some((item) => !item.name.trim())}
+            onClick={save}
+            className="h-11 rounded-full px-5"
+          >
+            <Save className="size-4" />
+            {pending ? "Salvando…" : "Salvar turmas"}
+          </Button>
+        )}
       </div>
     </section>
   );
