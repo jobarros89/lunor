@@ -20,6 +20,15 @@ type DeliveryStatusRow = {
   resolved_at: string | null;
 };
 
+type ReceptionRow = {
+  session_id: string;
+  title: string;
+  event_id: string | null;
+  campus_id: string | null;
+  campus_name: string | null;
+  opened_at: string;
+};
+
 export default async function KidsReceptionPage({
   params,
 }: {
@@ -43,8 +52,8 @@ export default async function KidsReceptionPage({
     }),
   ]);
 
-  const reception = (receptionRows ?? []).find(
-    (row: { session_id: string }) => row.session_id === sessionId
+  const reception = ((receptionRows ?? []) as ReceptionRow[]).find(
+    (row) => row.session_id === sessionId
   );
   if (!canOperate || !reception) redirect(`/${churchSlug}/infantil`);
 
@@ -60,6 +69,15 @@ export default async function KidsReceptionPage({
   const podeLiberar =
     tenant.isCoord || membership?.role === "gerente" || membership?.role === "lider";
 
+  let classQuery = supabase
+    .from("child_classes")
+    .select("id, name, min_age_months, max_age_months")
+    .eq("ministry_id", ministry.id)
+    .order("sort_order");
+  classQuery = reception.campus_id
+    ? classQuery.eq("campus_id", reception.campus_id)
+    : classQuery.is("campus_id", null);
+
   const [
     { data: classes },
     { data: children },
@@ -68,11 +86,7 @@ export default async function KidsReceptionPage({
     { data: printSettingsRow },
     { data: event },
   ] = await Promise.all([
-    supabase
-      .from("child_classes")
-      .select("id, name, min_age_months, max_age_months")
-      .eq("ministry_id", ministry.id)
-      .order("sort_order"),
+    classQuery,
     supabase
       .from("children")
       .select("id, full_name, birth_date, allergies, special_needs")
@@ -81,7 +95,7 @@ export default async function KidsReceptionPage({
       .order("full_name"),
     supabase
       .from("child_checkins")
-      .select("id, child_id, code, pickup_qr_token, checked_out_at, checked_in_at")
+      .select("id, child_id, class_id, code, pickup_qr_token, checked_out_at, checked_in_at")
       .eq("reception_session_id", sessionId)
       .order("checked_in_at", { ascending: true }),
     supabase.rpc("child_page_delivery_status_session", { p_session: sessionId }),
@@ -110,7 +124,9 @@ export default async function KidsReceptionPage({
         servicePeriod: event.service_period,
         fallbackLocation: event.location,
       })
-    : "Sessão independente";
+    : reception.campus_name
+      ? `Campus ${reception.campus_name}`
+      : "Campus não definido";
 
   const childIds = (children ?? []).map((child) => child.id);
   const { data: links } = childIds.length
@@ -139,22 +155,28 @@ export default async function KidsReceptionPage({
     ]);
   }
 
-  const latestByChild = new Map<string, {
-    id: string;
-    code: string;
-    pickupToken: string;
-    checkedOut: boolean;
-  }>();
+  const latestByChild = new Map<
+    string,
+    {
+      id: string;
+      code: string;
+      pickupToken: string;
+      checkedOut: boolean;
+      classId: string | null;
+    }
+  >();
   for (const row of checkins ?? []) {
     latestByChild.set(row.child_id, {
       id: row.id,
       code: row.code,
       pickupToken: row.pickup_qr_token,
       checkedOut: !!row.checked_out_at,
+      classId: row.class_id,
     });
   }
 
   const turmas = (classes ?? []) as ChildClass[];
+  const classOptions = turmas.map((item) => ({ id: item.id, name: item.name }));
   const sessionChildren: SessionChild[] = (children ?? []).map((child) => {
     const turma = suggestClass(child.birth_date, turmas);
     return {
@@ -199,11 +221,13 @@ export default async function KidsReceptionPage({
     <div className="space-y-6">
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Kids · Recepção aberta
+          Kids · Recepção aberta{reception.campus_name ? ` · ${reception.campus_name}` : ""}
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{reception.title}</h1>
         <p className="text-muted-foreground">
-          {event ? `Contexto: ${event.title}${receptionContext ? ` · ${receptionContext}` : ""}` : "Esta recepção funciona de forma independente de culto ou escala."}
+          {event
+            ? `Contexto: ${event.title}${receptionContext ? ` · ${receptionContext}` : ""}`
+            : `Recepção independente · ${receptionContext}`}
         </p>
       </div>
 
@@ -234,11 +258,18 @@ export default async function KidsReceptionPage({
         </p>
       )}
 
+      {turmas.length === 0 && (
+        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground">
+          Nenhuma turma está configurada para {reception.campus_name ?? "este campus"}. Configure as faixas em Kids → Configurações antes de fazer check-in.
+        </p>
+      )}
+
       <KidsDeliveryOverview items={deliveryItems} />
 
       {sessionChildren.length > 0 ? (
         <ReceptionSearch
           sessionChildren={sessionChildren}
+          classOptions={classOptions}
           churchName={tenant.church.name}
           churchSlug={churchSlug}
           churchId={tenant.church.id}
