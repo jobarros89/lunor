@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   Baby,
   BellRing,
+  ChevronDown,
   ChevronRight,
   LogIn,
   LogOut,
@@ -303,63 +304,94 @@ export default async function InfantilPage({
         <CardHeader>
           <CardTitle className="text-base">Turmas</CardTitle>
           <CardDescription>
-            Cada campus usa suas próprias faixas etárias. A criança não fica vinculada permanentemente a uma turma.
+            Expanda somente o campus que deseja visualizar. Campi com recepção aberta ficam abertos por padrão.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-3">
           {campusRows.map((campus) => {
             const campusClasses = turmas.filter((turma) => turma.campus_id === campus.id);
             const receptionOpen = activeReceptions.some(
               (reception) => reception.campus_id === campus.id
             );
+            const campusPresentes = campusClasses.reduce(
+              (total, turma) => total + (presentesPorTurma.get(turma.id) ?? 0),
+              0
+            );
+
             return (
-              <section key={campus.id} className="space-y-2">
-                <div className="flex items-center justify-between gap-3 px-1">
-                  <div>
-                    <p className="font-semibold">{campus.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {receptionOpen ? "Recepção aberta" : "Recepção fechada"}
-                    </p>
+              <details
+                key={campus.id}
+                open={receptionOpen}
+                className="group overflow-hidden rounded-2xl border bg-card"
+              >
+                <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden sm:px-5">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{campus.name}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                      <span>{receptionOpen ? "Recepção aberta" : "Recepção fechada"}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>
+                        {campusClasses.length} {campusClasses.length === 1 ? "turma" : "turmas"}
+                      </span>
+                      <span aria-hidden="true">·</span>
+                      <span>
+                        {campusPresentes} {campusPresentes === 1 ? "presente" : "presentes"}
+                      </span>
+                    </div>
                   </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    {receptionOpen && (
+                      <Badge className="hidden rounded-full border-0 bg-emerald-100 text-emerald-800 sm:inline-flex">
+                        Aberta
+                      </Badge>
+                    )}
+                    <ChevronDown className="size-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
+                  </div>
+                </summary>
+
+                <div className="space-y-2 border-t px-3 py-3 sm:px-4 sm:py-4">
                   {podeGerir && (
-                    <Button
-                      nativeButton={false}
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 rounded-full px-3 text-xs"
-                      render={<Link href={`/${churchSlug}/infantil/configuracoes`} />}
-                    >
-                      Configurar
-                    </Button>
+                    <div className="flex justify-end">
+                      <Button
+                        nativeButton={false}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 rounded-full px-3 text-xs"
+                        render={<Link href={`/${churchSlug}/infantil/configuracoes`} />}
+                      >
+                        Configurar {campus.name}
+                      </Button>
+                    </div>
+                  )}
+
+                  {campusClasses.map((turma) => {
+                    const qtd = presentesPorTurma.get(turma.id) ?? 0;
+                    return (
+                      <div
+                        key={turma.id}
+                        className="flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 sm:px-4 sm:py-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{turma.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {qtd} {qtd === 1 ? "presente" : "presentes"}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="shrink-0 rounded-full">
+                          {qtd}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+
+                  {campusClasses.length === 0 && (
+                    <div className="rounded-2xl border border-dashed px-4 py-3 text-sm text-muted-foreground">
+                      Nenhuma turma configurada para este campus.
+                    </div>
                   )}
                 </div>
-
-                {campusClasses.map((turma) => {
-                  const qtd = presentesPorTurma.get(turma.id) ?? 0;
-                  return (
-                    <div
-                      key={turma.id}
-                      className="flex items-center justify-between rounded-2xl border px-4 py-3"
-                    >
-                      <div>
-                        <p className="font-medium">{turma.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {qtd} {qtd === 1 ? "presente" : "presentes"}
-                        </p>
-                      </div>
-                      <Badge variant="secondary" className="rounded-full">
-                        {qtd}
-                      </Badge>
-                    </div>
-                  );
-                })}
-
-                {campusClasses.length === 0 && (
-                  <div className="rounded-2xl border border-dashed px-4 py-3 text-sm text-muted-foreground">
-                    Nenhuma turma configurada para este campus.
-                  </div>
-                )}
-              </section>
+              </details>
             );
           })}
 
