@@ -13,7 +13,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,7 +25,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Fixar Sharp corrigido na cadeia do Miniflare
+      - name: Aplicar overrides de segurança transitivos
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -36,26 +36,33 @@ jobs:
               ...(pkg.overrides?.miniflare ?? {}),
               sharp: '0.35.4',
             },
+            xcode: {
+              ...(pkg.overrides?.xcode ?? {}),
+              uuid: '11.1.1',
+            },
           };
           fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
           NODE
 
-      - name: Atualizar cadeia Cloudflare e Sharp
+      - name: Atualizar dependências corrigidas
         run: |
           npm install --save-exact @opennextjs/cloudflare@1.20.6
-          npm install --save-dev --save-exact sharp@0.35.4 wrangler@4.130.0
+          npm install --save-exact @capacitor/android@8.5.1 @capacitor/core@8.5.1 @capacitor/ios@8.5.1
+          npm install --save-dev --save-exact @capacitor/cli@8.5.1 sharp@0.35.4 vitest@4.1.11 wrangler@4.130.0
 
-      - name: Mostrar cadeia resolvida
-        run: npm ls @opennextjs/cloudflare wrangler miniflare sharp || true
+      - name: Mostrar cadeias resolvidas
+        run: npm ls @opennextjs/cloudflare wrangler miniflare sharp vitest @vitest/mocker @capacitor/cli xcode uuid || true
 
       - name: Auditar dependências de produção
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --omit=dev --audit-level=moderate
 
-      - name: Auditar árvore completa em severidade alta
-        run: npm audit --audit-level=high
+      - name: Auditar árvore completa
+        run: npm audit --audit-level=moderate
 
-      - name: Relatório completo do npm audit
-        run: npm audit || true
+      - name: Validar Capacitor
+        run: |
+          npx cap --version
+          npx cap doctor
 
       - name: Validar lint e TypeScript
         run: |
@@ -73,6 +80,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Nenhuma alteração necessária."
           else
-            git commit -m "security: update Cloudflare and Sharp dependencies"
+            git commit -m "security: update audited dependencies"
             git push origin HEAD:fix/npm-audit-sharp-cloudflare
           fi
