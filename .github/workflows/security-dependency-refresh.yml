@@ -1,0 +1,60 @@
+name: Security dependency refresh
+
+on:
+  push:
+    branches: [fix/npm-audit-sharp-cloudflare]
+    paths:
+      - ".github/workflows/security-dependency-refresh.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/npm-audit-sharp-cloudflare
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Atualizar cadeia Cloudflare e Sharp
+        run: |
+          npm install --save-exact @opennextjs/cloudflare@1.20.6
+          npm install --save-dev --save-exact sharp@0.35.4 wrangler@4.130.0
+
+      - name: Mostrar cadeia resolvida
+        run: npm ls @opennextjs/cloudflare wrangler miniflare sharp
+
+      - name: Auditar dependências de produção
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Auditar árvore completa
+        run: npm audit --audit-level=high
+
+      - name: Validar lint e TypeScript
+        run: |
+          npm run lint
+          npx tsc --noEmit
+
+      - name: Validar build OpenNext para Cloudflare
+        run: npm run cf:build
+
+      - name: Persistir dependências validadas
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração necessária."
+          else
+            git commit -m "security: update Cloudflare and Sharp dependencies"
+            git push origin HEAD:fix/npm-audit-sharp-cloudflare
+          fi
