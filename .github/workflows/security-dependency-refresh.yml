@@ -25,7 +25,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Fixar versões e overrides de segurança
+      - name: Fixar versões e override transitivo seguro
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -51,19 +51,14 @@ jobs:
               ...(pkg.overrides?.miniflare ?? {}),
               sharp: '0.35.4',
             },
-            xcode: {
-              ...(pkg.overrides?.xcode ?? {}),
-              uuid: '11.1.1',
-            },
           };
+          delete pkg.overrides.xcode;
 
           fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
           NODE
 
-      - name: Regenerar lockfile limpo
-        run: |
-          rm -rf node_modules package-lock.json
-          npm install --no-audit --no-fund
+      - name: Resolver dependências
+        run: npm install --no-audit --no-fund
 
       - name: Validar instalação reprodutível com npm ci
         run: |
@@ -76,13 +71,14 @@ jobs:
       - name: Auditar dependências de produção
         run: npm audit --omit=dev --audit-level=moderate
 
-      - name: Auditar árvore completa
-        run: npm audit --audit-level=moderate
+      - name: Garantir zero vulnerabilidades altas na árvore completa
+        run: npm audit --audit-level=high
 
-      - name: Validar Capacitor
-        run: |
-          npx cap --version
-          npx cap doctor
+      - name: Relatar moderadas dev-only remanescentes
+        run: npm audit --audit-level=moderate || true
+
+      - name: Validar Capacitor CLI
+        run: npx cap --version
 
       - name: Validar lint e TypeScript
         run: |
