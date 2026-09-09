@@ -25,11 +25,26 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Aplicar overrides de segurança transitivos
+      - name: Fixar versões e overrides de segurança
         run: |
           node <<'NODE'
           const fs = require('node:fs');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+
+          Object.assign(pkg.dependencies, {
+            '@opennextjs/cloudflare': '1.20.6',
+            '@capacitor/android': '8.5.1',
+            '@capacitor/core': '8.5.1',
+            '@capacitor/ios': '8.5.1',
+          });
+
+          Object.assign(pkg.devDependencies, {
+            '@capacitor/cli': '8.5.1',
+            sharp: '0.35.4',
+            vitest: '4.1.11',
+            wrangler: '4.130.0',
+          });
+
           pkg.overrides = {
             ...(pkg.overrides ?? {}),
             miniflare: {
@@ -41,14 +56,12 @@ jobs:
               uuid: '11.1.1',
             },
           };
+
           fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
           NODE
 
-      - name: Atualizar dependências corrigidas
-        run: |
-          npm install --save-exact @opennextjs/cloudflare@1.20.6
-          npm install --save-exact @capacitor/android@8.5.1 @capacitor/core@8.5.1 @capacitor/ios@8.5.1
-          npm install --save-dev --save-exact @capacitor/cli@8.5.1 sharp@0.35.4 vitest@4.1.11 wrangler@4.130.0
+      - name: Resolver lockfile em uma única instalação
+        run: npm install --no-audit --no-fund
 
       - name: Mostrar cadeias resolvidas
         run: npm ls @opennextjs/cloudflare wrangler miniflare sharp vitest @vitest/mocker @capacitor/cli xcode uuid || true
