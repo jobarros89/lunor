@@ -44,12 +44,13 @@ export function KidsReceptionBar({
   const [pending, startTransition] = useTransition();
 
   if (campuses.length === 0 && activeReceptions.length === 0) {
-    if (!canManageReception) return null;
     return (
       <div className="rounded-2xl border bg-card px-4 py-3">
         <p className="text-sm font-medium">Nenhum campus ativo</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Cadastre um campus na Administração antes de abrir a recepção do Kids.
+          {canManageReception
+            ? "Cadastre um campus na Administração antes de abrir a recepção do Kids."
+            : "Peça à liderança para cadastrar um campus antes de abrir a recepção do Kids."}
         </p>
       </div>
     );
@@ -112,7 +113,6 @@ export function KidsReceptionBar({
     <div className="space-y-2">
       {campuses.map((campus) => {
         const active = byCampus.get(campus.id) ?? null;
-        if (!active && !canManageReception) return null;
 
         if (!active) {
           return (
@@ -180,21 +180,19 @@ export function KidsReceptionBar({
               </Button>
             </div>
 
-            {canManageReception && (
-              <div className="mt-3 border-t pt-3">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={pending}
-                  className="h-8 rounded-full px-2 text-xs text-destructive hover:text-destructive"
-                  onClick={() => closeReception(active)}
-                >
-                  <DoorClosed className="size-3.5" />
-                  {pending ? "Aguarde…" : "Encerrar recepção"}
-                </Button>
-              </div>
-            )}
+            <div className="mt-3 border-t pt-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={pending}
+                className="h-8 rounded-full px-2 text-xs text-destructive hover:text-destructive"
+                onClick={() => closeReception(active)}
+              >
+                <DoorClosed className="size-3.5" />
+                {pending ? "Aguarde…" : "Encerrar recepção"}
+              </Button>
+            </div>
           </div>
         );
       })}
@@ -220,19 +218,17 @@ export function KidsReceptionBar({
                 <ExternalLink className="size-4" />
                 Entrar
               </Button>
-              {canManageReception && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={pending}
-                  onClick={() => closeReception(active)}
-                  className="h-9 rounded-full px-3 text-destructive hover:text-destructive"
-                >
-                  <DoorClosed className="size-4" />
-                  Encerrar
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={pending}
+                onClick={() => closeReception(active)}
+                className="h-9 rounded-full px-3 text-destructive hover:text-destructive"
+              >
+                <DoorClosed className="size-4" />
+                Encerrar
+              </Button>
             </div>
           </div>
         );
