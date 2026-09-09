@@ -25,6 +25,21 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Fixar Sharp corrigido na cadeia do Miniflare
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.overrides = {
+            ...(pkg.overrides ?? {}),
+            miniflare: {
+              ...(pkg.overrides?.miniflare ?? {}),
+              sharp: '0.35.4',
+            },
+          };
+          fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
+          NODE
+
       - name: Atualizar cadeia Cloudflare e Sharp
         run: |
           npm install --save-exact @opennextjs/cloudflare@1.20.6
