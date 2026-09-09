@@ -13,7 +13,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -60,8 +60,15 @@ jobs:
           fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
           NODE
 
-      - name: Resolver lockfile em uma única instalação
-        run: npm install --no-audit --no-fund
+      - name: Regenerar lockfile limpo
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install --no-audit --no-fund
+
+      - name: Validar instalação reprodutível com npm ci
+        run: |
+          rm -rf node_modules
+          npm ci --no-audit --no-fund --prefer-offline
 
       - name: Mostrar cadeias resolvidas
         run: npm ls @opennextjs/cloudflare wrangler miniflare sharp vitest @vitest/mocker @capacitor/cli xcode uuid || true
