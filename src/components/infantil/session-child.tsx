@@ -21,6 +21,12 @@ export type Guardian = {
   canPickup: boolean;
   relationship: string | null;
 };
+
+export type KidsClassOption = {
+  id: string;
+  name: string;
+};
+
 export type SessionChild = {
   id: string;
   fullName: string;
@@ -29,12 +35,19 @@ export type SessionChild = {
   specialNeeds: string | null;
   classId: string | null;
   className: string | null;
-  checkin: { id: string; code: string; pickupToken: string; checkedOut: boolean } | null;
+  checkin: {
+    id: string;
+    code: string;
+    pickupToken: string;
+    checkedOut: boolean;
+    classId?: string | null;
+  } | null;
   guardians: Guardian[];
 };
 
 export function SessionChildRow({
   child,
+  classOptions,
   churchName,
   churchSlug,
   churchId,
@@ -47,6 +60,7 @@ export function SessionChildRow({
   printSettings,
 }: {
   child: SessionChild;
+  classOptions: KidsClassOption[];
   churchName: string;
   churchSlug: string;
   churchId: string;
@@ -63,12 +77,18 @@ export function SessionChildRow({
   const [mostrarQr, setMostrarQr] = useState(false);
   const [guardianId, setGuardianId] = useState("");
   const [justificativa, setJustificativa] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState(child.classId ?? "");
 
   const autorizados = child.guardians.filter((g) => g.canPickup);
   const escolhido = child.guardians.find((g) => g.id === guardianId);
   const precisaJustificar = !!escolhido && !escolhido.canPickup;
   const responsavelPrincipal = child.guardians[0] ?? null;
   const restritos = child.guardians.filter((g) => !g.canPickup).map((g) => g.name);
+  const activeClassId =
+    child.checkin && !child.checkin.checkedOut ? child.checkin.classId ?? child.classId : null;
+  const displayClassId = activeClassId ?? (selectedClassId || null);
+  const displayClassName =
+    classOptions.find((item) => item.id === displayClassId)?.name ?? child.className;
 
   function entrar() {
     startTransition(async () => {
@@ -79,7 +99,7 @@ export function SessionChildRow({
         sessionId: sessionId ?? null,
         eventId: eventId ?? null,
         childId: child.id,
-        classId: child.classId,
+        classId: selectedClassId || null,
       });
       if (r.ok) {
         toast.success(
@@ -155,13 +175,15 @@ export function SessionChildRow({
     });
   }
 
+  const canChooseClass = !child.checkin || child.checkin.checkedOut;
+
   return (
     <div className="space-y-3 rounded-2xl border p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-medium">{child.fullName}</p>
           <p className="text-xs text-muted-foreground">
-            {child.age}{child.className ? ` · ${child.className}` : ""}
+            {child.age}{displayClassName ? ` · ${displayClassName}` : ""}
           </p>
         </div>
         {child.checkin ? (
@@ -188,6 +210,28 @@ export function SessionChildRow({
           </Button>
         )}
       </div>
+
+      {canChooseClass && classOptions.length > 0 && (
+        <label className="block space-y-1.5 text-xs font-medium">
+          Turma neste check-in
+          <select
+            value={selectedClassId}
+            onChange={(event) => setSelectedClassId(event.target.value)}
+            className="h-10 w-full rounded-xl border bg-background px-3 text-sm font-normal"
+            aria-label={`Turma de ${child.fullName}`}
+          >
+            <option value="">Automática pela idade</option>
+            {classOptions.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+          <span className="block font-normal text-muted-foreground">
+            O LUNOR sugere pela idade, mas você pode trocar a turma para este check-in.
+          </span>
+        </label>
+      )}
 
       {child.checkin?.checkedOut && (
         <p className="text-xs text-muted-foreground">
@@ -226,7 +270,7 @@ export function SessionChildRow({
                 churchName={churchName}
                 childName={child.fullName}
                 childAge={child.age}
-                className={child.className}
+                className={displayClassName}
                 guardianName={responsavelPrincipal?.name ?? null}
                 restrictedPickupNames={restritos}
                 allergies={child.allergies}
@@ -296,8 +340,7 @@ export function SessionChildRow({
                     className="h-11 rounded-xl"
                   />
                   <p className="text-xs text-amber-700">
-                    Retirada fora da lista: exige justificativa e fica registrada
-                    com o seu nome.
+                    Retirada fora da lista: exige justificativa e fica registrada com o seu nome.
                   </p>
                 </div>
               )}

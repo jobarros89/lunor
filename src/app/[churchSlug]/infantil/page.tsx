@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
-import { getInfantilMinistry, formatAge, suggestClass, type ChildClass } from "@/lib/infantil";
+import { getInfantilMinistry, formatAge } from "@/lib/infantil";
 import { formatEventDate, formatEventTime } from "@/lib/escalas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { SeedClassesButton } from "@/components/infantil/seed-classes-button";
 import { GuardianAccountLink } from "@/components/infantil/guardian-account-link";
 import { GuardianKidsPage } from "@/components/infantil/guardian-kids-page";
 import { KidsReceptionBar } from "@/components/infantil/kids-reception-bar";
@@ -33,7 +32,17 @@ type ActiveReception = {
   session_id: string;
   title: string;
   event_id: string | null;
+  campus_id: string | null;
+  campus_name: string | null;
   opened_at: string;
+};
+
+type KidsClassRow = {
+  id: string;
+  campus_id: string | null;
+  name: string;
+  min_age_months: number;
+  max_age_months: number;
 };
 
 export default async function InfantilPage({
@@ -121,12 +130,14 @@ export default async function InfantilPage({
     { data: guardians },
     { data: members },
     { data: receptionRows },
+    { data: campuses },
   ] = await Promise.all([
     supabase
       .from("child_classes")
-      .select("id, name, min_age_months, max_age_months")
+      .select("id, campus_id, name, min_age_months, max_age_months")
       .eq("ministry_id", ministry.id)
-      .order("sort_order"),
+      .order("sort_order")
+      .order("name"),
     supabase
       .from("children")
       .select("id, full_name, birth_date, allergies, special_needs")
@@ -135,7 +146,7 @@ export default async function InfantilPage({
       .order("full_name"),
     supabase
       .from("events")
-      .select("id, title, starts_at, ends_at")
+      .select("id, title, starts_at, ends_at, campus_id, campuses(name)")
       .eq("church_id", tenant.church.id)
       .gte("starts_at", sessionWindowStart)
       .order("starts_at")
@@ -154,9 +165,21 @@ export default async function InfantilPage({
       p_church: tenant.church.id,
       p_ministry: ministry.id,
     }),
+    supabase
+      .from("campuses")
+      .select("id, name, sort_order")
+      .eq("church_id", tenant.church.id)
+      .eq("active", true)
+      .order("sort_order")
+      .order("name"),
   ]);
 
-  const activeReception = (receptionRows?.[0] ?? null) as ActiveReception | null;
+  const activeReceptions = (receptionRows ?? []) as ActiveReception[];
+  const campusRows = (campuses ?? []).map((campus) => ({
+    id: campus.id,
+    name: campus.name,
+  }));
+  const turmas = (classes ?? []) as KidsClassRow[];
 
   const guardianRows = (guardians ?? []).map((guardian) => ({
     id: guardian.id,
@@ -173,24 +196,24 @@ export default async function InfantilPage({
 
   let checkins: Array<{ class_id: string | null; checked_out_at: string | null }> = [];
   let chamadasPendentes = 0;
+  const sessionIds = activeReceptions.map((reception) => reception.session_id);
 
-  if (activeReception) {
+  if (sessionIds.length > 0) {
     const [{ data: checkinsData }, { count: pagesCount }] = await Promise.all([
       supabase
         .from("child_checkins")
         .select("class_id, checked_out_at")
-        .eq("reception_session_id", activeReception.session_id),
+        .in("reception_session_id", sessionIds),
       supabase
         .from("child_pages")
         .select("id", { count: "exact", head: true })
-        .eq("reception_session_id", activeReception.session_id)
+        .in("reception_session_id", sessionIds)
         .is("resolved_at", null),
     ]);
     checkins = checkinsData ?? [];
     chamadasPendentes = pagesCount ?? 0;
   }
 
-  const turmas = (classes ?? []) as ChildClass[];
   const presentes = checkins.filter((item) => !item.checked_out_at).length;
   const entradas = checkins.length;
   const saidas = checkins.filter((item) => !!item.checked_out_at).length;
@@ -204,6 +227,10 @@ export default async function InfantilPage({
       );
     }
   }
+
+  const campusesWithoutClasses = campusRows.filter(
+    (campus) => !turmas.some((turma) => turma.campus_id === campus.id)
+  );
 
   return (
     <div className="space-y-5">
@@ -222,23 +249,26 @@ export default async function InfantilPage({
         churchId={tenant.church.id}
         ministryId={ministry.id}
         canManageReception={canManageReception}
-        activeReception={
-          activeReception
-            ? {
-                sessionId: activeReception.session_id,
-                title: activeReception.title,
-                eventId: activeReception.event_id,
-                openedAt: activeReception.opened_at,
-              }
-            : null
-        }
+        campuses={campusRows}
+        activeReceptions={activeReceptions.map((reception) => ({
+          sessionId: reception.session_id,
+          title: reception.title,
+          eventId: reception.event_id,
+          campusId: reception.campus_id,
+          campusName: reception.campus_name,
+          openedAt: reception.opened_at,
+        }))}
       />
 
-      {activeReception && (
+      {activeReceptions.length > 0 && (
         <Card className="rounded-3xl">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Operação atual</CardTitle>
-            <CardDescription>{activeReception.title}</CardDescription>
+            <CardDescription>
+              {activeReceptions.length === 1
+                ? `${activeReceptions[0].campus_name ?? "Campus não definido"} · ${activeReceptions[0].title}`
+                : `${activeReceptions.length} recepções abertas`}
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Metric icon={Users} value={presentes} label="Presentes" />
@@ -249,16 +279,22 @@ export default async function InfantilPage({
         </Card>
       )}
 
-      {turmas.length === 0 && podeGerir && (
+      {campusesWithoutClasses.length > 0 && podeGerir && (
         <Card className="rounded-3xl">
           <CardHeader>
-            <CardTitle className="text-base">Criar as turmas</CardTitle>
+            <CardTitle className="text-base">Configurar turmas por campus</CardTitle>
             <CardDescription>
-              Comece com Berçário, Maternal, Jardim, Primários e Juniores.
+              {campusesWithoutClasses.map((campus) => campus.name).join(", ")} ainda {campusesWithoutClasses.length === 1 ? "não possui" : "não possuem"} turmas configuradas.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <SeedClassesButton churchSlug={churchSlug} ministryId={ministry.id} />
+            <Button
+              nativeButton={false}
+              className="h-11 rounded-full"
+              render={<Link href={`/${churchSlug}/infantil/configuracoes`} />}
+            >
+              Configurar turmas
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -267,31 +303,70 @@ export default async function InfantilPage({
         <CardHeader>
           <CardTitle className="text-base">Turmas</CardTitle>
           <CardDescription>
-            {activeReception ? "Presença nesta recepção" : "Nenhuma recepção aberta agora"}
+            Cada campus usa suas próprias faixas etárias. A criança não fica vinculada permanentemente a uma turma.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {turmas.map((turma) => {
-            const qtd = presentesPorTurma.get(turma.id) ?? 0;
+        <CardContent className="space-y-5">
+          {campusRows.map((campus) => {
+            const campusClasses = turmas.filter((turma) => turma.campus_id === campus.id);
+            const receptionOpen = activeReceptions.some(
+              (reception) => reception.campus_id === campus.id
+            );
             return (
-              <div
-                key={turma.id}
-                className="flex items-center justify-between rounded-2xl border px-4 py-3"
-              >
-                <div>
-                  <p className="font-medium">{turma.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {qtd} {qtd === 1 ? "presente" : "presentes"}
-                  </p>
+              <section key={campus.id} className="space-y-2">
+                <div className="flex items-center justify-between gap-3 px-1">
+                  <div>
+                    <p className="font-semibold">{campus.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {receptionOpen ? "Recepção aberta" : "Recepção fechada"}
+                    </p>
+                  </div>
+                  {podeGerir && (
+                    <Button
+                      nativeButton={false}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-full px-3 text-xs"
+                      render={<Link href={`/${churchSlug}/infantil/configuracoes`} />}
+                    >
+                      Configurar
+                    </Button>
+                  )}
                 </div>
-                <Badge variant="secondary" className="rounded-full">
-                  {qtd}
-                </Badge>
-              </div>
+
+                {campusClasses.map((turma) => {
+                  const qtd = presentesPorTurma.get(turma.id) ?? 0;
+                  return (
+                    <div
+                      key={turma.id}
+                      className="flex items-center justify-between rounded-2xl border px-4 py-3"
+                    >
+                      <div>
+                        <p className="font-medium">{turma.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {qtd} {qtd === 1 ? "presente" : "presentes"}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="rounded-full">
+                        {qtd}
+                      </Badge>
+                    </div>
+                  );
+                })}
+
+                {campusClasses.length === 0 && (
+                  <div className="rounded-2xl border border-dashed px-4 py-3 text-sm text-muted-foreground">
+                    Nenhuma turma configurada para este campus.
+                  </div>
+                )}
+              </section>
             );
           })}
-          {turmas.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhuma turma configurada.</p>
+
+          {campusRows.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Nenhum campus ativo. Cadastre os campi na Administração.
+            </p>
           )}
         </CardContent>
       </Card>
@@ -314,7 +389,6 @@ export default async function InfantilPage({
         </CardHeader>
         <CardContent className="space-y-2">
           {(children ?? []).slice(0, 8).map((c) => {
-            const turma = suggestClass(c.birth_date, turmas);
             const content = (
               <>
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
@@ -323,7 +397,7 @@ export default async function InfantilPage({
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{c.full_name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatAge(c.birth_date)}{turma ? ` · ${turma.name}` : ""}
+                    {formatAge(c.birth_date)}
                   </p>
                 </div>
                 {c.allergies && (
@@ -389,7 +463,7 @@ export default async function InfantilPage({
           <CardHeader>
             <CardTitle className="text-base">Cultos próximos</CardTitle>
             <CardDescription>
-              Use um culto como contexto da recepção quando fizer sentido.
+              O campus do culto define quais turmas do Kids serão usadas.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -402,21 +476,25 @@ export default async function InfantilPage({
                 return endMs >= requestNowMs;
               })
               .slice(0, 3)
-              .map((e) => (
-                <Link
-                  key={e.id}
-                  href={`/${churchSlug}/infantil/sessao/${e.id}`}
-                  className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors hover:bg-accent/40"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{e.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatEventDate(e.starts_at)} · {formatEventTime(e.starts_at)}
-                    </p>
-                  </div>
-                  <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-                </Link>
-              ))}
+              .map((e) => {
+                const eventCampus = e.campuses as unknown as { name: string } | null;
+                return (
+                  <Link
+                    key={e.id}
+                    href={`/${churchSlug}/infantil/sessao/${e.id}`}
+                    className="flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors hover:bg-accent/40"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{e.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatEventDate(e.starts_at)} · {formatEventTime(e.starts_at)}
+                        {eventCampus?.name ? ` · ${eventCampus.name}` : " · campus não definido"}
+                      </p>
+                    </div>
+                    <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+                  </Link>
+                );
+              })}
           </CardContent>
         </Card>
       )}

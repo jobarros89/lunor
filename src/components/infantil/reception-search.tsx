@@ -10,7 +10,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { SessionChildRow, type SessionChild } from "@/components/infantil/session-child";
+import {
+  SessionChildRow,
+  type KidsClassOption,
+  type SessionChild,
+} from "@/components/infantil/session-child";
 import type { KidsPrintSettings } from "@/lib/kids-print-settings";
 
 function normalizeText(value: string) {
@@ -55,6 +59,7 @@ function childStatus(child: SessionChild) {
 
 export function ReceptionSearch({
   sessionChildren,
+  classOptions,
   churchName,
   churchSlug,
   churchId,
@@ -67,6 +72,7 @@ export function ReceptionSearch({
   printSettings,
 }: {
   sessionChildren: SessionChild[];
+  classOptions: KidsClassOption[];
   churchName: string;
   churchSlug: string;
   churchId: string;
@@ -103,6 +109,20 @@ export function ReceptionSearch({
     }
     return [...groups.entries()];
   }, [filtered]);
+
+  const rowProps = {
+    classOptions,
+    churchName,
+    churchSlug,
+    churchId,
+    ministryId,
+    sessionId,
+    eventId,
+    eventTitle,
+    eventContext,
+    podeLiberar,
+    printSettings,
+  };
 
   return (
     <div className="space-y-4">
@@ -167,19 +187,7 @@ export function ReceptionSearch({
           <p className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Criança encontrada
           </p>
-          <SessionChildRow
-            child={selectedChild}
-            churchName={churchName}
-            churchSlug={churchSlug}
-            churchId={churchId}
-            ministryId={ministryId}
-            sessionId={sessionId}
-            eventId={eventId}
-            eventTitle={eventTitle}
-            eventContext={eventContext}
-            podeLiberar={podeLiberar}
-            printSettings={printSettings}
-          />
+          <SessionChildRow child={selectedChild} {...rowProps} />
         </div>
       )}
 
@@ -199,20 +207,7 @@ export function ReceptionSearch({
               </CardHeader>
               <CardContent className="space-y-3">
                 {items.map((child) => (
-                  <SessionChildRow
-                    key={child.id}
-                    child={child}
-                    churchName={churchName}
-                    churchSlug={churchSlug}
-                    churchId={churchId}
-                    ministryId={ministryId}
-                    sessionId={sessionId}
-                    eventId={eventId}
-                    eventTitle={eventTitle}
-                    eventContext={eventContext}
-                    podeLiberar={podeLiberar}
-                    printSettings={printSettings}
-                  />
+                  <SessionChildRow key={child.id} child={child} {...rowProps} />
                 ))}
               </CardContent>
             </Card>
