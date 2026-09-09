@@ -44,6 +44,7 @@ describe("Kids — escala operacional e família", () => {
   let wrongGuardian: SupabaseClient;
   let churchId: string;
   let kidsId: string;
+  let campusId: string;
   let eventId: string;
   let childId: string;
   let otherChildId: string;
@@ -69,6 +70,10 @@ describe("Kids — escala operacional e família", () => {
       name: "Kids",
       slug: "kids",
     }).select("id").single()).data!.id;
+    campusId = (await coord.from("campuses").insert({
+      church_id: churchId,
+      name: "Campus Kids Scope",
+    }).select("id").single()).data!.id;
 
     const inviteCode = (await admin.from("churches")
       .select("invite_code").eq("id", churchId).single()).data!.invite_code;
@@ -81,6 +86,7 @@ describe("Kids — escala operacional e família", () => {
 
     eventId = (await coord.from("events").insert({
       church_id: churchId,
+      campus_id: campusId,
       title: "Culto atual",
       starts_at: new Date(Date.now() - 5 * 60_000).toISOString(),
       ends_at: new Date(Date.now() + 60 * 60_000).toISOString(),
@@ -287,7 +293,7 @@ describe("Kids — escala operacional e família", () => {
     expect((visible.data ?? []).map((row) => row.id)).not.toContain(otherChildId);
 
     // A partir da recepção viva, o check-in do responsável exige uma sessão
-    // explicitamente aberta pela equipe para o culto — reflete o fluxo atual.
+    // explicitamente aberta pela equipe para um culto com campus definido.
     const openReception = await coord.rpc("open_kids_reception", {
       p_church: churchId,
       p_ministry: kidsId,
