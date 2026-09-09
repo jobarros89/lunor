@@ -25,6 +25,12 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Usar npm 11 somente para resolver o lockfile
+        run: |
+          npm install --global npm@11
+          node --version
+          npm --version
+
       - name: Fixar versões e override transitivo seguro
         run: |
           node <<'NODE'
@@ -57,8 +63,15 @@ jobs:
           fs.writeFileSync('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
           NODE
 
-      - name: Resolver dependências
-        run: npm install --no-audit --no-fund
+      - name: Gerar lockfile limpo com npm 11
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install --no-audit --no-fund
+
+      - name: Voltar ao npm do CI atual
+        run: |
+          npm install --global npm@10.9.8
+          npm --version
 
       - name: Validar instalação reprodutível com npm ci
         run: |
