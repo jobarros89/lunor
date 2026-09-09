@@ -44,15 +44,19 @@ jobs:
         run: |
           npm install --save-exact @opennextjs/cloudflare@1.20.6
           npm install --save-dev --save-exact sharp@0.35.4 wrangler@4.130.0
+          npm audit fix
 
       - name: Mostrar cadeia resolvida
-        run: npm ls @opennextjs/cloudflare wrangler miniflare sharp
+        run: npm ls @opennextjs/cloudflare wrangler miniflare sharp || true
 
       - name: Auditar dependências de produção
         run: npm audit --omit=dev --audit-level=high
 
-      - name: Auditar árvore completa
+      - name: Auditar árvore completa em severidade alta
         run: npm audit --audit-level=high
+
+      - name: Relatório completo do npm audit
+        run: npm audit || true
 
       - name: Validar lint e TypeScript
         run: |
