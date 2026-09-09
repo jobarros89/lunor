@@ -14,23 +14,23 @@ const classItemSchema = z.object({
   maxAgeYears: z.number().int().min(0).max(18),
 });
 
-const saveSchema = z.object({
+const campusContextSchema = z.object({
   churchSlug: z.string().min(2),
   ministryId: z.string().uuid(),
+  campusId: z.string().uuid(),
+});
+
+const saveSchema = campusContextSchema.extend({
   classes: z.array(classItemSchema).min(1).max(20),
 });
 
-const createSchema = z.object({
-  churchSlug: z.string().min(2),
-  ministryId: z.string().uuid(),
+const createSchema = campusContextSchema.extend({
   name: z.string().trim().min(1, "Informe o nome da turma").max(50),
   minAgeYears: z.number().int().min(0).max(18),
   maxAgeYears: z.number().int().min(0).max(18),
 });
 
-const deleteSchema = z.object({
-  churchSlug: z.string().min(2),
-  ministryId: z.string().uuid(),
+const deleteSchema = campusContextSchema.extend({
   classId: z.string().uuid(),
 });
 
@@ -41,7 +41,8 @@ type ManagedContext = {
 
 async function requireKidsManager(
   churchSlug: string,
-  ministryId: string
+  ministryId: string,
+  campusId: string
 ): Promise<ManagedContext | ActionResult> {
   const tenant = await getTenant(churchSlug);
   const kids = await getInfantilMinistry(tenant.church.id);
@@ -64,15 +65,20 @@ async function requireKidsManager(
   }
 
   if (!canManage) return { ok: false, error: "Sem permissão para alterar as turmas" };
+
+  const { data: campus } = await supabase
+    .from("campuses")
+    .select("id")
+    .eq("id", campusId)
+    .eq("church_id", tenant.church.id)
+    .eq("active", true)
+    .maybeSingle();
+  if (!campus) return { ok: false, error: "Campus inválido ou inativo" };
+
   return { tenant, supabase };
 }
 
-function rangesOverlap(
-  aMin: number,
-  aMax: number,
-  bMin: number,
-  bMax: number
-) {
+function rangesOverlap(aMin: number, aMax: number, bMin: number, bMax: number) {
   return aMin <= bMax && bMin <= aMax;
 }
 
@@ -103,12 +109,14 @@ function validateRanges(
 
 async function reorderClasses(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  ministryId: string
+  ministryId: string,
+  campusId: string
 ) {
   const { data } = await supabase
     .from("child_classes")
     .select("id")
     .eq("ministry_id", ministryId)
+    .eq("campus_id", campusId)
     .order("min_age_months")
     .order("name");
 
@@ -117,7 +125,8 @@ async function reorderClasses(
       .from("child_classes")
       .update({ sort_order: index + 1 })
       .eq("id", item.id)
-      .eq("ministry_id", ministryId);
+      .eq("ministry_id", ministryId)
+      .eq("campus_id", campusId);
   }
 }
 
@@ -132,7 +141,7 @@ export async function saveKidsClasses(raw: unknown): Promise<ActionResult> {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
   }
   const d = parsed.data;
-  const ctx = await requireKidsManager(d.churchSlug, d.ministryId);
+  const ctx = await requireKidsManager(d.churchSlug, d.ministryId, d.campusId);
   if ("ok" in ctx) return ctx;
 
   const normalized = d.classes.map((item) => ({ ...item, name: item.name.trim() }));
@@ -148,9 +157,10 @@ export async function saveKidsClasses(raw: unknown): Promise<ActionResult> {
     .from("child_classes")
     .select("id")
     .eq("ministry_id", d.ministryId)
+    .eq("campus_id", d.campusId)
     .in("id", ids);
   if (loadError || (existing ?? []).length !== ids.length) {
-    return { ok: false, error: "Não foi possível validar as turmas" };
+    return { ok: false, error: "Não foi possível validar as turmas deste campus" };
   }
 
   for (const item of normalized) {
@@ -162,11 +172,12 @@ export async function saveKidsClasses(raw: unknown): Promise<ActionResult> {
         max_age_months: item.maxAgeYears * 12 + 11,
       })
       .eq("id", item.id)
-      .eq("ministry_id", d.ministryId);
+      .eq("ministry_id", d.ministryId)
+      .eq("campus_id", d.campusId);
     if (error) return { ok: false, error: "Não foi possível salvar as turmas" };
   }
 
-  await reorderClasses(ctx.supabase, d.ministryId);
+  await reorderClasses(ctx.supabase, d.ministryId, d.campusId);
   revalidateKids(d.churchSlug);
   return { ok: true, data: undefined };
 }
@@ -188,19 +199,24 @@ export async function createKidsClass(raw: unknown): Promise<ActionResult<Create
     return { ok: false, error: "A idade mínima não pode ser maior que a máxima" };
   }
 
-  const ctx = await requireKidsManager(d.churchSlug, d.ministryId);
+  const ctx = await requireKidsManager(d.churchSlug, d.ministryId, d.campusId);
   if ("ok" in ctx) return ctx as ActionResult<CreatedKidsClass>;
 
   const { data: current, error: currentError } = await ctx.supabase
     .from("child_classes")
     .select("name, min_age_months, max_age_months")
-    .eq("ministry_id", d.ministryId);
+    .eq("ministry_id", d.ministryId)
+    .eq("campus_id", d.campusId);
   if (currentError) return { ok: false, error: "Não foi possível validar as turmas atuais" };
-  if ((current ?? []).length >= 20) return { ok: false, error: "O limite é de 20 turmas" };
+  if ((current ?? []).length >= 20) return { ok: false, error: "O limite é de 20 turmas por campus" };
 
   const normalizedName = d.name.trim();
-  if ((current ?? []).some((item) => item.name.toLocaleLowerCase("pt-BR") === normalizedName.toLocaleLowerCase("pt-BR"))) {
-    return { ok: false, error: "Já existe uma turma com esse nome" };
+  if (
+    (current ?? []).some(
+      (item) => item.name.toLocaleLowerCase("pt-BR") === normalizedName.toLocaleLowerCase("pt-BR")
+    )
+  ) {
+    return { ok: false, error: "Já existe uma turma com esse nome neste campus" };
   }
 
   const minMonths = d.minAgeYears * 12;
@@ -217,6 +233,7 @@ export async function createKidsClass(raw: unknown): Promise<ActionResult<Create
     .insert({
       church_id: ctx.tenant.church.id,
       ministry_id: d.ministryId,
+      campus_id: d.campusId,
       name: normalizedName,
       min_age_months: minMonths,
       max_age_months: maxMonths,
@@ -226,7 +243,7 @@ export async function createKidsClass(raw: unknown): Promise<ActionResult<Create
     .single();
   if (error || !created) return { ok: false, error: "Não foi possível adicionar a turma" };
 
-  await reorderClasses(ctx.supabase, d.ministryId);
+  await reorderClasses(ctx.supabase, d.ministryId, d.campusId);
   revalidateKids(d.churchSlug);
   return {
     ok: true,
@@ -243,7 +260,7 @@ export async function deleteKidsClass(raw: unknown): Promise<ActionResult<{ id: 
   const parsed = deleteSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Dados inválidos" };
   const d = parsed.data;
-  const ctx = await requireKidsManager(d.churchSlug, d.ministryId);
+  const ctx = await requireKidsManager(d.churchSlug, d.ministryId, d.campusId);
   if ("ok" in ctx) return ctx as ActionResult<{ id: string }>;
 
   const { data: classRow } = await ctx.supabase
@@ -251,16 +268,9 @@ export async function deleteKidsClass(raw: unknown): Promise<ActionResult<{ id: 
     .select("id, name")
     .eq("id", d.classId)
     .eq("ministry_id", d.ministryId)
+    .eq("campus_id", d.campusId)
     .maybeSingle();
-  if (!classRow) return { ok: false, error: "Turma não encontrada" };
-
-  const { count: totalClasses } = await ctx.supabase
-    .from("child_classes")
-    .select("id", { count: "exact", head: true })
-    .eq("ministry_id", d.ministryId);
-  if ((totalClasses ?? 0) <= 1) {
-    return { ok: false, error: "O Kids precisa ter pelo menos uma turma" };
-  }
+  if (!classRow) return { ok: false, error: "Turma não encontrada neste campus" };
 
   const { count: checkins } = await ctx.supabase
     .from("child_checkins")
@@ -277,10 +287,11 @@ export async function deleteKidsClass(raw: unknown): Promise<ActionResult<{ id: 
     .from("child_classes")
     .delete()
     .eq("id", d.classId)
-    .eq("ministry_id", d.ministryId);
+    .eq("ministry_id", d.ministryId)
+    .eq("campus_id", d.campusId);
   if (error) return { ok: false, error: "Não foi possível remover a turma" };
 
-  await reorderClasses(ctx.supabase, d.ministryId);
+  await reorderClasses(ctx.supabase, d.ministryId, d.campusId);
   revalidateKids(d.churchSlug);
   return { ok: true, data: { id: d.classId } };
 }
