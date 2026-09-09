@@ -30,7 +30,7 @@ export default async function KidsPrintSettingsPage({
     tenant.isCoord || membership?.role === "gerente" || membership?.role === "lider";
   if (!canManage) redirect(`/${churchSlug}/infantil`);
 
-  const [{ data: row }, { data: classes }] = await Promise.all([
+  const [{ data: row }, { data: classes }, { data: campuses }] = await Promise.all([
     supabase
       .from("kids_print_settings")
       .select(
@@ -40,19 +40,37 @@ export default async function KidsPrintSettingsPage({
       .maybeSingle(),
     supabase
       .from("child_classes")
-      .select("id, name, min_age_months, max_age_months, sort_order")
+      .select("id, campus_id, name, min_age_months, max_age_months, sort_order")
       .eq("ministry_id", ministry.id)
+      .order("sort_order")
+      .order("name"),
+    supabase
+      .from("campuses")
+      .select("id, name, sort_order")
+      .eq("church_id", tenant.church.id)
+      .eq("active", true)
       .order("sort_order")
       .order("name"),
   ]);
 
   const settings = kidsPrintSettingsFromRow(row);
-  const classRows = (classes ?? []).map((item) => ({
-    id: item.id,
-    name: item.name,
-    minAgeMonths: item.min_age_months,
-    maxAgeMonths: item.max_age_months,
+  const campusRows = (campuses ?? []).map((campus) => ({
+    id: campus.id,
+    name: campus.name,
   }));
+  const classRows = (classes ?? [])
+    .filter((item) => !!item.campus_id)
+    .map((item) => ({
+      id: item.id,
+      campusId: item.campus_id!,
+      name: item.name,
+      minAgeMonths: item.min_age_months,
+      maxAgeMonths: item.max_age_months,
+    }));
+  const firstCampusWithClasses = campusRows.find((campus) =>
+    classRows.some((item) => item.campusId === campus.id)
+  );
+  const initialCampusId = firstCampusWithClasses?.id ?? campusRows[0]?.id ?? "";
 
   return (
     <div className="space-y-8">
@@ -64,13 +82,15 @@ export default async function KidsPrintSettingsPage({
           Configurações do Kids
         </h1>
         <p className="mt-1 max-w-2xl text-muted-foreground">
-          Personalize as turmas e ajuste a impressão usada na operação do Kids.
+          Configure as turmas de cada campus e ajuste a impressão usada na operação do Kids.
         </p>
       </div>
 
       <KidsClassSettingsForm
         churchSlug={churchSlug}
         ministryId={ministry.id}
+        campuses={campusRows}
+        initialCampusId={initialCampusId}
         initialClasses={classRows}
       />
 
