@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { ageInMonths } from "@/lib/infantil";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "./types";
 
@@ -20,8 +21,8 @@ const checkinSchema = z
   });
 
 /**
- * Faz o check-in da criança dentro da recepção viva. Se a chamada vier de uma
- * rota antiga ligada a culto, a sessão aberta é resolvida automaticamente.
+ * Faz o check-in dentro do contexto do campus. A criança não fica presa a uma
+ * turma: a sugestão é recalculada em cada recepção usando campus + idade.
  */
 export async function checkInOrReenterChild(raw: unknown): Promise<ActionResult> {
   const parsed = checkinSchema.safeParse(raw);
@@ -33,15 +34,93 @@ export async function checkInOrReenterChild(raw: unknown): Promise<ActionResult>
   } = await supabase.auth.getUser();
 
   let sessionId = d.sessionId ?? null;
-  if (!sessionId && d.eventId) {
+  let eventId = d.eventId ?? null;
+  let campusId: string | null = null;
+
+  if (sessionId) {
+    const { data: session } = await supabase
+      .from("kids_reception_sessions")
+      .select("id, event_id, campus_id, closed_at")
+      .eq("id", sessionId)
+      .eq("church_id", d.churchId)
+      .eq("ministry_id", d.ministryId)
+      .maybeSingle();
+
+    if (!session || session.closed_at) {
+      return { ok: false, error: "Esta recepção não está mais aberta" };
+    }
+    eventId = eventId ?? session.event_id;
+    campusId = session.campus_id;
+  }
+
+  if (!sessionId && eventId) {
     const { data: rows } = await supabase.rpc("current_kids_reception", {
       p_church: d.churchId,
       p_ministry: d.ministryId,
     });
     const current = (rows ?? []).find(
-      (row: { session_id: string; event_id: string | null }) => row.event_id === d.eventId
+      (row: { session_id: string; event_id: string | null; campus_id: string | null }) =>
+        row.event_id === eventId
     );
     sessionId = current?.session_id ?? null;
+    campusId = current?.campus_id ?? null;
+  }
+
+  if (!campusId && eventId) {
+    const { data: event } = await supabase
+      .from("events")
+      .select("campus_id")
+      .eq("id", eventId)
+      .eq("church_id", d.churchId)
+      .maybeSingle();
+    campusId = event?.campus_id ?? null;
+  }
+
+  if (!campusId) {
+    return {
+      ok: false,
+      error: "Esta recepção está sem campus definido. Encerre e abra novamente escolhendo o campus.",
+    };
+  }
+
+  const [{ data: child }, { data: classes }] = await Promise.all([
+    supabase
+      .from("children")
+      .select("id, birth_date")
+      .eq("id", d.childId)
+      .eq("church_id", d.churchId)
+      .eq("ministry_id", d.ministryId)
+      .eq("active", true)
+      .maybeSingle(),
+    supabase
+      .from("child_classes")
+      .select("id, name, min_age_months, max_age_months")
+      .eq("ministry_id", d.ministryId)
+      .eq("campus_id", campusId)
+      .order("sort_order"),
+  ]);
+
+  if (!child) return { ok: false, error: "Criança não encontrada" };
+
+  let resolvedClassId = d.classId;
+  if (resolvedClassId) {
+    const valid = (classes ?? []).some((item) => item.id === resolvedClassId);
+    if (!valid) {
+      return { ok: false, error: "A turma escolhida não pertence ao campus desta recepção" };
+    }
+  } else {
+    const ageMonths = ageInMonths(child.birth_date);
+    resolvedClassId =
+      (classes ?? []).find(
+        (item) => ageMonths >= item.min_age_months && ageMonths <= item.max_age_months
+      )?.id ?? null;
+  }
+
+  if (!resolvedClassId) {
+    return {
+      ok: false,
+      error: "Nenhuma turma deste campus atende a idade da criança. Escolha uma turma manualmente ou ajuste as faixas em Configurações.",
+    };
   }
 
   let activeQuery = supabase
@@ -52,7 +131,7 @@ export async function checkInOrReenterChild(raw: unknown): Promise<ActionResult>
 
   activeQuery = sessionId
     ? activeQuery.eq("reception_session_id", sessionId)
-    : activeQuery.eq("event_id", d.eventId!);
+    : activeQuery.eq("event_id", eventId!);
 
   const { data: active, error: activeError } = await activeQuery.maybeSingle();
 
@@ -69,9 +148,9 @@ export async function checkInOrReenterChild(raw: unknown): Promise<ActionResult>
       church_id: d.churchId,
       ministry_id: d.ministryId,
       reception_session_id: sessionId,
-      event_id: d.eventId ?? null,
+      event_id: eventId,
       child_id: d.childId,
-      class_id: d.classId,
+      class_id: resolvedClassId,
       code,
       checked_in_by: user?.id ?? null,
     });
@@ -80,9 +159,10 @@ export async function checkInOrReenterChild(raw: unknown): Promise<ActionResult>
       if (sessionId) {
         revalidatePath(`/${d.churchSlug}/infantil/recepcao/${sessionId}`);
       }
-      if (d.eventId) {
-        revalidatePath(`/${d.churchSlug}/infantil/sessao/${d.eventId}`);
+      if (eventId) {
+        revalidatePath(`/${d.churchSlug}/infantil/sessao/${eventId}`);
       }
+      revalidatePath(`/${d.churchSlug}/infantil`);
       return { ok: true, data: undefined };
     }
 
