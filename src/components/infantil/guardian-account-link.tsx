@@ -29,12 +29,14 @@ export function GuardianAccountLink({
   ministryId,
   guardians,
   accounts,
+  showInvites = true,
 }: {
   churchSlug: string;
   churchId: string;
   ministryId: string;
   guardians: Guardian[];
   accounts: Account[];
+  showInvites?: boolean;
 }) {
   const router = useRouter();
   const [guardianId, setGuardianId] = useState("");
@@ -172,7 +174,7 @@ export function GuardianAccountLink({
         </p>
       )}
 
-      {unlinked.length > 0 && (
+      {showInvites && unlinked.length > 0 && (
         <div className="space-y-3 rounded-2xl border p-4">
           <div>
             <p className="text-sm font-medium">Acesso da família</p>
