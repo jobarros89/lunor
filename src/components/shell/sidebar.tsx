@@ -86,11 +86,11 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-black/10 bg-[#f8f8f5]/95 py-7 backdrop-blur-xl transition-[width,padding] duration-200 md:flex dark:border-white/10 dark:bg-[#111]/95",
+        "fixed inset-y-0 left-0 z-40 hidden min-h-0 flex-col overflow-hidden border-r border-black/10 bg-[#f8f8f5]/95 py-7 backdrop-blur-xl transition-[width,padding] duration-200 md:flex dark:border-white/10 dark:bg-[#111]/95",
         collapsed ? "w-16 px-2" : "w-60 px-5"
       )}
     >
-      <div className={cn("mb-8", collapsed ? "px-0" : "px-2")}>
+      <div className={cn("mb-6 shrink-0", collapsed ? "px-0" : "px-2")}>
         <div className={cn("flex items-start", collapsed ? "justify-center" : "justify-between gap-2")}>
           <Link
             href={`/${churchSlug}`}
@@ -121,48 +121,53 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
         )}
       </div>
 
-      <nav className="flex flex-col gap-1">
-        {nav.map(({ id, href, label }) => {
-          const Icon = ICONS[id];
-          const full = `/${churchSlug}${href}`;
-          const pathOnly = full.split("?")[0];
-          const active = href === "" ? pathname === pathOnly : pathname.startsWith(pathOnly);
-          return (
-            <Link
-              key={`${href}-${label}`}
-              href={full}
-              title={collapsed ? label : undefined}
-              aria-label={collapsed ? label : undefined}
-              className={cn(
-                "group relative flex min-h-11 items-center border-l-2 py-2.5 text-sm transition-colors",
-                collapsed ? "justify-center px-2" : "gap-3 px-3",
-                active
-                  ? "border-[#d8ff00] bg-black text-white dark:bg-white dark:text-black"
-                  : "border-transparent text-muted-foreground hover:border-foreground/25 hover:text-foreground"
-              )}
-            >
-              <Icon className="size-4 shrink-0" strokeWidth={1.7} />
-              {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
-              {id === "escalas" && escalasPending > 0 && (
-                <span
-                  className={cn(
-                    "flex min-w-5 items-center justify-center bg-[#d8ff00] px-1.5 text-[10px] font-bold text-black",
-                    collapsed && "absolute right-0.5 top-0.5 min-w-4 px-1 text-[9px]"
-                  )}
-                >
-                  {escalasPending > 9 ? "9+" : escalasPending}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+      <nav
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]"
+        aria-label="Navegação principal"
+      >
+        <div className="flex flex-col gap-1 pb-2">
+          {nav.map(({ id, href, label }) => {
+            const Icon = ICONS[id];
+            const full = `/${churchSlug}${href}`;
+            const pathOnly = full.split("?")[0];
+            const active = href === "" ? pathname === pathOnly : pathname.startsWith(pathOnly);
+            return (
+              <Link
+                key={`${href}-${label}`}
+                href={full}
+                title={collapsed ? label : undefined}
+                aria-label={collapsed ? label : undefined}
+                className={cn(
+                  "group relative flex min-h-11 items-center border-l-2 py-2.5 text-sm transition-colors",
+                  collapsed ? "justify-center px-2" : "gap-3 px-3",
+                  active
+                    ? "border-[#d8ff00] bg-black text-white dark:bg-white dark:text-black"
+                    : "border-transparent text-muted-foreground hover:border-foreground/25 hover:text-foreground"
+                )}
+              >
+                <Icon className="size-4 shrink-0" strokeWidth={1.7} />
+                {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
+                {id === "escalas" && escalasPending > 0 && (
+                  <span
+                    className={cn(
+                      "flex min-w-5 items-center justify-center bg-[#d8ff00] px-1.5 text-[10px] font-bold text-black",
+                      collapsed && "absolute right-0.5 top-0.5 min-w-4 px-1 text-[9px]"
+                    )}
+                  >
+                    {escalasPending > 9 ? "9+" : escalasPending}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
       {collapsed && (
         <button
           type="button"
           onClick={toggleSidebar}
-          className="mt-auto flex min-h-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="mt-2 flex min-h-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Expandir menu lateral"
           title="Expandir menu"
         >
