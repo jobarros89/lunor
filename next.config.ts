@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 const nextConfig: NextConfig = {
   turbopack: {
@@ -44,6 +45,5 @@ export default nextConfig;
 // OpenNext (Cloudflare) — permite usar getCloudflareContext() no `next dev`.
 // Não inicializa bindings remotos durante build/CI de produção.
 if (process.env.NODE_ENV === "development") {
-  const { initOpenNextCloudflareForDev } = await import("@opennextjs/cloudflare");
   initOpenNextCloudflareForDev();
 }
