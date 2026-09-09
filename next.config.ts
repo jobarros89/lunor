@@ -42,5 +42,8 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 
 // OpenNext (Cloudflare) — permite usar getCloudflareContext() no `next dev`.
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
-initOpenNextCloudflareForDev();
+// Não inicializa bindings remotos durante build/CI de produção.
+if (process.env.NODE_ENV === "development") {
+  const { initOpenNextCloudflareForDev } = await import("@opennextjs/cloudflare");
+  initOpenNextCloudflareForDev();
+}
