@@ -1,0 +1,139 @@
+name: Clean ESLint Warnings Temp
+
+on:
+  push:
+    branches:
+      - chore/clean-eslint-warnings
+    paths:
+      - ".github/workflows/clean-eslint-warnings-temp.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  clean-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chore/clean-eslint-warnings
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+
+      - name: Aplicar limpezas de lint
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: esperado 1 match, encontrado {count}: {old[:80]!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              "public/sw.js",
+              'const CACHE = "lunor-v1";\n\n',
+              "",
+          )
+
+          replace_once(
+              "src/app/(auth)/redefinir-senha/page.tsx",
+              'import { useSearchParams } from "next/navigation";',
+              'import { useRouter, useSearchParams } from "next/navigation";',
+          )
+          replace_once(
+              "src/app/(auth)/redefinir-senha/page.tsx",
+              '  const searchParams = useSearchParams();\n',
+              '  const searchParams = useSearchParams();\n  const router = useRouter();\n',
+          )
+          replace_once(
+              "src/app/(auth)/redefinir-senha/page.tsx",
+              '      window.location.assign("/login?senha=atualizada");',
+              '      router.replace("/login?senha=atualizada");',
+          )
+
+          replace_once(
+              "src/components/louvor/youtube-song-importer.tsx",
+              '              {candidate.thumbnailUrl ? (\n                <img\n',
+              '              {candidate.thumbnailUrl ? (\n                // eslint-disable-next-line @next/next/no-img-element -- Thumbnail externa do YouTube; carregamento direto evita acoplar o importador ao otimizador de imagens.\n                <img\n',
+          )
+
+          replace_once(
+              "src/components/theme-provider.tsx",
+              '    setThemeState(initial);\n    // eslint-disable-next-line react-hooks/set-state-in-effect\n    setResolvedTheme(applyTheme(initial));',
+              '    setThemeState(initial);\n    setResolvedTheme(applyTheme(initial));',
+          )
+
+          replace_once(
+              "tests/rls/cross-tenant-idor.test.ts",
+              '  let equipmentA: string;\n',
+              '',
+          )
+          replace_once(
+              "tests/rls/cross-tenant-idor.test.ts",
+              '''    equipmentA = (\n      await ligaA\n        .from("equipments")\n        .insert({ church_id: churchA, name: "Camera A" })\n        .select("id")\n        .single()\n    ).data!.id;\n''',
+              '',
+          )
+
+          replace_once(
+              "tests/rls/ordem-culto.test.ts",
+              '  ])("rejeita %s", async (changes, _descricao) => {',
+              '  ])("rejeita %s", async (changes) => {',
+          )
+
+          replace_once(
+              "tests/rls/sustentacao.test.ts",
+              '  let churchOutro: string;\n',
+              '',
+          )
+          replace_once(
+              "tests/rls/sustentacao.test.ts",
+              '    churchOutro = (await outro.rpc("create_church", { p_name: "Outra", p_slug: `out-${run}` })).data;',
+              '    await outro.rpc("create_church", { p_name: "Outra", p_slug: `out-${run}` });',
+          )
+
+          replace_once(
+              "worker.js",
+              'export default {\n',
+              'const worker = {\n',
+          )
+          replace_once(
+              "worker.js",
+              '};\n\n// O OpenNext pode exportar Durable Objects',
+              '};\n\nexport default worker;\n\n// O OpenNext pode exportar Durable Objects',
+          )
+          PY
+
+      - name: Instalar dependências
+        run: npm ci --no-audit --no-fund
+
+      - name: Exigir lint sem warnings
+        run: npm run lint -- --max-warnings=0
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Persistir limpezas validadas
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/clean-eslint-warnings-temp.yml
+          git add public/sw.js \
+            'src/app/(auth)/redefinir-senha/page.tsx' \
+            src/components/louvor/youtube-song-importer.tsx \
+            src/components/theme-provider.tsx \
+            tests/rls/cross-tenant-idor.test.ts \
+            tests/rls/ordem-culto.test.ts \
+            tests/rls/sustentacao.test.ts \
+            worker.js
+          git commit -m "chore(lint): eliminate existing warnings"
+          git push origin HEAD:chore/clean-eslint-warnings
