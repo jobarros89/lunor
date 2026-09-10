@@ -241,7 +241,10 @@ describe("Louvor — acesso operacional do voluntário", () => {
       p_church_id: churchId,
       p_song_id: created.data!.id,
     });
-    expect(permanentDelete.error?.code).toBe("42501");
+    expect(permanentDelete.error?.code).toBe("P0001");
+    expect(permanentDelete.error?.message).toBe(
+      "Sem permissão para apagar música permanentemente.",
+    );
   });
 
   it("membro da igreja fora do Louvor não edita o acervo", async () => {
