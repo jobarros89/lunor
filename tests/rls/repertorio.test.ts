@@ -123,15 +123,16 @@ describe("Repertório de louvor — quem lê a sequência (migration 27)", () =>
     expect(data).toHaveLength(1);
   });
 
-  // O ponto do rascunho: o líder arrasta músicas na quinta sem avisar ninguém.
+  // Outros ministérios ainda dependem de publicação; integrantes ativos do Louvor
+  // podem consultar o rascunho sem ganhar permissão para montar a sequência.
   it("em rascunho, a mídia NÃO vê a sequência mesmo escalada", async () => {
     const { data } = await midiaVol.from("setlist_items").select("id").eq("event_id", eventId);
     expect(data).toHaveLength(0);
   });
 
-  it("em rascunho, o próprio músico do louvor ainda não vê", async () => {
+  it("em rascunho, o músico do louvor vê a sequência", async () => {
     const { data } = await louvorVol.from("setlist_items").select("id").eq("event_id", eventId);
-    expect(data).toHaveLength(0);
+    expect(data).toHaveLength(1);
   });
 
   it("publicado: a mídia lê a sequência (é o pedido central)", async () => {
