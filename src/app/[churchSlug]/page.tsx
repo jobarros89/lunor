@@ -257,8 +257,10 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   }
 
   const nextAssignedEvent = firstRelated(escalas[0]?.events);
+  // A Home é pessoal: se o usuário tem uma escala futura, ela tem prioridade
+  // sobre o próximo culto geral da igreja. O culto geral é apenas fallback.
   const nextEvent =
-    (nextChurchEvent as unknown as AssignmentEvent | null) ?? nextAssignedEvent;
+    nextAssignedEvent ?? (nextChurchEvent as unknown as AssignmentEvent | null);
   const nextEventAssignments = nextEvent
     ? escalas.filter((assignment) => firstRelated(assignment.events)?.id === nextEvent.id)
     : [];
@@ -280,12 +282,15 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   // Culto iminente: começa nas próximas 3h ou já começou mas ainda não terminou
   const CULT_MODE_WINDOW_MS = 3 * 60 * 60 * 1000;
   const imminentEvent = (() => {
-    if (!nextEvent) return null;
-    const startMs = new Date(nextEvent.starts_at).getTime();
-    const endMs = nextEvent.ends_at ? new Date(nextEvent.ends_at).getTime() : startMs + 2 * 60 * 60 * 1000;
+    // O modo culto continua acompanhando o próximo culto geral, mesmo quando
+    // o hero pessoal prioriza uma escala posterior do usuário.
+    const candidate = (nextChurchEvent as unknown as AssignmentEvent | null) ?? nextEvent;
+    if (!candidate) return null;
+    const startMs = new Date(candidate.starts_at).getTime();
+    const endMs = candidate.ends_at ? new Date(candidate.ends_at).getTime() : startMs + 2 * 60 * 60 * 1000;
     const startsWithinWindow = startMs - nowMs <= CULT_MODE_WINDOW_MS && startMs - nowMs > 0;
     const alreadyStartedNotEnded = startMs <= nowMs && nowMs < endMs;
-    return (startsWithinWindow || alreadyStartedNotEnded) ? nextEvent : null;
+    return (startsWithinWindow || alreadyStartedNotEnded) ? candidate : null;
   })();
 
   return (
