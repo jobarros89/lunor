@@ -9,15 +9,15 @@ jobs:
   generate-and-validate:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node 20 for deterministic lock generation
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20.20.2
           cache: npm
 
       - name: Generate patched dependency tree
@@ -26,36 +26,46 @@ jobs:
           npm pkg set 'overrides.uuid=11.1.1'
           npm install --package-lock-only
 
-      - name: Install exact generated lockfile
-        run: npm ci
+      - name: Setup Node 22 for project validation
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
 
-      - name: Validate Vitest patch
+      - name: Install exact generated lockfile on Node 22
+        run: |
+          rm -rf node_modules
+          npm ci --no-audit --no-fund
+
+      - name: Validate patched dependency versions
         run: |
           node -e "const p=require('./node_modules/vitest/package.json'); if(p.version !== '4.1.11') throw new Error('Vitest patch not resolved: ' + p.version); console.log('vitest', p.version)"
           node -e "const p=require('./node_modules/@vitest/mocker/package.json'); if(p.version !== '4.1.11') throw new Error('@vitest/mocker patch not resolved: ' + p.version); console.log('@vitest/mocker', p.version)"
-
-      - name: Validate xcode with patched uuid
-        run: |
-          node -e "const u=require('uuid'); const x=require('xcode'); if(typeof u.v4 !== 'function') throw new Error('uuid.v4 unavailable'); if(typeof x.project !== 'function') throw new Error('xcode API unavailable'); console.log('uuid', require('uuid/package.json').version, u.v4()); console.log('xcode API ok')"
+          node -e "const u=require('uuid'); const x=require('xcode'); if(require('uuid/package.json').version !== '11.1.1') throw new Error('uuid not patched'); if(typeof u.v4 !== 'function') throw new Error('uuid.v4 unavailable'); if(typeof x.project !== 'function') throw new Error('xcode API unavailable'); console.log('uuid', require('uuid/package.json').version, u.v4()); console.log('xcode API ok')"
 
       - name: Audit all dependencies at moderate level
         run: npm audit --audit-level=moderate
 
-      - name: Lint
-        run: npm run lint
+      - name: Validate application
+        run: |
+          npm run lint
+          npx tsc --noEmit
+          node --check scripts/generate-mobile-icons.mjs
 
-      - name: Typecheck
-        run: npx tsc --noEmit
+      - name: Validate Capacitor Android exactly like official workflow
+        run: |
+          mkdir -p out
+          printf '<!doctype html><html><body>LUNOR</body></html>' > out/index.html
+          rm -rf android
+          npx cap add android
+          npx cap sync android
+          npm run mobile:icons
 
-      - name: Validate Capacitor Android sync
-        run: npm run mobile:android
-
-      - name: Upload generated manifests
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: moderate-security-manifests
-          path: |
-            package.json
-            package-lock.json
-          retention-days: 1
+      - name: Persist validated manifests and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git rm .github/workflows/security-moderate-deps-temp.yml
+          git commit -m "fix(security): patch moderate dependency vulnerabilities"
+          git push origin HEAD:fix/security-moderate-deps
