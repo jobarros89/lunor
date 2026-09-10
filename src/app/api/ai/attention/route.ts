@@ -9,11 +9,8 @@ const HEADERS = {
   "X-Robots-Tag": "noindex, nofollow",
 };
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ churchSlug?: string }> }
-) {
-  const { churchSlug } = await params;
+export async function GET(request: Request) {
+  const churchSlug = new URL(request.url).searchParams.get("churchSlug")?.trim();
   if (!churchSlug) {
     return Response.json({ error: "invalid_request" }, { status: 400, headers: HEADERS });
   }
