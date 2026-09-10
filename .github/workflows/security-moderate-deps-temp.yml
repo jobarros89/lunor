@@ -1,0 +1,61 @@
+name: Security Moderate Dependencies Temp
+
+on:
+  push:
+    branches:
+      - fix/security-moderate-deps
+
+jobs:
+  generate-and-validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Generate patched dependency tree
+        run: |
+          npm pkg set 'devDependencies.vitest=^4.1.11'
+          npm pkg set 'overrides.uuid=11.1.1'
+          npm install --package-lock-only
+
+      - name: Install exact generated lockfile
+        run: npm ci
+
+      - name: Validate Vitest patch
+        run: |
+          node -e "const p=require('./node_modules/vitest/package.json'); if(p.version !== '4.1.11') throw new Error('Vitest patch not resolved: ' + p.version); console.log('vitest', p.version)"
+          node -e "const p=require('./node_modules/@vitest/mocker/package.json'); if(p.version !== '4.1.11') throw new Error('@vitest/mocker patch not resolved: ' + p.version); console.log('@vitest/mocker', p.version)"
+
+      - name: Validate xcode with patched uuid
+        run: |
+          node -e "const u=require('uuid'); const x=require('xcode'); if(typeof u.v4 !== 'function') throw new Error('uuid.v4 unavailable'); if(typeof x.project !== 'function') throw new Error('xcode API unavailable'); console.log('uuid', require('uuid/package.json').version, u.v4()); console.log('xcode API ok')"
+
+      - name: Audit all dependencies at moderate level
+        run: npm audit --audit-level=moderate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Validate Capacitor Android sync
+        run: npm run mobile:android
+
+      - name: Upload generated manifests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: moderate-security-manifests
+          path: |
+            package.json
+            package-lock.json
+          retention-days: 1
