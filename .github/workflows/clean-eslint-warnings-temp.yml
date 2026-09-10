@@ -87,7 +87,7 @@ jobs:
           replace_once(
               "tests/rls/ordem-culto.test.ts",
               '  ])("rejeita %s", async (changes, _descricao) => {',
-              '  ])("rejeita %s", async (changes) => {',
+              '  ])("rejeita %s", async (changes, descricao) => {\n    void descricao;',
           )
 
           replace_once(
