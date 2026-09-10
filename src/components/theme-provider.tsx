@@ -71,7 +71,6 @@ export function ThemeProvider({
     // preferência persistida sem acessar window durante o render do servidor.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setThemeState(initial);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setResolvedTheme(applyTheme(initial));
   }, [enableSystem, safeDefault]);
 

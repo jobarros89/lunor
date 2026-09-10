@@ -29,7 +29,6 @@ describe("Sustentação — faturamento e freio de cadastro (migration 24)", () 
   let dono: SupabaseClient; // admin da igreja
   let outro: SupabaseClient; // admin de outra igreja
   let churchId: string;
-  let churchOutro: string;
   const run = Date.now();
 
   beforeAll(async () => {
@@ -39,7 +38,7 @@ describe("Sustentação — faturamento e freio de cadastro (migration 24)", () 
     outro = await newUser(`outro-${run}@teste.dev`);
 
     churchId = (await dono.rpc("create_church", { p_name: "Igreja Pagante", p_slug: `pag-${run}` })).data;
-    churchOutro = (await outro.rpc("create_church", { p_name: "Outra", p_slug: `out-${run}` })).data;
+    await outro.rpc("create_church", { p_name: "Outra", p_slug: `out-${run}` });
   });
 
   it("igreja nova nasce em trial com 30 dias", async () => {

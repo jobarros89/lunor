@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useEffect, useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
@@ -21,6 +21,7 @@ type Estado = "verificando" | "pronto" | "invalido";
 
 function RedefinirSenhaContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [estado, setEstado] = useState<Estado>("verificando");
   const [senha, setSenha] = useState("");
   const [confirma, setConfirma] = useState("");
@@ -74,7 +75,7 @@ function RedefinirSenhaContent() {
 
       await supabase.auth.signOut();
       toast.success("Senha atualizada. Entre novamente.");
-      window.location.assign("/login?senha=atualizada");
+      router.replace("/login?senha=atualizada");
     });
   }
 

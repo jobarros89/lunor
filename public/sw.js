@@ -2,8 +2,6 @@
    Durante o desenvolvimento ativo, NÃO cacheamos HTML/CSS/JS: o app sempre
    busca do servidor (evita PWA travado em versão antiga no iPhone).
    Mantém apenas instalabilidade (PWA) + limpeza de caches antigos. */
-const CACHE = "lunor-v1";
-
 self.addEventListener("install", () => {
   self.skipWaiting();
 });

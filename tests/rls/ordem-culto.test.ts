@@ -115,7 +115,8 @@ describe("Ordem do Culto — schema e RLS (migration 29)", () => {
     [{ duration_minutes: -1 }, "duração negativa"],
     [{ duration_minutes: 1441 }, "duração acima do limite"],
     [{ position: -1 }, "posição negativa"],
-  ])("rejeita %s", async (changes, _descricao) => {
+  ])("rejeita %s", async (changes, descricao) => {
+    void descricao;
     const { error } = await gestor.from("service_items").insert({
       church_id: churchId,
       event_id: eventId,

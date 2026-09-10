@@ -115,7 +115,6 @@ describe("IDOR cross-tenant em evaluations/tickets/vínculos (migration 12)", ()
   let churchB: string;
   let equipmentB: string;
   let assignmentB: string;
-  let equipmentA: string;
   let assignmentA: string;
   const run = Date.now();
 
@@ -164,13 +163,6 @@ describe("IDOR cross-tenant em evaluations/tickets/vínculos (migration 12)", ()
     ).data!.id;
 
     // entidades da própria igreja A (do atacante)
-    equipmentA = (
-      await ligaA
-        .from("equipments")
-        .insert({ church_id: churchA, name: "Camera A" })
-        .select("id")
-        .single()
-    ).data!.id;
     const eventA = (
       await ligaA
         .from("events")

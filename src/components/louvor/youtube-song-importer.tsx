@@ -177,6 +177,7 @@ export function YouTubeSongImporter({
               className="flex min-w-0 gap-3 rounded-2xl border p-3 text-left transition-colors hover:bg-accent/40"
             >
               {candidate.thumbnailUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- Thumbnail externa do YouTube; carregamento direto evita acoplar o importador ao otimizador de imagens.
                 <img
                   src={candidate.thumbnailUrl}
                   alt=""
