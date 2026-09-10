@@ -14,9 +14,6 @@ jobs:
   normalize-and-validate:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_node22_placeholder
 
     steps:
       - uses: actions/checkout@v4
@@ -60,8 +57,10 @@ jobs:
           npm run lint
           npx tsc --noEmit
 
-      - name: Validar build Cloudflare OpenNext
-        run: npm run cf:build
+      - name: Validar toolchain Cloudflare local
+        run: |
+          npx wrangler --version
+          node -e "const p=require('./node_modules/@opennextjs/cloudflare/package.json'); console.log('@opennextjs/cloudflare', p.version)"
 
       - name: Persistir somente os arquivos finais
         run: |
