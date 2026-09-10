@@ -210,7 +210,7 @@ A aplicação foi desenhada para crescer sem misturar contexto ou dados.
 
 ### Requisitos
 
-- Node.js 20+
+- Node.js 22+
 - npm
 - Docker, caso utilize o Supabase local
 - Supabase CLI

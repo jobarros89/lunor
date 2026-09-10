@@ -42,7 +42,7 @@
   "devDependencies": {
     "@capacitor/cli": "8.5.0",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
@@ -57,5 +57,8 @@
   "overrides": {
     "sharp": "0.35.4",
     "uuid": "11.1.1"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }
