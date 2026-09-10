@@ -38,8 +38,7 @@ export default async function EditarMusicaPage({
 
   if (!song) notFound();
 
-  const podeEditar =
-    tenant.isCoord || ["gerente", "lider"].includes(papel?.role ?? "");
+  const podeEditar = tenant.isCoord || Boolean(papel);
   if (!podeEditar) redirect(`/${churchSlug}/louvor/${songId}`);
 
   return (

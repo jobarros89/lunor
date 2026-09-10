@@ -115,7 +115,9 @@ export default async function LouvorPage({
       .limit(100),
   ]);
 
-  const podeEditar = tenant.isCoord || ["gerente", "lider"].includes(papel?.role ?? "");
+  const podeEditarAcervo = tenant.isCoord || Boolean(papel);
+  const podeGerenciar =
+    tenant.isCoord || ["gerente", "lider"].includes(papel?.role ?? "");
   const ultima = new Map<string, string>();
   for (const item of historico ?? []) {
     const when = (item.events as unknown as { starts_at: string }).starts_at;
@@ -139,7 +141,7 @@ export default async function LouvorPage({
             Música, repertórios, arranjos e operação do time em um só módulo.
           </p>
         </div>
-        {podeEditar && (
+        {podeEditarAcervo && (
           <Link
             href={`/${churchSlug}/louvor?aba=${tab}&novo=1`}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:bg-primary/80"
@@ -156,7 +158,7 @@ export default async function LouvorPage({
         <TabLink churchSlug={churchSlug} tab="arranjos" active={tab === "arranjos"} icon={<Layers3 className="size-4" />} label="Arranjos" />
       </nav>
 
-      {showNew && podeEditar && (
+      {showNew && podeEditarAcervo && (
         <Card className="rounded-3xl border-foreground/20">
           <CardHeader className="flex-row items-start justify-between gap-4">
             <div>
@@ -166,23 +168,25 @@ export default async function LouvorPage({
             <Link href={`/${churchSlug}/louvor?aba=${tab}`} className="text-sm text-muted-foreground underline underline-offset-4">Fechar</Link>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="flex items-center gap-2 text-sm font-medium"><Video className="size-4" /> Conta oficial no YouTube</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {youtubeIntegration?.account_label ? `Conectada: ${youtubeIntegration.account_label}` : "Conecte a conta que será dona das playlists não listadas."}
-                </p>
+            {podeGerenciar && (
+              <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 text-sm font-medium"><Video className="size-4" /> Conta oficial no YouTube</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {youtubeIntegration?.account_label ? `Conectada: ${youtubeIntegration.account_label}` : "Conecte a conta que será dona das playlists não listadas."}
+                  </p>
+                </div>
+                <Button
+                  nativeButton={false}
+                  variant="ghost"
+                  className="h-9 shrink-0 rounded-full px-3"
+                  render={<a href={`/api/integrations/youtube/connect?churchId=${tenant.church.id}&returnTo=${encodeURIComponent(`/${churchSlug}/louvor?aba=${tab}&novo=1`)}`} />}
+                >
+                  {youtubeIntegration ? "Reconectar" : "Conectar YouTube"}
+                </Button>
               </div>
-              <Button
-                nativeButton={false}
-                variant="ghost"
-                className="h-9 shrink-0 rounded-full px-3"
-                render={<a href={`/api/integrations/youtube/connect?churchId=${tenant.church.id}&returnTo=${encodeURIComponent(`/${churchSlug}/louvor?aba=${tab}&novo=1`)}`} />}
-              >
-                {youtubeIntegration ? "Reconectar" : "Conectar YouTube"}
-              </Button>
-            </div>
-            {youtubeMessage && (
+            )}
+            {youtubeMessage && podeGerenciar && (
               <p role="status" className={youtubeMessage.success ? "text-sm text-emerald-600 dark:text-emerald-400" : "text-sm text-destructive"}>
                 {youtubeMessage.text}
               </p>
@@ -196,9 +200,6 @@ export default async function LouvorPage({
       {tab === "acervo" && (
         <section>
           <SongLibrary churchSlug={churchSlug} songs={acervo} lastUsed={lastUsed} />
-          {acervo.length === 0 && !podeEditar && (
-            <p className="text-sm text-muted-foreground">O líder do louvor ainda não cadastrou músicas.</p>
-          )}
         </section>
       )}
 

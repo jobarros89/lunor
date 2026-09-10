@@ -100,7 +100,8 @@ export default async function MusicaDetalhePage({
     return !maisRecente || quando > maisRecente ? quando : maisRecente;
   }, null);
   const referencia = musica.link ? referenceHref(musica.link) : null;
-  const podeEditar =
+  const podeEditarAcervo = tenant.isCoord || Boolean(papel);
+  const podeGerenciar =
     tenant.isCoord || ["gerente", "lider"].includes(papel?.role ?? "");
 
   const versionOptions: ArrangementVersionOption[] = (arrangementVersions ?? []).map((version) => {
@@ -140,7 +141,7 @@ export default async function MusicaDetalhePage({
         </div>
       </header>
 
-      {podeEditar && (
+      {podeEditarAcervo && (
         <div className="flex flex-wrap gap-2">
           <Button
             nativeButton={false}
@@ -155,19 +156,23 @@ export default async function MusicaDetalhePage({
             songId={songId}
             active={musica.active}
           />
-          <SongDeleteButton
-            churchSlug={churchSlug}
-            churchId={tenant.church.id}
-            songId={songId}
-            songTitle={musica.title}
-          />
-          <ChordImporter
-            churchSlug={churchSlug}
-            songId={songId}
-            arrangements={arrangements ?? []}
-            hasLyrics={Boolean(musica.lyrics?.trim())}
-            hasChordChart={Boolean(musica.chord_chart?.trim())}
-          />
+          {podeGerenciar && (
+            <>
+              <SongDeleteButton
+                churchSlug={churchSlug}
+                churchId={tenant.church.id}
+                songId={songId}
+                songTitle={musica.title}
+              />
+              <ChordImporter
+                churchSlug={churchSlug}
+                songId={songId}
+                arrangements={arrangements ?? []}
+                hasLyrics={Boolean(musica.lyrics?.trim())}
+                hasChordChart={Boolean(musica.chord_chart?.trim())}
+              />
+            </>
+          )}
         </div>
       )}
 
@@ -234,7 +239,7 @@ export default async function MusicaDetalhePage({
         chordChart={musica.chord_chart ?? null}
         materials={(rehearsalMaterials ?? []) as RehearsalMaterial[]}
         arrangementVersions={versionOptions}
-        canEdit={podeEditar}
+        canEdit={podeGerenciar}
       />
     </div>
   );
