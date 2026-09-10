@@ -6,7 +6,7 @@
 // acesso aos helpers de push e ao Supabase, em vez de virar código solto aqui.
 import openNext from "./.open-next/worker.js";
 
-export default {
+const worker = {
   fetch: openNext.fetch,
 
   async scheduled(event, env, ctx) {
@@ -29,6 +29,8 @@ export default {
     }
   },
 };
+
+export default worker;
 
 // O OpenNext pode exportar Durable Objects (fila, tag cache). Reexportamos
 // tudo o que não seja o default para não quebrar essas ligações.
