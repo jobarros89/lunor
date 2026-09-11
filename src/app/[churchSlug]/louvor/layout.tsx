@@ -21,7 +21,7 @@ export default async function LouvorLayout({
     const supabase = await createClient();
     const { data: membership } = await supabase
       .from("ministry_members")
-      .select("id")
+      .select("ministry_id")
       .eq("church_id", tenant.church.id)
       .eq("ministry_id", louvor.id)
       .eq("user_id", tenant.userId)
