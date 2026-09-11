@@ -2,6 +2,27 @@ import { describe, expect, it } from "vitest";
 import { buildLeadershipInsights } from "@/lib/ai/leadership-insights";
 
 describe("insights de liderança", () => {
+  it("não confunde falha de consulta com ausência de pendências", () => {
+    const result = buildLeadershipInsights({
+      kind: "app_operational_overview", currentMinistryId: "kids", attentionMinistries: 0,
+      ministries: [{ ministry: { id: "kids", name: "Kids", capability: "kids" },
+        available: false, totals: null, events: [] }],
+    });
+    expect(result.insights[0].id).toBe("kids:data-unavailable");
+    expect(result.summary.warning).toBe(1);
+    expect(result.insights.some(item => item.id === "operation:stable")).toBe(false);
+  });
+
+  it("não declara a operação pronta quando não há cultos", () => {
+    const result = buildLeadershipInsights({
+      kind: "app_operational_overview", currentMinistryId: "kids", attentionMinistries: 0,
+      ministries: [{ ministry: { id: "kids", name: "Kids", capability: "kids" },
+        available: true, totals: { upcomingEvents: 0, activeMembers: 0, assignments: 0,
+          confirmedAssignments: 0, eventsReady: 0, eventsAttention: 0, eventsWithoutAssignments: 0 }, events: [] }],
+    });
+    expect(result.insights[0].id).toBe("operation:no-events");
+  });
+
   it("prioriza ausência de escala, substituição e indisponibilidade", () => {
     const overview = {
       kind: "app_operational_overview" as const,

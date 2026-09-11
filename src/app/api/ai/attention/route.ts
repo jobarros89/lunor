@@ -22,9 +22,10 @@ export async function GET(request: Request) {
 
   const ministries = await getActiveMinistry(churchSlug);
   const manageable = ministries.options.filter((item) => item.canManage);
-  const current = ministries.active?.canManage
-    ? ministries.active
-    : manageable[0] ?? null;
+  const requestedMinistry = new URL(request.url).searchParams.get("ministryId");
+  const current = requestedMinistry
+    ? manageable.find(item => item.id === requestedMinistry)
+    : ministries.active?.canManage ? ministries.active : manageable[0] ?? null;
 
   if (!current) {
     return Response.json({ error: "forbidden" }, { status: 403, headers: HEADERS });
@@ -51,3 +52,4 @@ export async function GET(request: Request) {
     { headers: HEADERS }
   );
 }
+

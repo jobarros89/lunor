@@ -10,15 +10,20 @@ import { getTenant } from "@/lib/tenant";
 
 export default async function AssistantPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ churchSlug: string }>;
+  searchParams: Promise<{ ministryId?: string; question?: string }>;
 }) {
   const { churchSlug } = await params;
+  const query = await searchParams;
   const tenant = await getTenant(churchSlug);
   if (tenant.guardianOnly || !tenant.isLeader) redirect(`/${churchSlug}`);
 
   const { active, options } = await getActiveMinistry(churchSlug);
-  const ministry = active?.canManage ? active : options.find((item) => item.canManage);
+  const requested = query.ministryId ? options.find(item => item.id === query.ministryId && item.canManage) : null;
+  if (query.ministryId && !requested) redirect(`/${churchSlug}/assistente`);
+  const ministry = requested ?? (active?.canManage ? active : options.find((item) => item.canManage));
   if (!ministry) redirect(`/${churchSlug}`);
 
   const supabase = await createClient();
@@ -41,6 +46,8 @@ export default async function AssistantPage({
       </header>
 
       <AssistantPanel
+        key={`${churchSlug}:${ministry.id}:${query.question ?? ""}`}
+        initialQuestion={typeof query.question === "string" ? query.question.slice(0, 1500) : ""}
         churchSlug={churchSlug}
         ministryId={ministry.id}
         ministryName={ministry.name}
@@ -55,3 +62,4 @@ export default async function AssistantPage({
     </div>
   );
 }
+

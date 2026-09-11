@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { humanReviewSchema, assignmentReviewSnapshot, REVIEW_REQUIRED, REVIEW_CHANGED } from "@/lib/ai/human-review";
 import { buildAssignmentProposal } from "@/lib/ai/scheduling";
 import { getActiveMinistry } from "@/lib/ministry";
 import { getTenant } from "@/lib/tenant";
@@ -9,6 +10,7 @@ import { addAssignment } from "@/lib/actions/escalas";
 import type { ActionResult } from "@/lib/actions/types";
 
 const schema = z.object({
+  review: humanReviewSchema,
   churchSlug: z.string().trim().min(2).max(100),
   ministryId: z.string().uuid(),
   eventId: z.string().uuid(),
@@ -17,6 +19,8 @@ const schema = z.object({
 });
 
 export async function confirmAssistantAssignment(raw: unknown): Promise<ActionResult> {
+  const review = humanReviewSchema.safeParse((raw as { review?: unknown } | null)?.review);
+  if (!review.success) return { ok: false, error: REVIEW_REQUIRED };
   const parsed = schema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Proposta de escala inválida" };
   const d = parsed.data;
@@ -49,6 +53,10 @@ export async function confirmAssistantAssignment(raw: unknown): Promise<ActionRe
     return { ok: false, error: "A sugestão mudou. Peça uma nova análise ao LUNOR." };
   }
 
+  if (d.review.snapshot !== assignmentReviewSnapshot(proposal)) {
+    return { ok: false, error: REVIEW_CHANGED };
+  }
+
   const result = await addAssignment({
     churchSlug: d.churchSlug,
     churchId: tenant.church.id,
@@ -67,3 +75,4 @@ export async function confirmAssistantAssignment(raw: unknown): Promise<ActionRe
   }
   return result;
 }
+

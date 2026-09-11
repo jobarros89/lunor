@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { humanReviewSchema, recurringReviewSnapshot, REVIEW_REQUIRED, REVIEW_CHANGED } from "@/lib/ai/human-review";
 import {
   localClockKey,
   localDateKey,
@@ -12,10 +13,11 @@ import { getTenant } from "@/lib/tenant";
 import type { ActionResult } from "@/lib/actions/types";
 
 const schema = z.object({
+  review: humanReviewSchema,
   churchSlug: z.string().trim().min(2).max(100),
   templateEventId: z.string().uuid(),
   startsAt: z
-    .array(z.string().min(10))
+    .array(z.string().datetime({ offset: true }))
     .min(1)
     .max(60)
     .refine((items) => new Set(items).size === items.length, {
@@ -80,6 +82,8 @@ async function canCreateFromTemplate(
 export async function confirmAssistantRecurringEvents(
   raw: unknown
 ): Promise<ActionResult<{ created: number; skippedExisting: number; eventIds: string[] }>> {
+  const review = humanReviewSchema.safeParse((raw as { review?: unknown } | null)?.review);
+  if (!review.success) return { ok: false, error: REVIEW_REQUIRED };
   const parsed = schema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Proposta de cultos inválida" };
   const d = parsed.data;
@@ -119,6 +123,19 @@ export async function confirmAssistantRecurringEvents(
   ) {
     return { ok: false, error: "Sem permissão para criar esta série de cultos" };
   }
+
+  const duration = template.ends_at
+    ? Math.max(0, new Date(template.ends_at).getTime() - new Date(template.starts_at).getTime())
+    : 0;
+  const snapshot = recurringReviewSnapshot({
+    templateEventId: template.id, title: template.title,
+    campus: { id: template.campus_id }, servicePeriod: template.service_period,
+    templateStartsAt: template.starts_at, location: template.location,
+    occurrences: d.startsAt.map(startsAt => ({
+      startsAt, endsAt: duration ? new Date(new Date(startsAt).getTime() + duration).toISOString() : null,
+    })),
+  });
+  if (d.review.snapshot !== snapshot) return { ok: false, error: REVIEW_CHANGED };
 
   const templateWeekday = localWeekdayIndex(template.starts_at);
   const templateClock = localClockKey(template.starts_at);
@@ -222,3 +239,4 @@ export async function confirmAssistantRecurringEvents(
     },
   };
 }
+

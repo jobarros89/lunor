@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { copilotSuggestion, copilotSuggestionHref } from "@/lib/ai/copilot-suggestions";
 import {
   AlertTriangle,
   ArrowRight,
@@ -98,12 +99,12 @@ export function AssistantAttentionCenter({
             <h2 className="mt-1.5 text-xl font-semibold tracking-tight md:text-2xl">
               {hasAttention
                 ? `${attentionCount} ${attentionCount === 1 ? "item precisa" : "itens precisam"} da sua atenção`
-                : "Operação sem alertas relevantes agora"}
+                : visibleInsights[0]?.title ?? "Nenhuma análise disponível agora"}
             </h2>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               {hasAttention
                 ? `${summary.ministriesWithOperationalAttention} ${summary.ministriesWithOperationalAttention === 1 ? "ministério concentra" : "ministérios concentram"} pendências nos próximos cultos. Expanda para priorizar o que resolver primeiro.`
-                : "O LUNOR não encontrou pendências críticas de escala, confirmação ou disponibilidade nos próximos cultos analisados."}
+                : visibleInsights[0]?.detail ?? "Abra o assistente para consultar novamente."}
             </p>
           </div>
 
@@ -146,6 +147,11 @@ export function AssistantAttentionCenter({
                   </p>
                 </div>
 
+                <div className="flex flex-wrap gap-2">
+                  <Link href={copilotSuggestionHref(churchSlug, insight)}
+                    className="inline-flex min-h-10 items-center justify-center rounded-full bg-[#6e5ce6] px-4 text-xs font-semibold text-white">
+                    {copilotSuggestion(insight).label}
+                  </Link>
                 {insight.event ? (
                   <Link
                     href={`/${churchSlug}/escalas/${insight.event.id}`}
@@ -155,6 +161,7 @@ export function AssistantAttentionCenter({
                     <ArrowRight className="size-3.5" />
                   </Link>
                 ) : null}
+                </div>
               </article>
             ))}
           </div>
@@ -176,3 +183,4 @@ export function AssistantAttentionCenter({
     </section>
   );
 }
+

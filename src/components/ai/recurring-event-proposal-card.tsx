@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { CalendarDays, CheckCircle2, MapPin } from "lucide-react";
 import { confirmAssistantRecurringEvents } from "@/lib/actions/ai-recurring-events";
+import { HumanReview } from "@/components/ai/human-review";
+import { recurringReviewSnapshot } from "@/lib/ai/human-review";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -44,32 +46,38 @@ export function RecurringEventProposalCard({
   proposal: RecurringEventProposal;
 }) {
   const [pending, startTransition] = useTransition();
+  const [reviewed, setReviewed] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   function confirm() {
-    if (pending || confirmed) return;
+    if (pending || confirmed || !reviewed) return;
     setError("");
     setSuccess("");
     startTransition(async () => {
-      const result = await confirmAssistantRecurringEvents({
-        churchSlug,
-        templateEventId: proposal.templateEventId,
-        startsAt: proposal.occurrences.map((occurrence) => occurrence.startsAt),
-      });
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
+      try {
+        const result = await confirmAssistantRecurringEvents({
+          churchSlug,
+          templateEventId: proposal.templateEventId,
+          startsAt: proposal.occurrences.map((occurrence) => occurrence.startsAt),
+          review: { validated: true, snapshot: recurringReviewSnapshot(proposal) },
+        });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
 
-      const { created, skippedExisting } = result.data;
-      setConfirmed(true);
-      setSuccess(
-        created === 0
-          ? "Todos esses cultos já estavam cadastrados. Nenhuma duplicação foi criada."
-          : `${created} culto${created === 1 ? "" : "s"} criado${created === 1 ? "" : "s"}${skippedExisting > 0 ? ` · ${skippedExisting} data${skippedExisting === 1 ? "" : "s"} já existente${skippedExisting === 1 ? "" : "s"} preservada${skippedExisting === 1 ? "" : "s"}` : ""}.`
-      );
+        const { created, skippedExisting } = result.data;
+        setConfirmed(true);
+        setSuccess(
+          created === 0
+            ? "Todos esses cultos já estavam cadastrados. Nenhuma duplicação foi criada."
+            : `${created} culto${created === 1 ? "" : "s"} criado${created === 1 ? "" : "s"}${skippedExisting > 0 ? ` · ${skippedExisting} data${skippedExisting === 1 ? "" : "s"} já existente${skippedExisting === 1 ? "" : "s"} preservada${skippedExisting === 1 ? "" : "s"}` : ""}.`
+        );
+      } catch {
+        setError("Não foi possível confirmar os cultos agora. Confira a agenda antes de tentar novamente.");
+      }
     });
   }
 
@@ -98,10 +106,12 @@ export function RecurringEventProposalCard({
             className="rounded-lg bg-background px-3 py-2 text-xs font-medium"
           >
             {occurrenceLabel(occurrence.startsAt)}
+            {occurrence.endsAt && <span className="mt-1 block text-muted-foreground">Término: {occurrenceLabel(occurrence.endsAt)}</span>}
           </div>
         ))}
       </div>
 
+      {proposal.location && <p className="mt-3 text-xs text-muted-foreground">Local: {proposal.location}</p>}
       {proposal.skippedExisting > 0 && (
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
           {proposal.skippedExisting} {proposal.skippedExisting === 1 ? "data já está cadastrada e será preservada" : "datas já estão cadastradas e serão preservadas"}.
@@ -118,10 +128,11 @@ export function RecurringEventProposalCard({
         </p>
       )}
 
+      <HumanReview checked={reviewed} onChange={setReviewed} disabled={pending || confirmed} />
       <Button
         type="button"
         onClick={confirm}
-        disabled={pending || confirmed}
+        disabled={pending || confirmed || !reviewed}
         className={cn(
           "mt-3 w-full rounded-full",
           confirmed
@@ -137,9 +148,10 @@ export function RecurringEventProposalCard({
             Série confirmada
           </>
         ) : (
-          `Criar ${proposal.occurrences.length} culto${proposal.occurrences.length === 1 ? "" : "s"}`
+          `Aprovar e criar ${proposal.occurrences.length} culto${proposal.occurrences.length === 1 ? "" : "s"}`
         )}
       </Button>
     </div>
   );
 }
+
