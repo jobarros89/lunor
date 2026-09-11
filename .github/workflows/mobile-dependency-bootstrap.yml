@@ -1,10 +1,8 @@
 name: Bootstrap Capacitor dependencies
 
+# Modo econômico: bootstrap do Capacitor somente sob demanda.
 on:
-  push:
-    branches: [mobile/capacitor]
-    paths:
-      - ".github/workflows/mobile-dependency-bootstrap.yml"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -37,7 +35,7 @@ jobs:
       - name: Persistir dependências
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "4189823+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json
           if git diff --cached --quiet; then
             echo "Dependências já estavam atualizadas."
