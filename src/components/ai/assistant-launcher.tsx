@@ -82,9 +82,10 @@ export function AssistantLauncher({
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:px-5">
           <AssistantPanel
+            key={`${churchSlug}:${ministryId}`}
             churchSlug={churchSlug}
             ministryId={ministryId}
-            ministryName={assistantScopeLabel}
+            ministryName={ministryName}
             compact
           />
         </div>
