@@ -106,6 +106,7 @@ export default async function MusicaDetalhePage({
   }, null);
   const youtubeReference = youtubeHref(musica.youtube_video_id);
   const referencia = youtubeReference ?? (musica.link ? referenceHref(musica.link) : null);
+  const displayedReference = musica.link ?? youtubeReference;
   const podeEditarAcervo = tenant.isCoord || Boolean(papel);
   const podeGerenciar =
     tenant.isCoord || ["gerente", "lider"].includes(papel?.role ?? "");
@@ -230,7 +231,7 @@ export default async function MusicaDetalhePage({
                 render={
                   <a
                     href={referencia}
-                    target={youtubeReference ? undefined : "_blank"}
+                    target="_blank"
                     rel="noopener noreferrer"
                   />
                 }
@@ -242,12 +243,19 @@ export default async function MusicaDetalhePage({
                 )}
                 {youtubeReference ? "Abrir no YouTube" : "Abrir referência"}
               </Button>
-            ) : (
-              <p className="break-all text-sm text-muted-foreground">{musica.link}</p>
-            )}
-            {musica.link && (
-              <p className="break-all text-xs text-muted-foreground">{musica.link}</p>
-            )}
+            ) : null}
+            {displayedReference && referencia ? (
+              <a
+                href={referencia}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block break-all text-xs text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+              >
+                {displayedReference}
+              </a>
+            ) : displayedReference ? (
+              <p className="break-all text-xs text-muted-foreground">{displayedReference}</p>
+            ) : null}
           </CardContent>
         </Card>
       )}
