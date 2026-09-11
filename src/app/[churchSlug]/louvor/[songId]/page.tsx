@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, ExternalLink, Music, Pencil } from "lucide-react";
+import { ArrowLeft, ExternalLink, Music, Pencil, Youtube } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { rotuloUltimaVez, type Song } from "@/lib/louvor";
 import { getLouvorMinistry } from "@/lib/louvor-server";
@@ -32,6 +32,11 @@ function referenceHref(link: string): string | null {
   } catch {
     return null;
   }
+}
+
+function youtubeHref(videoId: string | null | undefined): string | null {
+  if (!videoId || !/^[A-Za-z0-9_-]{11}$/.test(videoId)) return null;
+  return `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
 }
 
 export default async function MusicaDetalhePage({
@@ -99,7 +104,8 @@ export default async function MusicaDetalhePage({
     const quando = (item.events as unknown as { starts_at: string }).starts_at;
     return !maisRecente || quando > maisRecente ? quando : maisRecente;
   }, null);
-  const referencia = musica.link ? referenceHref(musica.link) : null;
+  const youtubeReference = youtubeHref(musica.youtube_video_id);
+  const referencia = youtubeReference ?? (musica.link ? referenceHref(musica.link) : null);
   const podeEditarAcervo = tenant.isCoord || Boolean(papel);
   const podeGerenciar =
     tenant.isCoord || ["gerente", "lider"].includes(papel?.role ?? "");
@@ -208,24 +214,39 @@ export default async function MusicaDetalhePage({
         </CardContent>
       </Card>
 
-      {musica.link && (
+      {(youtubeReference || musica.link) && (
         <Card className="rounded-3xl">
           <CardHeader>
-            <CardTitle className="text-base">Referência</CardTitle>
+            <CardTitle className="text-base">
+              {youtubeReference ? "Referência no YouTube" : "Referência"}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             {referencia ? (
-              <a
-                href={referencia}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 break-all text-sm font-medium underline underline-offset-4"
+              <Button
+                nativeButton={false}
+                variant="outline"
+                className="h-11 rounded-full px-5"
+                render={
+                  <a
+                    href={referencia}
+                    target={youtubeReference ? undefined : "_blank"}
+                    rel="noopener noreferrer"
+                  />
+                }
               >
-                {musica.link}
-                <ExternalLink className="size-4 shrink-0" />
-              </a>
+                {youtubeReference ? (
+                  <Youtube className="size-4" />
+                ) : (
+                  <ExternalLink className="size-4" />
+                )}
+                {youtubeReference ? "Abrir no YouTube" : "Abrir referência"}
+              </Button>
             ) : (
               <p className="break-all text-sm text-muted-foreground">{musica.link}</p>
+            )}
+            {musica.link && (
+              <p className="break-all text-xs text-muted-foreground">{musica.link}</p>
             )}
           </CardContent>
         </Card>
