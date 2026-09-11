@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, ExternalLink, Music, Pencil, Youtube } from "lucide-react";
+import { ArrowLeft, ExternalLink, Music, Pencil, Video } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { rotuloUltimaVez, type Song } from "@/lib/louvor";
 import { getLouvorMinistry } from "@/lib/louvor-server";
@@ -236,7 +236,7 @@ export default async function MusicaDetalhePage({
                 }
               >
                 {youtubeReference ? (
-                  <Youtube className="size-4" />
+                  <Video className="size-4" />
                 ) : (
                   <ExternalLink className="size-4" />
                 )}
