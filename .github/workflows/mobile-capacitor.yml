@@ -1,16 +1,8 @@
 name: Mobile Capacitor
 
+# Modo econômico: build Android somente sob demanda enquanto a franquia de
+# GitHub Actions estiver esgotada.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "capacitor.config.ts"
-      - "package.json"
-      - "package-lock.json"
-      - "scripts/generate-mobile-icons.mjs"
-      - "public/icons/**"
-      - "android/**"
-      - ".github/workflows/mobile-capacitor.yml"
   workflow_dispatch:
 
 permissions:
