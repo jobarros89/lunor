@@ -29,16 +29,32 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # O runner é dedicado ao LUNOR. Preservar arquivos ignorados evita
+          # apagar node_modules e tsconfig.tsbuildinfo a cada execução.
+          clean: false
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Instalar dependências
-        run: npm ci --no-audit --no-fund --prefer-offline
+      - name: Preparar dependências
+        shell: bash
+        run: |
+          LOCK_HASH="$(shasum -a 256 package-lock.json | awk '{print $1}')"
+          RUNTIME_KEY="$(node -p "process.platform + '-' + process.arch + '-' + process.versions.node")"
+          CACHE_KEY="${RUNTIME_KEY}-${LOCK_HASH}"
+          KEY_FILE="node_modules/.lunor-ci-key"
+
+          if [ -d node_modules ] && [ -f "$KEY_FILE" ] && [ "$(cat "$KEY_FILE")" = "$CACHE_KEY" ]; then
+            echo "Dependências reutilizadas do runner self-hosted."
+          else
+            npm ci --no-audit --no-fund --prefer-offline
+            printf '%s' "$CACHE_KEY" > "$KEY_FILE"
+          fi
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint -- --cache --cache-strategy content --cache-location .eslintcache
 
       - name: Typecheck
         run: npx tsc --noEmit
