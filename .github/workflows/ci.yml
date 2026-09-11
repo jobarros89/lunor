@@ -1,16 +1,16 @@
 name: CI
 
+# Modo econômico temporário: enquanto a franquia mensal do GitHub Actions estiver
+# esgotada, este workflow fica disponível apenas para execução manual.
+# O desenvolvimento continua com validação local e deploy pela Cloudflare.
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -70,4 +70,3 @@ jobs:
       - name: Descartar ambiente Supabase efêmero
         if: always()
         run: npx supabase stop || true
-
