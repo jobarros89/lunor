@@ -45,7 +45,17 @@ export function buildLeadershipInsights(
   const insights: LeadershipInsight[] = [];
 
   for (const ministryItem of overview.ministries) {
-    if (!ministryItem.available) continue;
+    if (!ministryItem.available) {
+      insights.push({
+        id: `${ministryItem.ministry.id}:data-unavailable`, severity: "warning", category: "readiness",
+        ministry: { id: ministryItem.ministry.id, name: ministryItem.ministry.name },
+        title: "Não foi possível verificar este ministério",
+        detail: `A consulta de ${ministryItem.ministry.name} falhou. Não é possível concluir que a operação está sem pendências.`,
+        suggestedAction: "Atualizar a consulta ou conferir a escala na tela do ministério.",
+        evidence: { dataAvailable: false },
+      });
+      continue;
+    }
     const ministry = {
       id: ministryItem.ministry.id,
       name: ministryItem.ministry.name,
@@ -201,16 +211,18 @@ export function buildLeadershipInsights(
     const firstAvailable = overview.ministries.find((item) => item.available);
     if (firstAvailable) {
       insights.push({
-        id: "operation:stable",
+        id: overview.ministries.some(item => item.events.length > 0) ? "operation:stable" : "operation:no-events",
         severity: "info",
         category: "readiness",
         ministry: {
           id: firstAvailable.ministry.id,
           name: firstAvailable.ministry.name,
         },
-        title: "Nenhum alerta operacional relevante",
-        detail:
-          "Nos próximos cultos consultados, o LUNOR não encontrou pendências críticas de escala, confirmação ou disponibilidade.",
+        title: overview.ministries.some(item => item.events.length > 0)
+          ? "Nenhum alerta operacional relevante" : "Nenhum próximo culto encontrado",
+        detail: overview.ministries.some(item => item.events.length > 0)
+          ? "Nos próximos cultos consultados, o LUNOR não encontrou pendências críticas de escala, confirmação ou disponibilidade."
+          : "Não há próximos cultos nos ministérios consultados. Confira a agenda antes de avaliar o preparo da equipe.",
         suggestedAction:
           "Manter o acompanhamento das confirmações e revisar novamente conforme o próximo culto se aproxima.",
         evidence: {
@@ -234,7 +246,7 @@ export function buildLeadershipInsights(
       warning,
       info,
       attentionScore: critical * 5 + warning * 2 + info,
-      ministriesWithOperationalAttention: overview.attentionMinistries,
+      ministriesWithOperationalAttention: new Set(insights.filter(item => item.severity !== "info").map(item => item.ministry.id)).size,
     },
     insights: selected,
   };
@@ -251,3 +263,4 @@ export async function getLeadershipInsights(
     limit: Math.min(Math.max(limit, 1), 12),
   });
 }
+

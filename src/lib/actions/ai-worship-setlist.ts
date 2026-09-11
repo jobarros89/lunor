@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { humanReviewSchema, setlistReviewSnapshot, REVIEW_REQUIRED, REVIEW_CHANGED } from "@/lib/ai/human-review";
 import { buildWorshipSetlistProposal } from "@/lib/ai/worship-setlist-proposal";
 import { getActiveMinistry } from "@/lib/ministry";
 import { getTenant } from "@/lib/tenant";
@@ -9,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/types";
 
 const schema = z.object({
+  review: humanReviewSchema,
   churchSlug: z.string().trim().min(2).max(100),
   ministryId: z.string().uuid(),
   eventId: z.string().uuid(),
@@ -27,6 +29,8 @@ type ApplyWorshipSetlistResult = {
 export async function confirmAssistantWorshipSetlist(
   raw: unknown
 ): Promise<ActionResult<ApplyWorshipSetlistResult>> {
+  const review = humanReviewSchema.safeParse((raw as { review?: unknown } | null)?.review);
+  if (!review.success) return { ok: false, error: REVIEW_REQUIRED };
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Proposta de repertório inválida" };
@@ -72,6 +76,10 @@ export async function confirmAssistantWorshipSetlist(
       ok: false,
       error: "A proposta mudou. Peça uma nova sugestão ao LUNOR.",
     };
+  }
+
+  if (d.review.snapshot !== setlistReviewSnapshot(proposal)) {
+    return { ok: false, error: REVIEW_CHANGED };
   }
 
   const supabase = await createClient();
@@ -129,3 +137,4 @@ export async function confirmAssistantWorshipSetlist(
     data: { added: songsToAdd.length, skippedExisting },
   };
 }
+

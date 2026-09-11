@@ -10,6 +10,9 @@ import {
   Music2,
   Sparkles,
 } from "lucide-react";
+import { HumanReview } from "@/components/ai/human-review";
+import { CopilotPriorities } from "@/components/ai/copilot-priorities";
+import { assignmentReviewSnapshot, setlistReviewSnapshot } from "@/lib/ai/human-review";
 import { confirmAssistantAssignment } from "@/lib/actions/ai-assignment";
 import { confirmAssistantWorshipSetlist } from "@/lib/actions/ai-worship-setlist";
 import { Button } from "@/components/ui/button";
@@ -101,6 +104,7 @@ function eventDateLabel(startsAt: string) {
   const date = new Date(startsAt);
   if (Number.isNaN(date.getTime())) return "Culto";
   return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     weekday: "short",
     day: "2-digit",
     month: "short",
@@ -122,14 +126,16 @@ export function AssistantPanel({
   ministryId,
   ministryName,
   compact = false,
+  initialQuestion = "",
 }: {
   churchSlug: string;
   ministryId: string;
   ministryName: string;
   compact?: boolean;
+  initialQuestion?: string;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [question, setQuestion] = useState("");
+  const [question, setQuestion] = useState(initialQuestion);
   const [pending, setPending] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set());
@@ -138,6 +144,11 @@ export function AssistantPanel({
   const [confirmedSetlists, setConfirmedSetlists] = useState<Set<string>>(new Set());
   const [setlistErrors, setSetlistErrors] = useState<Record<string, string>>({});
   const [setlistSuccess, setSetlistSuccess] = useState<Record<string, string>>({});
+  const [reviewed, setReviewed] = useState<Set<string>>(new Set());
+  const [prioritiesVersion, setPrioritiesVersion] = useState(0);
+  function markReviewed(key: string, value: boolean) {
+    setReviewed(current => { const next = new Set(current); if (value) next.add(key); else next.delete(key); return next; });
+  }
   const suggestions = GLOBAL_SUGGESTIONS;
 
   async function ask(text: string) {
@@ -148,6 +159,7 @@ export function AssistantPanel({
     const userMessage: Message = { role: "user", content: clean };
     setMessages((current) => [...current, userMessage]);
     setQuestion("");
+    setReviewed(new Set());
     setPending(true);
 
     try {
@@ -189,9 +201,9 @@ export function AssistantPanel({
     }
   }
 
-  async function confirmProposal(proposal: AssignmentProposal) {
+  async function confirmProposal(proposal: AssignmentProposal, reviewKey: string) {
     const key = proposalKey(proposal);
-    if (confirming || confirmed.has(key)) return;
+    if (pending || confirming || confirmed.has(key) || !reviewed.has(reviewKey)) return;
     setConfirming(key);
     setProposalErrors((current) => ({ ...current, [key]: "" }));
 
@@ -202,12 +214,14 @@ export function AssistantPanel({
         eventId: proposal.eventId,
         userId: proposal.userId,
         roleName: proposal.roleName,
+        review: { validated: true, snapshot: assignmentReviewSnapshot(proposal) },
       });
       if (!result.ok) {
         setProposalErrors((current) => ({ ...current, [key]: result.error }));
         return;
       }
       setConfirmed((current) => new Set(current).add(key));
+      setPrioritiesVersion(n => n + 1);
     } catch {
       setProposalErrors((current) => ({
         ...current,
@@ -218,9 +232,9 @@ export function AssistantPanel({
     }
   }
 
-  async function confirmWorshipSetlist(proposal: WorshipSetlistProposal) {
+  async function confirmWorshipSetlist(proposal: WorshipSetlistProposal, reviewKey: string) {
     const key = worshipProposalKey(proposal);
-    if (confirmingSetlist || confirmedSetlists.has(key)) return;
+    if (pending || confirmingSetlist || confirmedSetlists.has(key) || !reviewed.has(reviewKey)) return;
     setConfirmingSetlist(key);
     setSetlistErrors((current) => ({ ...current, [key]: "" }));
     setSetlistSuccess((current) => ({ ...current, [key]: "" }));
@@ -231,6 +245,7 @@ export function AssistantPanel({
         ministryId,
         eventId: proposal.event.id,
         songIds: proposal.songs.map((song) => song.songId),
+        review: { validated: true, snapshot: setlistReviewSnapshot(proposal) },
       });
       if (!result.ok) {
         setSetlistErrors((current) => ({ ...current, [key]: result.error }));
@@ -246,6 +261,7 @@ export function AssistantPanel({
             : `${added} música${added === 1 ? "" : "s"} adicionada${added === 1 ? "" : "s"} ao repertório.`;
 
       setConfirmedSetlists((current) => new Set(current).add(key));
+      setPrioritiesVersion(n => n + 1);
       setSetlistSuccess((current) => ({ ...current, [key]: message }));
     } catch {
       setSetlistErrors((current) => ({
@@ -271,7 +287,7 @@ export function AssistantPanel({
               <Sparkles className="size-5" />
             </div>
             <div>
-              <CardTitle className="text-xl">Pergunte ao LUNOR</CardTitle>
+              <CardTitle className="text-xl">Seu copiloto para preparar o próximo culto</CardTitle>
               <CardDescription className="mt-1">
                 Um único copiloto para os módulos que você gerencia. Contexto atual: {ministryName}.
               </CardDescription>
@@ -319,6 +335,10 @@ export function AssistantPanel({
         </div>
       )}
 
+      <CopilotPriorities key={`${churchSlug}:${ministryId}:${prioritiesVersion}`}
+        churchSlug={churchSlug} ministryId={ministryId} pending={pending}
+        onPrepare={text => void ask(text)} />
+
       <div className="space-y-3" aria-live="polite">
         {messages.map((message, index) => (
           <div
@@ -355,6 +375,7 @@ export function AssistantPanel({
               {message.role === "assistant" &&
                 message.proposals?.map((proposal) => {
                   const key = proposalKey(proposal);
+                  const reviewKey = `${index}:assignment:${assignmentReviewSnapshot(proposal)}`;
                   const isConfirmed = confirmed.has(key);
                   const isConfirming = confirming === key;
                   const error = proposalErrors[key];
@@ -398,10 +419,12 @@ export function AssistantPanel({
                       {error && (
                         <p className="mt-2 text-xs font-medium text-destructive">{error}</p>
                       )}
+                      <HumanReview checked={reviewed.has(reviewKey)}
+                        onChange={value => markReviewed(reviewKey, value)} disabled={isConfirming || isConfirmed || pending} />
                       <Button
                         type="button"
-                        onClick={() => void confirmProposal(proposal)}
-                        disabled={isConfirming || isConfirmed}
+                        onClick={() => void confirmProposal(proposal, reviewKey)}
+                        disabled={isConfirming || isConfirmed || pending || !reviewed.has(reviewKey)}
                         className={cn(
                           "mt-3 w-full rounded-full",
                           isConfirmed
@@ -420,7 +443,7 @@ export function AssistantPanel({
                             Escala confirmada
                           </>
                         ) : (
-                          "Confirmar escala"
+                          "Aprovar e confirmar escala"
                         )}
                       </Button>
                     </div>
@@ -430,6 +453,7 @@ export function AssistantPanel({
               {message.role === "assistant" &&
                 message.worshipSetlistProposals?.map((proposal) => {
                   const key = worshipProposalKey(proposal);
+                  const reviewKey = `${index}:setlist:${setlistReviewSnapshot(proposal)}`;
                   const isConfirmed = confirmedSetlists.has(key);
                   const isConfirming = confirmingSetlist === key;
                   const error = setlistErrors[key];
@@ -501,10 +525,12 @@ export function AssistantPanel({
                           {success}
                         </p>
                       )}
+                      <HumanReview checked={reviewed.has(reviewKey)}
+                        onChange={value => markReviewed(reviewKey, value)} disabled={isConfirming || isConfirmed || pending} />
                       <Button
                         type="button"
-                        onClick={() => void confirmWorshipSetlist(proposal)}
-                        disabled={isConfirming || isConfirmed}
+                        onClick={() => void confirmWorshipSetlist(proposal, reviewKey)}
+                        disabled={isConfirming || isConfirmed || pending || !reviewed.has(reviewKey)}
                         className={cn(
                           "mt-3 w-full rounded-full",
                           isConfirmed
@@ -523,7 +549,7 @@ export function AssistantPanel({
                             Repertório atualizado
                           </>
                         ) : (
-                          "Adicionar ao repertório"
+                          "Aprovar e adicionar ao repertório"
                         )}
                       </Button>
                     </div>
@@ -585,3 +611,4 @@ export function AssistantPanel({
     </div>
   );
 }
+
