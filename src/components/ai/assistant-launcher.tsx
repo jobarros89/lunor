@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { Sparkles, X } from "lucide-react";
 import { AssistantPanel } from "@/components/ai/assistant-panel";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,14 @@ export function AssistantLauncher({
   ministryId: string;
   ministryName: string;
 }) {
+  const pathname = usePathname();
   const assistantScopeLabel = "Sua igreja";
+
+  // Na Home já existe a Central de Atenção + entrada do Assistente.
+  // Evita um segundo botão flutuante cobrindo conteúdo no mobile.
+  if (pathname === `/${churchSlug}` || pathname === `/${churchSlug}/`) {
+    return null;
+  }
 
   return (
     <Sheet>
@@ -30,14 +38,14 @@ export function AssistantLauncher({
         render={
           <button
             type="button"
-            className="fixed right-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-40 flex h-11 w-11 items-center justify-center rounded-full bg-[#6e5ce6] p-0 text-white shadow-[0_12px_32px_rgba(71,55,170,0.3)] transition hover:-translate-y-0.5 hover:bg-[#5f4fd1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6e5ce6] md:right-6 md:bottom-6 md:h-10 md:w-auto md:gap-2 md:px-3 md:text-sm md:font-medium md:shadow-[0_8px_20px_rgba(71,55,170,0.22)]"
+            className="fixed right-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#6e5ce6] p-0 text-white shadow-[0_10px_24px_rgba(71,55,170,0.24)] transition hover:-translate-y-0.5 hover:bg-[#5f4fd1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6e5ce6] md:right-6 md:bottom-6 md:h-10 md:w-auto md:gap-2 md:px-3 md:text-sm md:font-medium md:shadow-[0_8px_20px_rgba(71,55,170,0.22)]"
             aria-label="Abrir Assistente LUNOR"
             title="Assistente LUNOR"
           />
         }
       >
         <span className="flex size-5 shrink-0 items-center justify-center md:size-6 md:rounded-full md:bg-white/15">
-          <Sparkles className="size-[18px] md:size-3.5" />
+          <Sparkles className="size-4 md:size-3.5" />
         </span>
         <span className="hidden md:inline">Assistente LUNOR</span>
       </SheetTrigger>
