@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -26,6 +27,9 @@ jobs:
     name: Segurança + lint + typecheck
     runs-on: [self-hosted, macOS, X64]
     timeout-minutes: 20
+    outputs:
+      supabase_required: ${{ steps.supabase_changes.outputs.required }}
+      supabase_auto_enabled: ${{ steps.supabase_changes.outputs.auto_enabled }}
 
     steps:
       - uses: actions/checkout@v4
@@ -37,6 +41,128 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Detectar alterações sensíveis ao Supabase
+        id: supabase_changes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const https = require('https');
+
+          const autoEnabled = 'false';
+          const eventName = process.env.EVENT_NAME;
+          let required = false;
+          let matched = [];
+
+          function requestJson(path) {
+            return new Promise((resolve, reject) => {
+              const request = https.request({
+                hostname: 'api.github.com',
+                path,
+                method: 'GET',
+                headers: {
+                  Authorization: `Bearer ${process.env.GH_TOKEN}`,
+                  Accept: 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+                  'User-Agent': 'lunor-ci',
+                },
+              }, (response) => {
+                let body = '';
+                response.setEncoding('utf8');
+                response.on('data', (chunk) => { body += chunk; });
+                response.on('end', () => {
+                  if (response.statusCode < 200 || response.statusCode >= 300) {
+                    reject(new Error(`GitHub API ${response.statusCode}: ${body}`));
+                    return;
+                  }
+                  try {
+                    resolve(JSON.parse(body));
+                  } catch (error) {
+                    reject(error);
+                  }
+                });
+              });
+              request.on('error', reject);
+              request.end();
+            });
+          }
+
+          async function main() {
+            if (eventName === 'pull_request') {
+              const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+              const prNumber = process.env.PR_NUMBER;
+              const filenames = [];
+
+              for (let page = 1; ; page += 1) {
+                const batch = await requestJson(
+                  `/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=100&page=${page}`,
+                );
+                filenames.push(...batch.map((file) => file.filename));
+                if (batch.length < 100) break;
+              }
+
+              const sensitivePrefixes = [
+                'supabase/',
+                'tests/sql/',
+                'tests/rls/',
+                'src/lib/supabase/',
+                'src/lib/auth/',
+              ];
+
+              matched = filenames.filter((filename) =>
+                sensitivePrefixes.some((prefix) => filename.startsWith(prefix)),
+              );
+              required = matched.length > 0;
+            }
+
+            fs.appendFileSync(
+              process.env.GITHUB_OUTPUT,
+              `required=${required}\nauto_enabled=${autoEnabled}\n`,
+            );
+
+            if (eventName !== 'pull_request') return;
+
+            if (required) {
+              console.log(
+                '::warning title=Supabase efêmero necessário::Alterações de banco/auth detectadas. A execução automática hospedada está temporariamente desativada enquanto a franquia do GitHub Actions estiver esgotada.',
+              );
+              fs.appendFileSync(
+                process.env.GITHUB_STEP_SUMMARY,
+                [
+                  '### Supabase efêmero necessário',
+                  '',
+                  'Esta PR altera arquivos sensíveis ao banco, RLS, SQL ou integração central com Supabase.',
+                  '',
+                  `Arquivos sensíveis detectados: **${matched.length}**.`,
+                  '',
+                  'A execução automática em `ubuntu-latest` está **temporariamente desativada** enquanto a franquia hospedada estiver esgotada.',
+                  'O job continua disponível por `workflow_dispatch` para execução manual quando houver capacidade hospedada.',
+                  '',
+                ].join('\n'),
+              );
+            } else {
+              fs.appendFileSync(
+                process.env.GITHUB_STEP_SUMMARY,
+                [
+                  '### Supabase efêmero não necessário',
+                  '',
+                  'Nenhuma alteração sensível ao banco foi detectada nesta PR.',
+                  '',
+                ].join('\n'),
+              );
+            }
+          }
+
+          main().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
 
       - name: Preparar dependências
         shell: bash
@@ -64,7 +190,8 @@ jobs:
 
   tests:
     name: Supabase efêmero + testes
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_supabase_tests }}
+    needs: quality
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_supabase_tests) || (github.event_name == 'pull_request' && needs.quality.outputs.supabase_required == 'true' && needs.quality.outputs.supabase_auto_enabled == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
