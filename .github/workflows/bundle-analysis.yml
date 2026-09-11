@@ -1,10 +1,8 @@
 name: Bundle Analysis
 
+# Modo econômico: análise de bundle somente quando solicitada manualmente.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - "perf/**"
 
 permissions:
   contents: read
