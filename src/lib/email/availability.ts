@@ -1,7 +1,7 @@
 import "server-only";
 
 import { serverEnvAsync } from "@/lib/env";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClientAsync } from "@/lib/supabase/admin";
 import type { PushMessage } from "@/lib/push/send";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
@@ -23,7 +23,7 @@ function requestIdFromTag(tag?: string) {
 }
 
 async function resolveAvailabilityPath(requestId: string, fallbackUrl?: string) {
-  const admin = createAdminClient();
+  const admin = await createAdminClientAsync();
   const { data: request } = await admin
     .from("availability_requests")
     .select("ministry_id")
@@ -50,7 +50,7 @@ async function resolveAvailabilityPath(requestId: string, fallbackUrl?: string) 
 }
 
 async function resolveEmails(userIds: string[]) {
-  const admin = createAdminClient();
+  const admin = await createAdminClientAsync();
   const results = await Promise.allSettled(
     userIds.map(async (userId) => {
       const { data, error } = await admin.auth.admin.getUserById(userId);
