@@ -1,6 +1,6 @@
 import "server-only";
 
-import { serverEnv } from "@/lib/env";
+import { serverEnvAsync } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PushMessage } from "@/lib/push/send";
 
@@ -21,8 +21,12 @@ function assignmentKeyFromTag(tag?: string) {
 export async function notifyAssignmentByEmail(userIds: string[], message: PushMessage): Promise<void> {
   const assignmentKey = assignmentKeyFromTag(message.tag);
   if (!assignmentKey || userIds.length === 0) return;
-  const apiKey = serverEnv("RESEND_API_KEY");
-  if (!apiKey) return;
+
+  const apiKey = await serverEnvAsync("RESEND_API_KEY");
+  if (!apiKey) {
+    console.warn("notifyAssignmentByEmail: RESEND_API_KEY não configurada no runtime");
+    return;
+  }
 
   try {
     const admin = createAdminClient();
@@ -34,7 +38,7 @@ export async function notifyAssignmentByEmail(userIds: string[], message: PushMe
     const emails = recipients.flatMap((result) => result.status === "fulfilled" && result.value.email ? [result.value] : []);
     if (emails.length === 0) return;
 
-    const appUrl = (serverEnv("NEXT_PUBLIC_APP_URL") ?? DEFAULT_APP_URL).replace(/\/$/, "");
+    const appUrl = ((await serverEnvAsync("NEXT_PUBLIC_APP_URL")) ?? DEFAULT_APP_URL).replace(/\/$/, "");
     const path = message.url ?? "/";
     const actionUrl = `${appUrl}${path.startsWith("/") ? path : `/${path}`}`;
     const safeBody = escapeHtml(message.body || "Você recebeu uma nova escala.").replaceAll("\n", "<br>");
@@ -53,8 +57,14 @@ export async function notifyAssignmentByEmail(userIds: string[], message: PushMe
           tags: [{ name: "type", value: "assignment_created" }, { name: "event_id", value: assignmentKey }],
         }),
       });
-      if (!response.ok) throw new Error(`Resend ${response.status}`);
-    }));
+      if (!response.ok) {
+        const detail = await response.text().catch(() => "");
+        throw new Error(`Resend ${response.status}: ${detail.slice(0, 300)}`);
+      }
+    })).then((results) => {
+      const failures = results.filter((result) => result.status === "rejected");
+      if (failures.length > 0) console.warn(`notifyAssignmentByEmail: ${failures.length} envio(s) falharam`);
+    });
   } catch (error) {
     console.error("notifyAssignmentByEmail: falha", error);
   }

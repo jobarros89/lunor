@@ -1,6 +1,6 @@
 import "server-only";
 
-import { serverEnv } from "@/lib/env";
+import { serverEnvAsync } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PushMessage } from "@/lib/push/send";
 
@@ -72,9 +72,9 @@ export async function notifyAvailabilityByEmail(
   const requestId = requestIdFromTag(message.tag);
   if (!requestId || userIds.length === 0) return;
 
-  const apiKey = serverEnv("RESEND_API_KEY");
+  const apiKey = await serverEnvAsync("RESEND_API_KEY");
   if (!apiKey) {
-    console.warn("notifyAvailabilityByEmail: RESEND_API_KEY não configurada");
+    console.warn("notifyAvailabilityByEmail: RESEND_API_KEY não configurada no runtime");
     return;
   }
 
@@ -85,7 +85,7 @@ export async function notifyAvailabilityByEmail(
     ]);
     if (recipients.length === 0) return;
 
-    const appUrl = (serverEnv("NEXT_PUBLIC_APP_URL") ?? DEFAULT_APP_URL).replace(/\/$/, "");
+    const appUrl = ((await serverEnvAsync("NEXT_PUBLIC_APP_URL")) ?? DEFAULT_APP_URL).replace(/\/$/, "");
     const actionUrl = `${appUrl}${path.startsWith("/") ? path : `/${path}`}`;
     const safeTitle = escapeHtml(message.title || "Disponibilidade solicitada");
     const safeBody = escapeHtml(message.body || "Seu líder solicitou sua disponibilidade.");
