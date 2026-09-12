@@ -32,10 +32,21 @@ jobs:
       supabase_auto_enabled: ${{ steps.supabase_changes.outputs.auto_enabled }}
 
     steps:
+      - name: Preparar workspace isolado
+        shell: bash
+        run: |
+          # Runners self-hosted preservam o workspace entre execuções. Se o
+          # repositório Git persistido ficar inconsistente, o checkout pode
+          # falhar antes de conseguir limpá-lo. Removemos apenas o metadata Git
+          # e arquivos rastreados da cópia anterior; caches pesados ignorados
+          # (node_modules/.eslintcache) são preservados.
+          if [ -d .git ]; then
+            git ls-files -z 2>/dev/null | xargs -0 rm -f 2>/dev/null || true
+            rm -rf .git
+          fi
+
       - uses: actions/checkout@v4
         with:
-          # O runner é dedicado ao LUNOR. Preservar arquivos ignorados evita
-          # apagar node_modules e tsconfig.tsbuildinfo a cada execução.
           clean: false
 
       - uses: actions/setup-node@v4
