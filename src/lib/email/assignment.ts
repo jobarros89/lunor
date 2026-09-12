@@ -18,6 +18,11 @@ function assignmentKeyFromTag(tag?: string) {
   return null;
 }
 
+function errorMessage(reason: unknown) {
+  if (reason instanceof Error) return reason.message;
+  return String(reason);
+}
+
 export async function notifyAssignmentByEmail(userIds: string[], message: PushMessage): Promise<void> {
   const assignmentKey = assignmentKeyFromTag(message.tag);
   if (!assignmentKey || userIds.length === 0) return;
@@ -43,7 +48,7 @@ export async function notifyAssignmentByEmail(userIds: string[], message: PushMe
     const actionUrl = `${appUrl}${path.startsWith("/") ? path : `/${path}`}`;
     const safeBody = escapeHtml(message.body || "Você recebeu uma nova escala.").replaceAll("\n", "<br>");
 
-    await Promise.allSettled(emails.map(async ({ userId, email }) => {
+    const results = await Promise.allSettled(emails.map(async ({ userId, email }) => {
       const roleKey = (message.body || "escala").split(" · ")[0].replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40);
       const response = await fetch(RESEND_API_URL, {
         method: "POST",
@@ -59,12 +64,18 @@ export async function notifyAssignmentByEmail(userIds: string[], message: PushMe
       });
       if (!response.ok) {
         const detail = await response.text().catch(() => "");
-        throw new Error(`Resend ${response.status}: ${detail.slice(0, 300)}`);
+        throw new Error(`Resend HTTP ${response.status}: ${detail.slice(0, 500) || "sem corpo de resposta"}`);
       }
-    })).then((results) => {
-      const failures = results.filter((result) => result.status === "rejected");
-      if (failures.length > 0) console.warn(`notifyAssignmentByEmail: ${failures.length} envio(s) falharam`);
-    });
+    }));
+
+    const failures = results.filter((result): result is PromiseRejectedResult => result.status === "rejected");
+    for (const failure of failures) {
+      console.warn("notifyAssignmentByEmail: Resend rejeitou envio", {
+        assignmentKey,
+        error: errorMessage(failure.reason),
+      });
+    }
+    if (failures.length > 0) console.warn(`notifyAssignmentByEmail: ${failures.length} envio(s) falharam`);
   } catch (error) {
     console.error("notifyAssignmentByEmail: falha", error);
   }
