@@ -1,7 +1,7 @@
 import "server-only";
 
 import { serverEnvAsync } from "@/lib/env";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClientAsync } from "@/lib/supabase/admin";
 import type { PushMessage } from "@/lib/push/send";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
@@ -29,7 +29,7 @@ export async function notifyAssignmentByEmail(userIds: string[], message: PushMe
   }
 
   try {
-    const admin = createAdminClient();
+    const admin = await createAdminClientAsync();
     const recipients = await Promise.allSettled(userIds.map(async (userId) => {
       const { data, error } = await admin.auth.admin.getUserById(userId);
       if (error) throw error;
