@@ -112,7 +112,15 @@ export function MyAssignmentCard({
     });
   }
 
-  const canRespond = ["convidado", "confirmado", "falar_lider", "substituicao_solicitada"].includes(status);
+  const canRespond = status === "convidado";
+  const responseFeedback =
+    status === "confirmado"
+      ? "Sua participação foi confirmada."
+      : status === "substituicao_solicitada"
+        ? "Sua indisponibilidade foi registrada. O líder foi avisado e uma substituição foi solicitada."
+        : status === "falar_lider"
+          ? "Seu líder foi avisado."
+          : null;
   const arrivalLabel = timeLabel(serviceWindow.arrivalAt);
   const releaseLabel = timeLabel(serviceWindow.releaseAt);
 
@@ -169,9 +177,15 @@ export function MyAssignmentCard({
           )}
         </div>
 
+        {responseFeedback && (
+          <div className="rounded-2xl border bg-muted/30 p-4 text-sm text-muted-foreground">
+            {responseFeedback}
+          </div>
+        )}
+
         {canRespond && !responseMode && (
           <div className="grid gap-2 sm:grid-cols-3">
-            <Button disabled={pending || status === "confirmado"} onClick={() => respond("confirmar")} className="h-11 rounded-full">
+            <Button disabled={pending} onClick={() => respond("confirmar")} className="h-11 rounded-full">
               <Check className="size-4" /> Confirmo
             </Button>
             <Button variant="outline" disabled={pending} onClick={() => setResponseMode("nao_posso")} className="h-11 rounded-full">
