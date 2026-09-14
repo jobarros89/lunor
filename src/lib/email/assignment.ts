@@ -107,7 +107,7 @@ async function buildAssignmentEmailContext(
 
   const { data: event } = await admin
     .from("events")
-    .select("id, title, starts_at, location, campus_id, setlist_status")
+    .select("id, title, starts_at, location, campus_id")
     .eq("id", assignment.event_id)
     .maybeSingle();
   if (!event) return null;
@@ -126,14 +126,12 @@ async function buildAssignmentEmailContext(
         .eq("event_id", assignment.event_id)
         .eq("ministry_id", assignment.ministry_id)
         .maybeSingle(),
-      event.setlist_status === "publicado"
-        ? admin
-            .from("setlist_items")
-            .select("position, key_override, songs(title, default_key)")
-            .eq("event_id", assignment.event_id)
-            .eq("church_id", assignment.church_id)
-            .order("position")
-        : Promise.resolve({ data: [] }),
+      admin
+        .from("setlist_items")
+        .select("position, key_override, songs(title, default_key)")
+        .eq("event_id", assignment.event_id)
+        .eq("church_id", assignment.church_id)
+        .order("position"),
     ]);
 
   const setlist: EmailListItem[] = (setlistResult.data ?? []).flatMap((item) => {
