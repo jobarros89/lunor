@@ -1,7 +1,7 @@
 name: CI
 
-# Modo temporário com runner self-hosted no Mac para manter o CI automático
-# sem consumir minutos hospedados do GitHub Actions.
+# CI principal executado em runners hospedados pelo GitHub.
+# O orçamento da conta limita o consumo e interrompe novas execuções ao atingir o teto.
 on:
   push:
     branches: [main]
@@ -25,33 +25,18 @@ concurrency:
 jobs:
   quality:
     name: Segurança + lint + typecheck
-    runs-on: [self-hosted, macOS, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
       supabase_required: ${{ steps.supabase_changes.outputs.required }}
-      supabase_auto_enabled: ${{ steps.supabase_changes.outputs.auto_enabled }}
 
     steps:
-      - name: Preparar workspace isolado
-        shell: bash
-        run: |
-          # Runners self-hosted preservam o workspace entre execuções. Se o
-          # repositório Git persistido ficar inconsistente, o checkout pode
-          # falhar antes de conseguir limpá-lo. Removemos apenas o metadata Git
-          # e arquivos rastreados da cópia anterior; caches pesados ignorados
-          # (node_modules/.eslintcache) são preservados.
-          if [ -d .git ]; then
-            git ls-files -z 2>/dev/null | xargs -0 rm -f 2>/dev/null || true
-            rm -rf .git
-          fi
-
       - uses: actions/checkout@v4
-        with:
-          clean: false
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Detectar alterações sensíveis ao Supabase
         id: supabase_changes
@@ -65,7 +50,6 @@ jobs:
           const fs = require('fs');
           const https = require('https');
 
-          const autoEnabled = 'false';
           const eventName = process.env.EVENT_NAME;
           let required = false;
           let matched = [];
@@ -124,35 +108,33 @@ jobs:
                 'src/lib/supabase/',
                 'src/lib/auth/',
               ];
+              const sensitiveFiles = [
+                '.github/workflows/ci.yml',
+              ];
 
               matched = filenames.filter((filename) =>
-                sensitivePrefixes.some((prefix) => filename.startsWith(prefix)),
+                sensitiveFiles.includes(filename)
+                || sensitivePrefixes.some((prefix) => filename.startsWith(prefix)),
               );
               required = matched.length > 0;
             }
 
             fs.appendFileSync(
               process.env.GITHUB_OUTPUT,
-              `required=${required}\nauto_enabled=${autoEnabled}\n`,
+              `required=${required}\n`,
             );
 
             if (eventName !== 'pull_request') return;
 
             if (required) {
-              console.log(
-                '::warning title=Supabase efêmero necessário::Alterações de banco/auth detectadas. A execução automática hospedada está temporariamente desativada enquanto a franquia do GitHub Actions estiver esgotada.',
-              );
               fs.appendFileSync(
                 process.env.GITHUB_STEP_SUMMARY,
                 [
-                  '### Supabase efêmero necessário',
+                  '### Supabase efêmero será executado',
                   '',
-                  'Esta PR altera arquivos sensíveis ao banco, RLS, SQL ou integração central com Supabase.',
+                  'Esta PR altera arquivos sensíveis ao banco, autenticação ou ao próprio CI.',
                   '',
                   `Arquivos sensíveis detectados: **${matched.length}**.`,
-                  '',
-                  'A execução automática em `ubuntu-latest` está **temporariamente desativada** enquanto a franquia hospedada estiver esgotada.',
-                  'O job continua disponível por `workflow_dispatch` para execução manual quando houver capacidade hospedada.',
                   '',
                 ].join('\n'),
               );
@@ -175,23 +157,11 @@ jobs:
           });
           NODE
 
-      - name: Preparar dependências
-        shell: bash
-        run: |
-          LOCK_HASH="$(shasum -a 256 package-lock.json | awk '{print $1}')"
-          RUNTIME_KEY="$(node -p "process.platform + '-' + process.arch + '-' + process.versions.node")"
-          CACHE_KEY="${RUNTIME_KEY}-${LOCK_HASH}"
-          KEY_FILE="node_modules/.lunor-ci-key"
-
-          if [ -d node_modules ] && [ -f "$KEY_FILE" ] && [ "$(cat "$KEY_FILE")" = "$CACHE_KEY" ]; then
-            echo "Dependências reutilizadas do runner self-hosted."
-          else
-            npm ci --no-audit --no-fund --prefer-offline
-            printf '%s' "$CACHE_KEY" > "$KEY_FILE"
-          fi
+      - name: Instalar dependências
+        run: npm ci --no-audit --no-fund --prefer-offline
 
       - name: Lint
-        run: npm run lint -- --cache --cache-strategy content --cache-location .eslintcache
+        run: npm run lint
 
       - name: Typecheck
         run: npx tsc --noEmit
@@ -202,7 +172,7 @@ jobs:
   tests:
     name: Supabase efêmero + testes
     needs: quality
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_supabase_tests) || (github.event_name == 'pull_request' && needs.quality.outputs.supabase_required == 'true' && needs.quality.outputs.supabase_auto_enabled == 'true') }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_supabase_tests) || (github.event_name == 'pull_request' && needs.quality.outputs.supabase_required == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
