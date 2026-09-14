@@ -40,8 +40,33 @@ export async function notifyAssignmentByEmail(userIds: string[], message: PushMe
       if (error) throw error;
       return { userId, email: data.user?.email ?? null };
     }));
+
+    recipients.forEach((result, index) => {
+      const userId = userIds[index];
+      if (result.status === "rejected") {
+        console.warn("notifyAssignmentByEmail: falha ao resolver destinatário no Supabase Auth", {
+          assignmentKey,
+          userId,
+          error: errorMessage(result.reason),
+        });
+        return;
+      }
+      if (!result.value.email) {
+        console.warn("notifyAssignmentByEmail: usuário sem e-mail no Supabase Auth", {
+          assignmentKey,
+          userId,
+        });
+      }
+    });
+
     const emails = recipients.flatMap((result) => result.status === "fulfilled" && result.value.email ? [result.value] : []);
-    if (emails.length === 0) return;
+    if (emails.length === 0) {
+      console.warn("notifyAssignmentByEmail: nenhum destinatário elegível para envio", {
+        assignmentKey,
+        requestedUsers: userIds.length,
+      });
+      return;
+    }
 
     const appUrl = ((await serverEnvAsync("NEXT_PUBLIC_APP_URL")) ?? DEFAULT_APP_URL).replace(/\/$/, "");
     const path = message.url ?? "/";
