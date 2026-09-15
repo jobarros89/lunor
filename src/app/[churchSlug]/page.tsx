@@ -256,18 +256,20 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
     });
   }
 
-  const nextAssignedEvent = firstRelated(escalas[0]?.events);
-  // A Home é pessoal: se o usuário tem uma escala futura, ela tem prioridade
-  // sobre o próximo culto geral da igreja. O culto geral é apenas fallback.
+  // O hero da Home é sempre o próximo serviço futuro que o usuário já confirmou.
+  // Convites pendentes continuam aparecendo na agenda para resposta, mas não substituem o hero confirmado.
+  const nextConfirmedAssignment = escalas.find((assignment) => assignment.status === "confirmado");
+  const nextAssignedEvent = firstRelated(nextConfirmedAssignment?.events);
   const nextEvent =
     nextAssignedEvent ?? (nextChurchEvent as unknown as AssignmentEvent | null);
   const nextEventAssignments = nextEvent
     ? escalas.filter((assignment) => firstRelated(assignment.events)?.id === nextEvent.id)
     : [];
-  const heroAssignment = nextEventAssignments[0];
+  const confirmedEventAssignments = nextEventAssignments.filter((assignment) => assignment.status === "confirmado");
+  const heroAssignment = confirmedEventAssignments[0];
   const heroServiceWindow = heroAssignment ? serviceWindowFor(heroAssignment) : null;
-  const nextMinistries = uniqueNames(nextEventAssignments.map((assignment) => firstRelated(assignment.ministries)?.name));
-  const serviceSummary = joinPtBr(uniqueNames(nextEventAssignments.map(assignmentServiceLabel)));
+  const nextMinistries = uniqueNames(confirmedEventAssignments.map((assignment) => firstRelated(assignment.ministries)?.name));
+  const serviceSummary = joinPtBr(uniqueNames(confirmedEventAssignments.map(assignmentServiceLabel)));
   const nextContext = homeEventContext(nextEvent);
   const nextDate = nextEvent ? new Date(nextEvent.starts_at) : null;
   const day = nextDate ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit" }).format(nextDate) : "—";
@@ -275,8 +277,9 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const weekday = nextDate ? new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(nextDate) : "Próximo encontro";
   const arrival = timeLabel(heroServiceWindow?.arrivalAt);
   const release = timeLabel(heroServiceWindow?.releaseAt);
-  const agendaAssignments = heroAssignment && nextEvent
-    ? escalas.filter((assignment) => firstRelated(assignment.events)?.id !== nextEvent.id)
+  const confirmedHeroIds = new Set(confirmedEventAssignments.map((assignment) => assignment.id));
+  const agendaAssignments = heroAssignment
+    ? escalas.filter((assignment) => !confirmedHeroIds.has(assignment.id))
     : escalas;
 
   // Culto iminente: começa nas próximas 3h ou já começou mas ainda não terminou
