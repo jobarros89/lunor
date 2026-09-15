@@ -176,7 +176,7 @@ export function AssignmentManager({
     return suggestionsForRole(assignment.role_name, assignment.user_id);
   }
 
-  const selectCls = "h-11 rounded-xl border bg-background px-3 text-base md:text-sm";
+  const selectCls = "h-11 w-full min-w-0 max-w-full rounded-xl border bg-background px-3 text-base md:text-sm";
   const selecionado = members.find((m) => m.user_id === userId);
   const newAssignmentSuggestions = roleName.trim().length >= 2
     ? suggestionsForRole(roleName)
@@ -188,7 +188,7 @@ export function AssignmentManager({
   const conversas = assignments.filter((a) => a.status === "falar_lider").length;
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       {assignments.length > 0 && (
         <div className="flex flex-wrap gap-2 text-sm">
           <span className="rounded-full bg-emerald-500/15 px-3 py-1 font-medium text-emerald-700 dark:text-emerald-400">
@@ -317,12 +317,12 @@ export function AssignmentManager({
         {assignments.length === 0 && <p className="text-sm text-muted-foreground">Ninguém escalado ainda.</p>}
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-dashed p-4">
+      <div className="min-w-0 max-w-full space-y-3 rounded-2xl border border-dashed p-4">
         <div className="flex items-center gap-2">
           <Sparkles className="size-4 text-purple-600 dark:text-purple-400" />
           <p className="text-sm font-medium">Escalar pessoa</p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid min-w-0 max-w-full gap-2 sm:grid-cols-2">
           <select value={userId} onChange={(e) => setUserId(e.target.value)} className={selectCls} aria-label="Escolher pessoa">
             <option value="">Escolher pessoa…</option>
             {members.map((m) => (
@@ -344,8 +344,8 @@ export function AssignmentManager({
               ))}
             </select>
           )}
-          <Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Função (ex.: Guitarra)" className="h-11 rounded-xl" />
-          <Button disabled={pending} className="h-11 rounded-full px-5" onClick={escalar}>Escalar</Button>
+          <Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Função (ex.: Guitarra)" className="h-11 w-full min-w-0 max-w-full rounded-xl" />
+          <Button disabled={pending} className="h-11 w-full min-w-0 max-w-full rounded-full px-5" onClick={escalar}>Escalar</Button>
         </div>
 
         {roleName.trim().length >= 2 && !userId && (
