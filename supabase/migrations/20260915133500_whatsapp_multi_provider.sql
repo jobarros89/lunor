@@ -3,7 +3,9 @@
 
 alter table public.whatsapp_messages
   add column if not exists provider text not null default 'meta',
-  add column if not exists provider_instance text;
+  add column if not exists provider_instance text,
+  add column if not exists availability_request_id uuid
+    references public.availability_requests(id) on delete set null;
 
 alter table public.whatsapp_messages
   alter column template_name drop not null;
@@ -25,10 +27,22 @@ alter table public.whatsapp_messages
 create index if not exists idx_whatsapp_messages_provider_status
   on public.whatsapp_messages(provider, status, created_at desc);
 
+create index if not exists idx_whatsapp_messages_availability_request
+  on public.whatsapp_messages(availability_request_id);
+
+-- Garante uma única notificação de disponibilidade por solicitação + voluntário.
+-- A camada de aplicação permite nova tentativa apenas quando o registro anterior falhou.
+create unique index if not exists uq_whatsapp_messages_availability_user_kind
+  on public.whatsapp_messages(availability_request_id, user_id, message_kind)
+  where availability_request_id is not null
+    and message_kind = 'availability_request';
+
 comment on column public.whatsapp_messages.provider is
   'Gateway usado no envio: meta (Cloud API oficial) ou evolution (Evolution API).';
 comment on column public.whatsapp_messages.provider_instance is
   'Identificador/nome da instância no provider, quando aplicável.';
+comment on column public.whatsapp_messages.availability_request_id is
+  'Solicitação de disponibilidade associada à notificação, quando aplicável.';
 
 create table if not exists public.whatsapp_connections (
   id uuid primary key default gen_random_uuid(),
