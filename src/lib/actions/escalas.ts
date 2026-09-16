@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { parseAppLocalDateTime } from "@/lib/local-datetime";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUsers } from "@/lib/push/notify";
 import { ministryOperationalRecipientIds } from "@/lib/push/ministry-recipients";
@@ -28,6 +29,14 @@ export async function createEvent(raw: unknown): Promise<ActionResult> {
     return { ok: false, error: parsed.error.issues[0].message };
   }
   const d = parsed.data;
+  const startsAt = parseAppLocalDateTime(d.startsAt);
+  const endsAt = d.endsAt ? parseAppLocalDateTime(d.endsAt) : null;
+  if (!startsAt || (d.endsAt && !endsAt)) {
+    return { ok: false, error: "Data ou horário inválido" };
+  }
+  if (endsAt && endsAt <= startsAt) {
+    return { ok: false, error: "O horário de término precisa ser posterior ao horário de início" };
+  }
 
   const supabase = await createClient();
   const {
@@ -46,8 +55,8 @@ export async function createEvent(raw: unknown): Promise<ActionResult> {
       location: d.location || null,
       map_url: d.mapUrl || null,
       script: d.script || null,
-      starts_at: new Date(d.startsAt).toISOString(),
-      ends_at: d.endsAt ? new Date(d.endsAt).toISOString() : null,
+      starts_at: startsAt.toISOString(),
+      ends_at: endsAt?.toISOString() ?? null,
       created_by: user?.id ?? null,
     })
     .select("id")
@@ -77,6 +86,10 @@ export async function addAssignment(raw: unknown): Promise<ActionResult> {
     return { ok: false, error: parsed.error.issues[0].message };
   }
   const d = parsed.data;
+  const arrivalTime = d.arrivalTime ? parseAppLocalDateTime(d.arrivalTime) : null;
+  if (d.arrivalTime && !arrivalTime) {
+    return { ok: false, error: "Horário de chegada inválido" };
+  }
 
   const supabase = await createClient();
   const {
@@ -90,7 +103,7 @@ export async function addAssignment(raw: unknown): Promise<ActionResult> {
     user_id: d.userId,
     department_id: d.departmentId,
     role_name: d.roleName,
-    arrival_time: d.arrivalTime ? new Date(d.arrivalTime).toISOString() : null,
+    arrival_time: arrivalTime?.toISOString() ?? null,
     items_to_bring: d.itemsToBring || null,
     leader_id: user?.id ?? null,
   });
