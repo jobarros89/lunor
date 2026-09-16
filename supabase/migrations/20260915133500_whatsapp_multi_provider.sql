@@ -29,3 +29,39 @@ comment on column public.whatsapp_messages.provider is
   'Gateway usado no envio: meta (Cloud API oficial) ou evolution (Evolution API).';
 comment on column public.whatsapp_messages.provider_instance is
   'Identificador/nome da instância no provider, quando aplicável.';
+
+create table if not exists public.whatsapp_connections (
+  id uuid primary key default gen_random_uuid(),
+  church_id uuid not null references public.churches(id) on delete cascade,
+  campus_id uuid references public.campuses(id) on delete set null,
+  provider text not null check (provider in ('meta', 'evolution')),
+  provider_instance text not null,
+  phone_number text,
+  status text not null default 'disconnected'
+    check (status in ('disconnected', 'connecting', 'connected', 'error')),
+  connected_at timestamptz,
+  last_event_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint whatsapp_connections_provider_instance_unique unique (provider, provider_instance)
+);
+
+create index if not exists idx_whatsapp_connections_church
+  on public.whatsapp_connections(church_id, provider, status);
+
+alter table public.whatsapp_connections enable row level security;
+
+drop policy if exists whatsapp_connections_select on public.whatsapp_connections;
+create policy whatsapp_connections_select
+  on public.whatsapp_connections
+  for select
+  using (
+    public.is_church_leader(church_id)
+    or public.is_platform_admin()
+  );
+
+-- Conexões são mantidas apenas pelo backend confiável. A interface pode ler
+-- o estado, mas nunca criar/trocar instâncias diretamente do navegador.
+revoke insert, update, delete on public.whatsapp_connections from anon, authenticated;
+grant select on public.whatsapp_connections to authenticated;
+grant all on public.whatsapp_connections to service_role;
