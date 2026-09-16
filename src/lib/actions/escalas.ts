@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUsers } from "@/lib/push/notify";
+import { ministryOperationalRecipientIds } from "@/lib/push/ministry-recipients";
 import type { ActionResult } from "./types";
 
 const eventSchema = z.object({
@@ -286,8 +287,19 @@ export async function requestSubstitution(raw: unknown): Promise<ActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Não autenticado" };
 
+  const { data: assignmentContext, error: assignmentError } = await supabase
+    .from("assignments")
+    .select("church_id, ministry_id, event_id, leader_id")
+    .eq("id", d.assignmentId)
+    .eq("church_id", d.churchId)
+    .eq("event_id", d.eventId)
+    .maybeSingle();
+  if (assignmentError || !assignmentContext?.ministry_id) {
+    return { ok: false, error: "Escala inválida para solicitar substituição" };
+  }
+
   const { error: subError } = await supabase.from("substitution_requests").insert({
-    church_id: d.churchId,
+    church_id: assignmentContext.church_id,
     assignment_id: d.assignmentId,
     requested_by: user.id,
     reason: d.reason || null,
@@ -305,24 +317,29 @@ export async function requestSubstitution(raw: unknown): Promise<ActionResult> {
     return { ok: false, error: "Pedido registrado, mas o status não atualizou" };
   }
 
-  const [{ data: me }, { data: leaders }, { data: asg }, { data: ev }] = await Promise.all([
+  const [{ data: me }, { data: leaders }, { data: ev }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", user.id).single(),
     supabase
-      .from("church_members")
-      .select("user_id")
-      .eq("church_id", d.churchId)
-      .in("role", ["admin", "coordenador"]),
-    supabase.from("assignments").select("leader_id").eq("id", d.assignmentId).single(),
-    supabase.from("events").select("title").eq("id", d.eventId).single(),
+      .from("ministry_members")
+      .select("user_id, church_id, ministry_id, role, active")
+      .eq("church_id", assignmentContext.church_id)
+      .eq("ministry_id", assignmentContext.ministry_id)
+      .eq("active", true)
+      .in("role", ["gerente", "lider"]),
+    supabase.from("events").select("title").eq("id", assignmentContext.event_id).single(),
   ]);
-  const targets = [...(leaders ?? []).map((l) => l.user_id), asg?.leader_id];
+  const targets = ministryOperationalRecipientIds(leaders ?? [], {
+    churchId: assignmentContext.church_id,
+    ministryId: assignmentContext.ministry_id,
+    explicitLeaderId: assignmentContext.leader_id,
+  });
   await notifyUsers(targets, {
     title: "Pedido de troca 🔄",
     body: `${me?.full_name || "Um voluntário"} pediu substituição${ev?.title ? ` · ${ev.title}` : ""}`,
-    url: `/${d.churchSlug}/escalas/${d.eventId}`,
+    url: `/${d.churchSlug}/escalas/${assignmentContext.event_id}`,
     tag: `sub-${d.assignmentId}`,
   });
 
-  revalidatePath(`/${d.churchSlug}/escalas/${d.eventId}`);
+  revalidatePath(`/${d.churchSlug}/escalas/${assignmentContext.event_id}`);
   return { ok: true, data: undefined };
 }
