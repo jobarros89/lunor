@@ -1,7 +1,7 @@
 export const APP_TIME_ZONE = "America/Sao_Paulo";
 
 const LOCAL_DATE_TIME_RE =
-  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?)?$/;
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/;
 const EXPLICIT_TIME_ZONE_RE = /(?:Z|[+-]\d{2}:\d{2})$/i;
 
 function timeZoneOffsetMs(timestamp: number, timeZone: string) {
