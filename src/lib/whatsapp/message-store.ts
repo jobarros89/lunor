@@ -2,7 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { WhatsAppMessageKind, WhatsAppProviderName } from "@/lib/whatsapp/types";
 
-type PrepareMessageInput = {
+type PrepareAssignmentMessageInput = {
   churchId: string;
   eventId: string;
   ministryId: string;
@@ -15,11 +15,24 @@ type PrepareMessageInput = {
   templateName?: string | null;
 };
 
+type PrepareAvailabilityMessageInput = {
+  churchId: string;
+  ministryId: string;
+  requestId: string;
+  userId: string;
+  phone: string;
+  provider: WhatsAppProviderName;
+  providerInstance?: string | null;
+  templateName?: string | null;
+};
+
 export type PreparedMessage =
   | { skipped: true; reason: "already_sent"; messageId: string }
   | { skipped: false; messageId: string };
 
-export async function prepareAssignmentMessage(input: PrepareMessageInput): Promise<PreparedMessage> {
+export async function prepareAssignmentMessage(
+  input: PrepareAssignmentMessageInput
+): Promise<PreparedMessage> {
   const admin = createAdminClient();
   const { data: existing, error: existingError } = await admin
     .from("whatsapp_messages")
@@ -33,33 +46,20 @@ export async function prepareAssignmentMessage(input: PrepareMessageInput): Prom
     return { skipped: true, reason: "already_sent", messageId: existing.id };
   }
 
-  const now = new Date().toISOString();
   if (existing) {
-    const { error } = await admin
-      .from("whatsapp_messages")
-      .update({
-        church_id: input.churchId,
-        event_id: input.eventId,
-        ministry_id: input.ministryId,
-        user_id: input.userId,
-        phone_e164: input.phone,
-        provider: input.provider,
-        provider_instance: input.providerInstance ?? null,
-        template_name: input.templateName ?? null,
-        status: "queued",
-        wa_message_id: null,
-        inbound_message_id: null,
-        sent_at: null,
-        delivered_at: null,
-        read_at: null,
-        responded_at: null,
-        failed_at: null,
-        error_code: null,
-        error_message: null,
-        updated_at: now,
-      })
-      .eq("id", existing.id);
-    if (error) throw new Error("Não foi possível preparar nova tentativa no WhatsApp");
+    await resetMessage(existing.id, {
+      church_id: input.churchId,
+      event_id: input.eventId,
+      ministry_id: input.ministryId,
+      assignment_id: input.assignmentId,
+      availability_request_id: null,
+      user_id: input.userId,
+      phone_e164: input.phone,
+      message_kind: input.kind,
+      provider: input.provider,
+      provider_instance: input.providerInstance ?? null,
+      template_name: input.templateName ?? null,
+    });
     return { skipped: false, messageId: existing.id };
   }
 
@@ -70,6 +70,7 @@ export async function prepareAssignmentMessage(input: PrepareMessageInput): Prom
       event_id: input.eventId,
       ministry_id: input.ministryId,
       assignment_id: input.assignmentId,
+      availability_request_id: null,
       user_id: input.userId,
       phone_e164: input.phone,
       message_kind: input.kind,
@@ -83,6 +84,86 @@ export async function prepareAssignmentMessage(input: PrepareMessageInput): Prom
 
   if (error || !created) throw new Error("Não foi possível registrar o envio do WhatsApp");
   return { skipped: false, messageId: created.id };
+}
+
+export async function prepareAvailabilityRequestMessage(
+  input: PrepareAvailabilityMessageInput
+): Promise<PreparedMessage> {
+  const admin = createAdminClient();
+  const { data: existing, error: existingError } = await admin
+    .from("whatsapp_messages")
+    .select("id, status")
+    .eq("availability_request_id", input.requestId)
+    .eq("user_id", input.userId)
+    .eq("message_kind", "availability_request")
+    .maybeSingle();
+
+  if (existingError) throw new Error("Não foi possível consultar o histórico do WhatsApp");
+  if (existing && existing.status !== "failed") {
+    return { skipped: true, reason: "already_sent", messageId: existing.id };
+  }
+
+  if (existing) {
+    await resetMessage(existing.id, {
+      church_id: input.churchId,
+      event_id: null,
+      ministry_id: input.ministryId,
+      assignment_id: null,
+      availability_request_id: input.requestId,
+      user_id: input.userId,
+      phone_e164: input.phone,
+      message_kind: "availability_request",
+      provider: input.provider,
+      provider_instance: input.providerInstance ?? null,
+      template_name: input.templateName ?? null,
+    });
+    return { skipped: false, messageId: existing.id };
+  }
+
+  const { data: created, error } = await admin
+    .from("whatsapp_messages")
+    .insert({
+      church_id: input.churchId,
+      event_id: null,
+      ministry_id: input.ministryId,
+      assignment_id: null,
+      availability_request_id: input.requestId,
+      user_id: input.userId,
+      phone_e164: input.phone,
+      message_kind: "availability_request",
+      provider: input.provider,
+      provider_instance: input.providerInstance ?? null,
+      template_name: input.templateName ?? null,
+      status: "queued",
+    })
+    .select("id")
+    .single();
+
+  if (error || !created) throw new Error("Não foi possível registrar o envio do WhatsApp");
+  return { skipped: false, messageId: created.id };
+}
+
+async function resetMessage(messageId: string, context: Record<string, unknown>): Promise<void> {
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+  const { error } = await admin
+    .from("whatsapp_messages")
+    .update({
+      ...context,
+      status: "queued",
+      wa_message_id: null,
+      inbound_message_id: null,
+      sent_at: null,
+      delivered_at: null,
+      read_at: null,
+      responded_at: null,
+      failed_at: null,
+      error_code: null,
+      error_message: null,
+      updated_at: now,
+    })
+    .eq("id", messageId);
+  if (error) throw new Error("Não foi possível preparar nova tentativa no WhatsApp");
 }
 
 export async function markProviderAccepted(messageId: string, providerMessageId: string): Promise<void> {
