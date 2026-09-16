@@ -49,6 +49,15 @@ create table if not exists public.whatsapp_connections (
 create index if not exists idx_whatsapp_connections_church
   on public.whatsapp_connections(church_id, provider, status);
 
+-- Uma igreja possui no máximo uma conexão geral por provider. Se futuramente
+-- um campus ganhar número próprio, ele também terá no máximo uma conexão por provider.
+create unique index if not exists uq_whatsapp_connections_church_provider
+  on public.whatsapp_connections(church_id, provider)
+  where campus_id is null;
+create unique index if not exists uq_whatsapp_connections_campus_provider
+  on public.whatsapp_connections(church_id, campus_id, provider)
+  where campus_id is not null;
+
 alter table public.whatsapp_connections enable row level security;
 
 drop policy if exists whatsapp_connections_select on public.whatsapp_connections;
