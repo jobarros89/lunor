@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { notifyAvailabilityByEmail } from "@/lib/email/availability";
-import { notifyAssignmentByEmail } from "@/lib/email/assignment";
+import { dispatchAssignmentEmail } from "@/lib/email/assignment-dispatch";
 import { sendWebPush, type PushMessage, type PushTarget } from "./send";
 
 async function enrichAssignmentMessage(message: PushMessage): Promise<PushMessage> {
@@ -57,6 +57,6 @@ export async function notifyUsers(userIds: (string | null | undefined)[], messag
   await Promise.allSettled([
     notifyByPush(ids, enrichedMessage),
     notifyAvailabilityByEmail(ids, enrichedMessage),
-    notifyAssignmentByEmail(ids, enrichedMessage),
+    dispatchAssignmentEmail(ids, enrichedMessage),
   ]);
 }
