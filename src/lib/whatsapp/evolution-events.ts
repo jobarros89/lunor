@@ -1,4 +1,5 @@
 export type EvolutionMappedStatus = "sent" | "delivered" | "read" | "failed" | null;
+export type EvolutionConnectionStatus = "connected" | "connecting" | "disconnected" | "error" | null;
 
 export type EvolutionMessageUpdate = {
   event: string;
@@ -8,6 +9,13 @@ export type EvolutionMessageUpdate = {
   status: EvolutionMappedStatus;
   errorCode?: string | null;
   errorMessage?: string | null;
+};
+
+export type EvolutionConnectionUpdate = {
+  event: string;
+  instance: string;
+  providerState: string;
+  status: EvolutionConnectionStatus;
 };
 
 type UnknownRecord = Record<string, unknown>;
@@ -21,12 +29,20 @@ export function mapEvolutionMessageStatus(value: unknown): EvolutionMappedStatus
   return null;
 }
 
+export function mapEvolutionConnectionStatus(value: unknown): EvolutionConnectionStatus {
+  const state = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (["open", "connected"].includes(state)) return "connected";
+  if (["connecting", "qr"].includes(state)) return "connecting";
+  if (["close", "closed", "disconnected"].includes(state)) return "disconnected";
+  if (["error", "refused"].includes(state)) return "error";
+  return null;
+}
+
 export function parseEvolutionMessageUpdate(payload: unknown): EvolutionMessageUpdate | null {
   const root = asRecord(payload);
   if (!root) return null;
 
-  const eventRaw = stringValue(root.event);
-  const event = eventRaw.toLowerCase().replaceAll("_", ".");
+  const event = normalizeEvent(stringValue(root.event));
   if (event !== "messages.update") return null;
 
   const instance = stringValue(root.instance);
@@ -53,6 +69,23 @@ export function parseEvolutionMessageUpdate(payload: unknown): EvolutionMessageU
     errorCode: stringValue(error?.code) || null,
     errorMessage: stringValue(error?.message) || stringValue(data.message) || null,
   };
+}
+
+export function parseEvolutionConnectionUpdate(payload: unknown): EvolutionConnectionUpdate | null {
+  const root = asRecord(payload);
+  if (!root) return null;
+  const event = normalizeEvent(stringValue(root.event));
+  if (event !== "connection.update") return null;
+
+  const instance = stringValue(root.instance);
+  const data = asRecord(root.data);
+  const providerState = stringValue(data?.state) || stringValue(data?.status) || stringValue(root.state);
+  if (!instance || !providerState) return null;
+  return { event, instance, providerState, status: mapEvolutionConnectionStatus(providerState) };
+}
+
+function normalizeEvent(value: string): string {
+  return value.toLowerCase().replaceAll("_", ".");
 }
 
 function asRecord(value: unknown): UnknownRecord | null {
