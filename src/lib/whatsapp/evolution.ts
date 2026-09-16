@@ -1,5 +1,6 @@
 import "server-only";
 import { serverEnv } from "@/lib/env";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeWhatsAppPhone } from "@/lib/whatsapp/core";
 import { buildScheduleDeepLink } from "@/lib/whatsapp/links";
 import {
@@ -20,6 +21,13 @@ export const evolutionProvider: WhatsAppProvider = {
     if (!phone) return { ok: true, skipped: true, reason: "missing_phone" };
 
     const config = getConfig();
+    let instance: string;
+    try {
+      instance = await getChurchInstance(input.churchId);
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : "Evolution não conectada para esta igreja" };
+    }
+
     const kind = input.kind ?? "assignment_published";
     let messageId: string;
     try {
@@ -32,7 +40,7 @@ export const evolutionProvider: WhatsAppProvider = {
         phone,
         kind,
         provider: "evolution",
-        providerInstance: config.instance,
+        providerInstance: instance,
         templateName: null,
       });
       messageId = prepared.messageId;
@@ -57,7 +65,7 @@ export const evolutionProvider: WhatsAppProvider = {
     ].filter(Boolean).join("\n");
 
     try {
-      const response = await fetch(`${config.baseUrl}/message/sendText/${encodeURIComponent(config.instance)}`, {
+      const response = await fetch(`${config.baseUrl}/message/sendText/${encodeURIComponent(instance)}`, {
         method: "POST",
         headers: {
           apikey: config.apiKey,
@@ -101,9 +109,23 @@ export const evolutionProvider: WhatsAppProvider = {
 function getConfig() {
   const baseUrl = serverEnv("EVOLUTION_API_URL")?.replace(/\/$/, "");
   const apiKey = serverEnv("EVOLUTION_API_KEY");
-  const instance = serverEnv("EVOLUTION_INSTANCE");
-  if (!baseUrl || !apiKey || !instance) throw new Error("Evolution API ainda não configurada");
-  return { baseUrl, apiKey, instance };
+  if (!baseUrl || !apiKey) throw new Error("Evolution API ainda não configurada");
+  return { baseUrl, apiKey };
+}
+
+async function getChurchInstance(churchId: string): Promise<string> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("whatsapp_connections")
+    .select("provider_instance")
+    .eq("church_id", churchId)
+    .eq("provider", "evolution")
+    .eq("status", "connected")
+    .is("campus_id", null)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data?.provider_instance) throw new Error("WhatsApp Evolution ainda não está conectado para esta igreja");
+  return data.provider_instance;
 }
 
 async function safeMarkFailed(messageId: string, code: string, detail: string): Promise<void> {
