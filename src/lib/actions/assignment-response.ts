@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUsers } from "@/lib/push/notify";
+import { ministryOperationalRecipientIds } from "@/lib/push/ministry-recipients";
 import type { ActionResult } from "./types";
 
 const responseSchema = z.object({
@@ -26,7 +27,7 @@ export async function respondToAssignment(raw: unknown): Promise<ActionResult> {
 
   const { data: assignment } = await supabase
     .from("assignments")
-    .select("id, church_id, user_id, leader_id, role_name, status")
+    .select("id, church_id, ministry_id, user_id, leader_id, role_name, status")
     .eq("id", d.assignmentId)
     .eq("event_id", d.eventId)
     .maybeSingle();
@@ -39,6 +40,7 @@ export async function respondToAssignment(raw: unknown): Promise<ActionResult> {
   }
 
   const churchId = assignment.church_id;
+  const ministryId = assignment.ministry_id;
   const now = new Date().toISOString();
   const note = d.note || null;
 
@@ -62,6 +64,7 @@ export async function respondToAssignment(raw: unknown): Promise<ActionResult> {
     await notifyAssignmentLeaders({
       supabase,
       churchId,
+      ministryId,
       eventId: d.eventId,
       assignmentId: d.assignmentId,
       churchSlug: d.churchSlug,
@@ -102,6 +105,7 @@ export async function respondToAssignment(raw: unknown): Promise<ActionResult> {
     await notifyAssignmentLeaders({
       supabase,
       churchId,
+      ministryId,
       eventId: d.eventId,
       assignmentId: d.assignmentId,
       churchSlug: d.churchSlug,
@@ -120,6 +124,7 @@ export async function respondToAssignment(raw: unknown): Promise<ActionResult> {
 async function notifyAssignmentLeaders({
   supabase,
   churchId,
+  ministryId,
   eventId,
   assignmentId,
   churchSlug,
@@ -129,6 +134,7 @@ async function notifyAssignmentLeaders({
 }: {
   supabase: Awaited<ReturnType<typeof createClient>>;
   churchId: string;
+  ministryId: string;
   eventId: string;
   assignmentId: string;
   churchSlug: string;
@@ -139,19 +145,21 @@ async function notifyAssignmentLeaders({
   const [{ data: profile }, { data: leaders }, { data: assignment }, { data: event }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
     supabase
-      .from("church_members")
-      .select("user_id")
+      .from("ministry_members")
+      .select("user_id, church_id, ministry_id, role, active")
       .eq("church_id", churchId)
-      .in("role", ["admin", "coordenador"])
-      .eq("status", "active"),
+      .eq("ministry_id", ministryId)
+      .eq("active", true)
+      .in("role", ["gerente", "lider"]),
     supabase.from("assignments").select("leader_id").eq("id", assignmentId).maybeSingle(),
     supabase.from("events").select("title").eq("id", eventId).maybeSingle(),
   ]);
 
-  const targets = [...new Set([
-    ...(leaders ?? []).map((leader) => leader.user_id),
-    assignment?.leader_id,
-  ].filter((id): id is string => Boolean(id)))];
+  const targets = ministryOperationalRecipientIds(leaders ?? [], {
+    churchId,
+    ministryId,
+    explicitLeaderId: assignment?.leader_id,
+  });
 
   await notifyUsers(targets, {
     title,
