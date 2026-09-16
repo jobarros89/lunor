@@ -6,6 +6,7 @@ import {
   markMessageSent,
   prepareAssignmentMessage,
 } from "@/lib/whatsapp/message-store";
+import type { WhatsAppProvider } from "@/lib/whatsapp/provider";
 import type {
   SendAssignmentInput,
   SendAssignmentResult,
@@ -21,6 +22,12 @@ type MetaSendResponse = {
     message?: string;
     error_data?: { details?: string };
   };
+};
+
+export const metaProvider: WhatsAppProvider = {
+  name: "meta",
+  assertConfigured: assertWhatsAppSendConfigured,
+  sendAssignment: sendAssignmentWhatsApp,
 };
 
 export function assertWhatsAppSendConfigured(): void {
