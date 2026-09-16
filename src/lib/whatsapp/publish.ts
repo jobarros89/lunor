@@ -1,11 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { configuredWhatsAppProviderName, getWhatsAppProvider } from "@/lib/whatsapp/dispatcher";
-import {
-  assertWhatsAppSendConfigured,
-  sendAssignmentWhatsApp,
-} from "@/lib/whatsapp/meta";
+import { getWhatsAppProvider } from "@/lib/whatsapp/dispatcher";
 import type { SendAssignmentResult } from "@/lib/whatsapp/types";
 
 const schema = z.object({
@@ -32,12 +28,10 @@ export async function publishMinistryScheduleWhatsApp(raw: unknown): Promise<Pub
   const parsed = schema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Dados da escala inválidos" };
   const input = parsed.data;
-  const providerName = configuredWhatsAppProviderName();
-  const provider = providerName === "evolution" ? getWhatsAppProvider() : null;
+  const provider = getWhatsAppProvider();
 
   try {
-    if (provider) provider.assertConfigured();
-    else assertWhatsAppSendConfigured();
+    provider.assertConfigured();
   } catch (error) {
     return {
       ok: false,
@@ -79,7 +73,7 @@ export async function publishMinistryScheduleWhatsApp(raw: unknown): Promise<Pub
     const batch = pendingAssignments.slice(offset, offset + SEND_CONCURRENCY);
     const results = await Promise.all(batch.map(async (assignment): Promise<SendAssignmentResult> => {
       const profile = assignment.profiles as unknown as { full_name: string; phone: string | null } | null;
-      const sendInput = {
+      return provider.sendAssignment({
         churchSlug: input.churchSlug,
         churchId: input.churchId,
         eventId: input.eventId,
@@ -91,8 +85,7 @@ export async function publishMinistryScheduleWhatsApp(raw: unknown): Promise<Pub
         roleName: assignment.role_name,
         eventTitle: event.title,
         startsAt: event.starts_at,
-      };
-      return provider ? provider.sendAssignment(sendInput) : sendAssignmentWhatsApp(sendInput);
+      });
     }));
 
     for (const result of results) {
@@ -104,7 +97,7 @@ export async function publishMinistryScheduleWhatsApp(raw: unknown): Promise<Pub
   }
 
   if (summary.sent === 0 && summary.failed > 0 && summary.alreadySent === 0) {
-    return { ok: false, error: `${providerName === "evolution" ? "A Evolution" : "A Meta"} não aceitou os envios. Verifique a configuração.` };
+    return { ok: false, error: `${provider.name === "evolution" ? "A Evolution" : "A Meta"} não aceitou os envios. Verifique a configuração.` };
   }
   return { ok: true, data: summary };
 }
