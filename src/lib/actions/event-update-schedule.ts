@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { inferServicePeriod } from "@/lib/event-context";
+import { parseAppLocalDateTime } from "@/lib/local-datetime";
+import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "./types";
 
 const scheduleSchema = z.object({
@@ -19,10 +20,10 @@ export async function updateEventSchedule(raw: unknown): Promise<ActionResult> {
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
 
   const d = parsed.data;
-  const startsAt = new Date(d.startsAt);
-  const endsAt = d.endsAt ? new Date(d.endsAt) : null;
+  const startsAt = parseAppLocalDateTime(d.startsAt);
+  const endsAt = d.endsAt ? parseAppLocalDateTime(d.endsAt) : null;
 
-  if (Number.isNaN(startsAt.getTime()) || (endsAt && Number.isNaN(endsAt.getTime()))) {
+  if (!startsAt || (d.endsAt && !endsAt)) {
     return { ok: false, error: "Data ou horário inválido" };
   }
   if (endsAt && endsAt <= startsAt) {
