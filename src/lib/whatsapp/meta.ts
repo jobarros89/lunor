@@ -1,31 +1,18 @@
 import "server-only";
 import { serverEnv } from "@/lib/env";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { buildAssignmentButtonPayload, normalizeWhatsAppPhone } from "@/lib/whatsapp/core";
 import {
-  buildAssignmentButtonPayload,
-  normalizeWhatsAppPhone,
-} from "@/lib/whatsapp/core";
+  markMessageFailed,
+  markMessageSent,
+  prepareAssignmentMessage,
+} from "@/lib/whatsapp/message-store";
+import type {
+  SendAssignmentInput,
+  SendAssignmentResult,
+  WhatsAppMessageKind,
+} from "@/lib/whatsapp/types";
 
-export type WhatsAppMessageKind = "assignment_published" | "reminder_d1";
-
-type SendAssignmentInput = {
-  churchId: string;
-  eventId: string;
-  ministryId: string;
-  assignmentId: string;
-  userId: string;
-  volunteerName: string;
-  phone: string | null;
-  roleName: string;
-  eventTitle: string;
-  startsAt: string;
-  kind?: WhatsAppMessageKind;
-};
-
-export type SendAssignmentResult =
-  | { ok: true; skipped: false; messageId: string; waMessageId: string }
-  | { ok: true; skipped: true; reason: "already_sent" | "missing_phone"; messageId?: string }
-  | { ok: false; error: string };
+export type { SendAssignmentResult, WhatsAppMessageKind } from "@/lib/whatsapp/types";
 
 type MetaSendResponse = {
   messages?: Array<{ id?: string }>;
@@ -51,60 +38,26 @@ export async function sendAssignmentWhatsApp(
   if (!phone) return { ok: true, skipped: true, reason: "missing_phone" };
 
   const config = getSendConfig(kind);
-  const admin = createAdminClient();
-  const { data: existing, error: existingError } = await admin
-    .from("whatsapp_messages")
-    .select("id, status, wa_message_id")
-    .eq("assignment_id", input.assignmentId)
-    .eq("message_kind", kind)
-    .maybeSingle();
-
-  if (existingError) return { ok: false, error: "Não foi possível consultar o histórico do WhatsApp" };
-  if (existing && existing.status !== "failed") {
-    return {
-      ok: true,
-      skipped: true,
-      reason: "already_sent",
-      messageId: existing.id,
-    };
-  }
-
-  let messageId = existing?.id ?? null;
-  if (messageId) {
-    const { error } = await admin
-      .from("whatsapp_messages")
-      .update({
-        phone_e164: phone,
-        template_name: config.templateName,
-        status: "queued",
-        wa_message_id: null,
-        error_code: null,
-        error_message: null,
-        failed_at: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", messageId);
-    if (error) return { ok: false, error: "Não foi possível preparar nova tentativa no WhatsApp" };
-  } else {
-    const { data: created, error } = await admin
-      .from("whatsapp_messages")
-      .insert({
-        church_id: input.churchId,
-        event_id: input.eventId,
-        ministry_id: input.ministryId,
-        assignment_id: input.assignmentId,
-        user_id: input.userId,
-        phone_e164: phone,
-        message_kind: kind,
-        template_name: config.templateName,
-        status: "queued",
-      })
-      .select("id")
-      .single();
-    if (error || !created) {
-      return { ok: false, error: "Não foi possível registrar o envio do WhatsApp" };
+  let messageId: string | null = null;
+  try {
+    const prepared = await prepareAssignmentMessage({
+      churchId: input.churchId,
+      eventId: input.eventId,
+      ministryId: input.ministryId,
+      assignmentId: input.assignmentId,
+      userId: input.userId,
+      phone,
+      kind,
+      provider: "meta",
+      providerInstance: config.phoneNumberId,
+      templateName: config.templateName,
+    });
+    messageId = prepared.messageId;
+    if (prepared.skipped) {
+      return { ok: true, skipped: true, reason: "already_sent", messageId };
     }
-    messageId = created.id;
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Falha ao preparar envio do WhatsApp" };
   }
 
   const when = new Intl.DateTimeFormat("pt-BR", {
@@ -133,23 +86,13 @@ export async function sendAssignmentWhatsApp(
           type: "button",
           sub_type: "quick_reply",
           index: "0",
-          parameters: [
-            {
-              type: "payload",
-              payload: buildAssignmentButtonPayload("confirm", messageId),
-            },
-          ],
+          parameters: [{ type: "payload", payload: buildAssignmentButtonPayload("confirm", messageId) }],
         },
         {
           type: "button",
           sub_type: "quick_reply",
           index: "1",
-          parameters: [
-            {
-              type: "payload",
-              payload: buildAssignmentButtonPayload("decline", messageId),
-            },
-          ],
+          parameters: [{ type: "payload", payload: buildAssignmentButtonPayload("decline", messageId) }],
         },
       ],
     },
@@ -172,33 +115,20 @@ export async function sendAssignmentWhatsApp(
 
     if (!response.ok || !waMessageId) {
       const detail = payload.error?.error_data?.details ?? payload.error?.message ?? `HTTP ${response.status}`;
-      await markFailed(messageId, String(payload.error?.code ?? response.status), detail);
+      await safeMarkFailed(messageId, String(payload.error?.code ?? response.status), detail);
       return { ok: false, error: detail };
     }
 
-    const now = new Date().toISOString();
-    const { error: updateError } = await admin
-      .from("whatsapp_messages")
-      .update({
-        wa_message_id: waMessageId,
-        status: "sent",
-        sent_at: now,
-        updated_at: now,
-      })
-      .eq("id", messageId);
-    if (updateError) {
-      return { ok: false, error: "Mensagem aceita pela Meta, mas o status local não foi salvo" };
-    }
-
+    await markMessageSent(messageId, waMessageId);
     return { ok: true, skipped: false, messageId, waMessageId };
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Falha de rede ao chamar a Meta";
-    await markFailed(messageId, "network_error", detail);
+    await safeMarkFailed(messageId, "network_error", detail);
     return { ok: false, error: detail };
   }
 }
 
-function getSendConfig(kind: WhatsAppMessageKind) {
+function getSendConfig(kind: Exclude<WhatsAppMessageKind, "availability_request">) {
   const accessToken = serverEnv("WHATSAPP_ACCESS_TOKEN");
   const phoneNumberId = serverEnv("WHATSAPP_PHONE_NUMBER_ID");
   const graphVersion = serverEnv("WHATSAPP_GRAPH_API_VERSION") ?? "v26.0";
@@ -207,27 +137,14 @@ function getSendConfig(kind: WhatsAppMessageKind) {
       ? serverEnv("WHATSAPP_TEMPLATE_REMINDER") ?? "escala_lembrete_d1"
       : serverEnv("WHATSAPP_TEMPLATE_ASSIGNMENT") ?? "escala_confirmacao";
 
-  if (!accessToken || !phoneNumberId) {
-    throw new Error("WhatsApp Cloud API ainda não configurada");
-  }
+  if (!accessToken || !phoneNumberId) throw new Error("WhatsApp Cloud API ainda não configurada");
   return { accessToken, phoneNumberId, graphVersion, templateName };
 }
 
-async function markFailed(messageId: string, code: string, detail: string): Promise<void> {
+async function safeMarkFailed(messageId: string, code: string, detail: string): Promise<void> {
   try {
-    const admin = createAdminClient();
-    const now = new Date().toISOString();
-    await admin
-      .from("whatsapp_messages")
-      .update({
-        status: "failed",
-        failed_at: now,
-        error_code: code.slice(0, 120),
-        error_message: detail.slice(0, 1000),
-        updated_at: now,
-      })
-      .eq("id", messageId);
+    await markMessageFailed(messageId, code, detail);
   } catch {
-    // O erro original do envio é mais importante; não mascara com falha de auditoria.
+    // O erro original do provider é mais importante; não o mascara com falha de auditoria.
   }
 }
