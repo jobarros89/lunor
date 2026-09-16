@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { parseAppLocalDateTime } from "@/lib/local-datetime";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "./types";
 
@@ -50,12 +51,6 @@ async function canManageMinistry(
   );
 }
 
-function parseDate(value: string) {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date;
-}
-
 function revalidateServiceWindowPaths(churchSlug: string, eventId: string) {
   revalidatePath(`/${churchSlug}`);
   revalidatePath(`/${churchSlug}/escalas`);
@@ -70,10 +65,10 @@ export async function saveMinistryServiceWindow(raw: unknown): Promise<ActionRes
   const parsed = ministryWindowSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const d = parsed.data;
-  const arrival = parseDate(d.arrivalAt);
-  const release = parseDate(d.releaseAt);
+  const arrival = d.arrivalAt ? parseAppLocalDateTime(d.arrivalAt) : null;
+  const release = d.releaseAt ? parseAppLocalDateTime(d.releaseAt) : null;
 
-  if (arrival === undefined || release === undefined) {
+  if ((d.arrivalAt && !arrival) || (d.releaseAt && !release)) {
     return { ok: false, error: "Data ou horário inválido" };
   }
   if (arrival && release && release <= arrival) {
