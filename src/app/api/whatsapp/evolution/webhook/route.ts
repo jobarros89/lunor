@@ -5,11 +5,9 @@ export async function POST(request: Request): Promise<Response> {
   const expected = serverEnv("EVOLUTION_WEBHOOK_SECRET");
   if (!expected) return new Response("Not configured", { status: 503 });
 
-  const url = new URL(request.url);
   const supplied =
     request.headers.get("x-lunor-webhook-secret") ??
-    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
-    url.searchParams.get("secret");
+    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!supplied || supplied !== expected) return new Response("Unauthorized", { status: 401 });
 
   let payload: unknown;
