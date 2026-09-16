@@ -58,15 +58,7 @@ export function MinistryServiceWindowCard({
 
   function save() {
     startTransition(async () => {
-      const result = await saveMinistryServiceWindow({
-        churchSlug,
-        churchId,
-        eventId,
-        ministryId,
-        arrivalAt,
-        releaseAt,
-        notes,
-      });
+      const result = await saveMinistryServiceWindow({ churchSlug, churchId, eventId, ministryId, arrivalAt, releaseAt, notes });
       if (!result.ok) {
         toast.error(result.error);
         return;
@@ -76,62 +68,44 @@ export function MinistryServiceWindowCard({
   }
 
   return (
-    <Card className="rounded-3xl border-foreground/10">
-      <CardHeader className="space-y-2">
+    <Card className="min-w-0 max-w-full overflow-hidden rounded-3xl border-foreground/10">
+      <CardHeader className="min-w-0 space-y-2 px-4 sm:px-6">
         <div className="flex items-center gap-2">
-          <Clock3 className="size-5" />
+          <Clock3 className="size-5 shrink-0" />
           <CardTitle className="text-base">Horários da equipe</CardTitle>
         </div>
-        <CardDescription>
+        <CardDescription className="break-words">
           O culto continua com seu horário real. {ministryName} pode ter uma janela própria de chegada e saída.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border bg-muted/20 px-4 py-3">
+      <CardContent className="min-w-0 max-w-full space-y-4 px-4 sm:px-6">
+        <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+          <div className="min-w-0 rounded-2xl border bg-muted/20 px-4 py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Culto</p>
-            <p className="mt-1 font-medium">{eventRange}</p>
+            <p className="mt-1 break-words font-medium">{eventRange}</p>
           </div>
-          <div className="rounded-2xl border bg-muted/20 px-4 py-3">
+          <div className="min-w-0 rounded-2xl border bg-muted/20 px-4 py-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{ministryName}</p>
-            <p className="mt-1 font-medium">{teamRange}</p>
+            <p className="mt-1 break-words font-medium">{teamRange}</p>
           </div>
         </div>
 
         {canManage && (
-          <div className="space-y-3 border-t pt-4">
-            <div className="grid gap-3 sm:grid-cols-2">
+          <div className="min-w-0 space-y-3 border-t pt-4">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
               <Field label="Chegada da equipe">
-                <Input
-                  type="datetime-local"
-                  value={arrivalAt}
-                  onChange={(event) => setArrivalAt(event.target.value)}
-                  className="h-11 rounded-xl"
-                />
+                <Input type="datetime-local" value={arrivalAt} onChange={(event) => setArrivalAt(event.target.value)} className="h-11 w-full min-w-0 max-w-full rounded-xl" />
               </Field>
               <Field label="Saída prevista da equipe">
-                <Input
-                  type="datetime-local"
-                  value={releaseAt}
-                  onChange={(event) => setReleaseAt(event.target.value)}
-                  className="h-11 rounded-xl"
-                />
+                <Input type="datetime-local" value={releaseAt} onChange={(event) => setReleaseAt(event.target.value)} className="h-11 w-full min-w-0 max-w-full rounded-xl" />
               </Field>
             </div>
             <Field label="Observação de horário">
-              <Input
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="Ex.: passagem às 09:15; equipe liberada após desmontagem"
-                maxLength={1000}
-                className="h-11 rounded-xl"
-              />
+              <Input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Ex.: passagem às 09:15; equipe liberada após desmontagem" maxLength={1000} className="h-11 w-full min-w-0 max-w-full rounded-xl" />
             </Field>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground">
-                Deixe os dois horários vazios para a equipe herdar o horário do culto.
-              </p>
-              <Button type="button" onClick={save} disabled={pending} className="h-11 rounded-full px-5">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="break-words text-xs text-muted-foreground">Deixe os dois horários vazios para a equipe herdar o horário do culto.</p>
+              <Button type="button" onClick={save} disabled={pending} className="h-11 w-full rounded-full px-5 sm:w-auto sm:shrink-0">
                 {pending ? "Salvando…" : "Salvar horários"}
               </Button>
             </div>

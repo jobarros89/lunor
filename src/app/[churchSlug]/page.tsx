@@ -85,13 +85,14 @@ function pairKey(eventId: string, ministryId: string) {
   return `${eventId}:${ministryId}`;
 }
 
-async function DeferredOperationalSummary({
-  churchSlug,
-  summaryPromise,
-}: {
-  churchSlug: string;
-  summaryPromise: Promise<OperationalSummary | null>;
-}) {
+function assignmentStartMs(assignment: HomeAssignment) {
+  const event = firstRelated(assignment.events);
+  if (!event) return Number.POSITIVE_INFINITY;
+  const value = new Date(event.starts_at).getTime();
+  return Number.isFinite(value) ? value : Number.POSITIVE_INFINITY;
+}
+
+async function DeferredOperationalSummary({ churchSlug, summaryPromise }: { churchSlug: string; summaryPromise: Promise<OperationalSummary | null> }) {
   const summary = await summaryPromise;
   if (!summary) return null;
   return <OperationalSummarySection churchSlug={churchSlug} summary={summary} />;
@@ -100,57 +101,23 @@ async function DeferredOperationalSummary({
 function OperationalSummaryFallback() {
   return (
     <section className="space-y-4" aria-label="Carregando resumo operacional">
-      <div className="border-b border-foreground/20 pb-3">
-        <div className="h-3 w-44 rounded bg-muted" />
-        <div className="mt-3 h-7 w-72 max-w-full rounded bg-muted" />
-      </div>
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="h-[84px] rounded-2xl border bg-card/40" />
-        ))}
-      </div>
+      <div className="border-b border-foreground/20 pb-3"><div className="h-3 w-44 rounded bg-muted" /><div className="mt-3 h-7 w-72 max-w-full rounded bg-muted" /></div>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-[84px] rounded-2xl border bg-card/40" />)}</div>
     </section>
   );
 }
 
-async function DeferredDistributionPanel({
-  churchSlug,
-  ministryName,
-  overviewPromise,
-}: {
-  churchSlug: string;
-  ministryName: string;
-  overviewPromise: Promise<DistributionOverview | null>;
-}) {
+async function DeferredDistributionPanel({ churchSlug, ministryName, overviewPromise }: { churchSlug: string; ministryName: string; overviewPromise: Promise<DistributionOverview | null> }) {
   const overview = await overviewPromise;
   if (!overview) return null;
-  return (
-    <DistributionPanel
-      churchSlug={churchSlug}
-      ministryName={ministryName}
-      overview={overview}
-    />
-  );
+  return <DistributionPanel churchSlug={churchSlug} ministryName={ministryName} overview={overview} />;
 }
 
 function DistributionPanelFallback() {
   return (
-    <section
-      className="rounded-3xl border bg-card"
-      aria-label="Carregando distribuição do time"
-    >
-      <div className="border-b px-5 py-4">
-        <div className="h-5 w-48 rounded bg-muted" />
-        <div className="mt-2 h-3 w-32 rounded bg-muted" />
-      </div>
-      <div className="grid grid-cols-2 divide-x divide-y border-b md:grid-cols-4 md:divide-y-0">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="px-5 py-4">
-            <div className="h-8 w-12 rounded bg-muted" />
-            <div className="mt-2 h-3 w-24 rounded bg-muted" />
-          </div>
-        ))}
-      </div>
+    <section className="rounded-3xl border bg-card" aria-label="Carregando distribuição do time">
+      <div className="border-b px-5 py-4"><div className="h-5 w-48 rounded bg-muted" /><div className="mt-2 h-3 w-32 rounded bg-muted" /></div>
+      <div className="grid grid-cols-2 divide-x divide-y border-b md:grid-cols-4 md:divide-y-0">{Array.from({ length: 4 }).map((_, index) => <div key={index} className="px-5 py-4"><div className="h-8 w-12 rounded bg-muted" /><div className="mt-2 h-3 w-24 rounded bg-muted" /></div>)}</div>
       <div className="h-40" />
     </section>
   );
@@ -163,42 +130,16 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
 
   const supabase = await createClient();
   const { active: activeMinistry } = await getActiveMinistry(churchSlug);
-  const operationalSummaryPromise: Promise<OperationalSummary | null> = activeMinistry?.canManage
-    ? loadOperationalSummary({
-        churchId: tenant.church.id,
-        ministryId: activeMinistry.id,
-        ministryName: activeMinistry.name,
-      })
-    : Promise.resolve(null);
-
-  // Radar de distribuição: exclusivo de quem responde pelo time.
-  // Voluntário não vê carga de colegas — é dado de gestão, não de escala.
-  const distributionPromise: Promise<DistributionOverview | null> = activeMinistry?.canManage
-    ? loadDistributionOverview({
-        churchId: tenant.church.id,
-        ministryId: activeMinistry.id,
-      })
-    : Promise.resolve(null);
+  const operationalSummaryPromise: Promise<OperationalSummary | null> = activeMinistry?.canManage ? loadOperationalSummary({ churchId: tenant.church.id, ministryId: activeMinistry.id, ministryName: activeMinistry.name }) : Promise.resolve(null);
+  const distributionPromise: Promise<DistributionOverview | null> = activeMinistry?.canManage ? loadDistributionOverview({ churchId: tenant.church.id, ministryId: activeMinistry.id }) : Promise.resolve(null);
 
   let onboardingChecklist: Awaited<ReturnType<typeof loadOnboardingChecklist>> | null = null;
   if (tenant.isCoord) {
-    const { data: churchSettings } = await supabase
-      .from("churches")
-      .select("settings")
-      .eq("id", tenant.church.id)
-      .single();
-    const settings = churchSettings?.settings && typeof churchSettings.settings === "object" && !Array.isArray(churchSettings.settings)
-      ? churchSettings.settings as Record<string, unknown>
-      : {};
+    const { data: churchSettings } = await supabase.from("churches").select("settings").eq("id", tenant.church.id).single();
+    const settings = churchSettings?.settings && typeof churchSettings.settings === "object" && !Array.isArray(churchSettings.settings) ? churchSettings.settings as Record<string, unknown> : {};
     if (settings.onboarding_checklist_dismissed !== true) {
-      const initialModules = Array.isArray(settings.initial_modules)
-        ? settings.initial_modules.filter((item): item is string => typeof item === "string")
-        : [];
-      const checklist = await loadOnboardingChecklist({
-        churchId: tenant.church.id,
-        churchSlug,
-        initialModules,
-      });
+      const initialModules = Array.isArray(settings.initial_modules) ? settings.initial_modules.filter((item): item is string => typeof item === "string") : [];
+      const checklist = await loadOnboardingChecklist({ churchId: tenant.church.id, churchSlug, initialModules });
       if (!checklist.allDone) onboardingChecklist = checklist;
     }
   }
@@ -206,65 +147,29 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const nowIso = new Date().toISOString();
   // eslint-disable-next-line react-hooks/purity -- server component, Date.now() é seguro aqui
   const nowMs = Date.now();
-  const [
-    { data: myEscalas },
-    { data: nextChurchEvent },
-    { data: serviceWindows },
-    { data: anuncios },
-  ] = await Promise.all([
-    supabase
-      .from("assignments")
-      .select("id, ministry_id, role_name, status, arrival_time, release_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, ends_at, location, service_period, campuses(name))")
-      .eq("church_id", tenant.church.id)
-      .eq("user_id", tenant.userId)
-      .neq("status", "substituido")
-      .gte("events.starts_at", nowIso)
-      .order("starts_at", { ascending: true, referencedTable: "events" })
-      .limit(8),
-    supabase
-      .from("events")
-      .select("id, title, starts_at, ends_at, location, service_period, campuses(name)")
-      .eq("church_id", tenant.church.id)
-      .gte("starts_at", nowIso)
-      .order("starts_at")
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from("event_ministry_windows")
-      .select("event_id, ministry_id, arrival_at, release_at, events!inner(starts_at)")
-      .eq("church_id", tenant.church.id)
-      .gte("events.starts_at", nowIso),
+  const [{ data: myEscalas }, { data: nextChurchEvent }, { data: serviceWindows }, { data: anuncios }] = await Promise.all([
+    supabase.from("assignments").select("id, ministry_id, role_name, status, arrival_time, release_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, ends_at, location, service_period, campuses(name))").eq("church_id", tenant.church.id).eq("user_id", tenant.userId).neq("status", "substituido").gte("events.starts_at", nowIso).limit(20),
+    supabase.from("events").select("id, title, starts_at, ends_at, location, service_period, campuses(name)").eq("church_id", tenant.church.id).gte("starts_at", nowIso).order("starts_at").limit(1).maybeSingle(),
+    supabase.from("event_ministry_windows").select("event_id, ministry_id, arrival_at, release_at, events!inner(starts_at)").eq("church_id", tenant.church.id).gte("events.starts_at", nowIso),
     supabase.rpc("anuncios_infantil", { p_church: tenant.church.id }),
   ]);
-  const escalas = (myEscalas ?? []) as unknown as HomeAssignment[];
+  // PostgREST não garante a ordem da tabela raiz quando o ORDER BY aponta para uma relação embutida.
+  // Ordenamos explicitamente pelo início do evento para que a Home funcione igual para qualquer usuário/ministério.
+  const escalas = ((myEscalas ?? []) as unknown as HomeAssignment[]).sort((a, b) => assignmentStartMs(a) - assignmentStartMs(b));
   const windowByPair = new Map<string, ServiceWindowRow>();
-  for (const window of (serviceWindows ?? []) as unknown as ServiceWindowRow[]) {
-    windowByPair.set(pairKey(window.event_id, window.ministry_id), window);
-  }
+  for (const window of (serviceWindows ?? []) as unknown as ServiceWindowRow[]) windowByPair.set(pairKey(window.event_id, window.ministry_id), window);
 
   function serviceWindowFor(assignment: HomeAssignment) {
     const event = firstRelated(assignment.events);
     if (!event) return null;
     const teamWindow = windowByPair.get(pairKey(event.id, assignment.ministry_id));
-    return resolveServiceWindow({
-      eventStart: event.starts_at,
-      eventEnd: event.ends_at,
-      teamArrival: teamWindow?.arrival_at,
-      teamRelease: teamWindow?.release_at,
-      assignmentArrival: assignment.arrival_time,
-      assignmentRelease: assignment.release_time,
-    });
+    return resolveServiceWindow({ eventStart: event.starts_at, eventEnd: event.ends_at, teamArrival: teamWindow?.arrival_at, teamRelease: teamWindow?.release_at, assignmentArrival: assignment.arrival_time, assignmentRelease: assignment.release_time });
   }
 
-  // O hero da Home é sempre o próximo serviço futuro que o usuário já confirmou.
-  // Convites pendentes continuam aparecendo na agenda para resposta, mas não substituem o hero confirmado.
   const nextConfirmedAssignment = escalas.find((assignment) => assignment.status === "confirmado");
   const nextAssignedEvent = firstRelated(nextConfirmedAssignment?.events);
-  const nextEvent =
-    nextAssignedEvent ?? (nextChurchEvent as unknown as AssignmentEvent | null);
-  const nextEventAssignments = nextEvent
-    ? escalas.filter((assignment) => firstRelated(assignment.events)?.id === nextEvent.id)
-    : [];
+  const nextEvent = nextAssignedEvent ?? (nextChurchEvent as unknown as AssignmentEvent | null);
+  const nextEventAssignments = nextEvent ? escalas.filter((assignment) => firstRelated(assignment.events)?.id === nextEvent.id) : [];
   const confirmedEventAssignments = nextEventAssignments.filter((assignment) => assignment.status === "confirmado");
   const heroAssignment = confirmedEventAssignments[0];
   const heroServiceWindow = heroAssignment ? serviceWindowFor(heroAssignment) : null;
@@ -278,15 +183,10 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const arrival = timeLabel(heroServiceWindow?.arrivalAt);
   const release = timeLabel(heroServiceWindow?.releaseAt);
   const confirmedHeroIds = new Set(confirmedEventAssignments.map((assignment) => assignment.id));
-  const agendaAssignments = heroAssignment
-    ? escalas.filter((assignment) => !confirmedHeroIds.has(assignment.id))
-    : escalas;
+  const agendaAssignments = heroAssignment ? escalas.filter((assignment) => !confirmedHeroIds.has(assignment.id)) : escalas;
 
-  // Culto iminente: começa nas próximas 3h ou já começou mas ainda não terminou
   const CULT_MODE_WINDOW_MS = 3 * 60 * 60 * 1000;
   const imminentEvent = (() => {
-    // O modo culto continua acompanhando o próximo culto geral, mesmo quando
-    // o hero pessoal prioriza uma escala posterior do usuário.
     const candidate = (nextChurchEvent as unknown as AssignmentEvent | null) ?? nextEvent;
     if (!candidate) return null;
     const startMs = new Date(candidate.starts_at).getTime();
@@ -298,172 +198,32 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
 
   return (
     <div className="lunor-home min-w-0 space-y-12 overflow-x-clip pb-8">
-      {(anuncios ?? []).length > 0 && (
-        <section className="border-l-4 border-[#6e5ce6] bg-black px-5 py-4 text-white">
-          {(anuncios as { code: string | null; kind: string }[]).map((a, i) => (
-            <div key={`${a.code ?? "fim"}-${i}`} className="flex items-center gap-3">
-              <Megaphone className="size-4 shrink-0" />
-              <p className="text-sm font-medium">
-                {a.kind === "fim_sessao" ? "O Kids terminou — responsáveis podem buscar as crianças." : <>Kids chama o código <span className="font-mono font-bold">{a.code}</span> — comparecer à recepção.</>}
-              </p>
-            </div>
-          ))}
-        </section>
-      )}
+      {(anuncios ?? []).length > 0 && <section className="border-l-4 border-[#6e5ce6] bg-black px-5 py-4 text-white">{(anuncios as { code: string | null; kind: string }[]).map((a, i) => <div key={`${a.code ?? "fim"}-${i}`} className="flex items-center gap-3"><Megaphone className="size-4 shrink-0" /><p className="text-sm font-medium">{a.kind === "fim_sessao" ? "O Kids terminou — responsáveis podem buscar as crianças." : <>Kids chama o código <span className="font-mono font-bold">{a.code}</span> — comparecer à recepção.</>}</p></div>)}</section>}
 
-      {tenant.isLeader && imminentEvent && (
-        <CultModeBanner
-          churchSlug={churchSlug}
-          eventId={imminentEvent.id}
-          eventTitle={imminentEvent.title}
-          startsAt={imminentEvent.starts_at}
-          nowMs={nowMs}
-        />
-      )}
+      {tenant.isLeader && imminentEvent && <CultModeBanner churchSlug={churchSlug} eventId={imminentEvent.id} eventTitle={imminentEvent.title} startsAt={imminentEvent.starts_at} nowMs={nowMs} />}
 
       <section className="lunor-prism relative overflow-hidden rounded-[24px] border border-foreground/10 shadow-sm">
         <div className="relative z-10 px-6 pt-8 md:px-10 md:pt-10 lg:px-12 lg:pt-12">
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em]">{heroAssignment ? "Meu próximo serviço" : "Próximo culto"}</p>
-            {heroAssignment && (
-              <Badge className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[heroAssignment.status] ?? ""}`}>
-                {ASSIGNMENT_STATUS_LABELS[heroAssignment.status] ?? heroAssignment.status}
-              </Badge>
-            )}
-          </div>
-
-          <div className="mt-7 max-w-4xl">
-            <h1 className="font-editorial text-[clamp(3.25rem,6vw,5.9rem)] font-medium leading-[0.9] tracking-[-0.05em]">
-              {nextEvent?.title ?? "Prepare com propósito."}
-            </h1>
-
-            <div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="font-editorial text-5xl leading-none tracking-[-0.05em]">{day}</span>
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{month} · {weekday}</span>
-              <span className="text-sm font-medium">{nextEvent ? `Culto ${formatEventTime(nextEvent.starts_at)}` : "Tudo começa aqui"}</span>
-            </div>
-          </div>
-
-          {heroAssignment?.status === "convidado" && nextEvent && (
-            <div className="mt-6 max-w-sm">
-              <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={nextEvent.id} assignmentId={heroAssignment.id} />
-            </div>
-          )}
-
-          {!heroAssignment && !nextEvent && (
-            <p className="mt-6 max-w-md text-sm leading-relaxed text-muted-foreground">Prepare o coração. Prepare o time. Prepare o ambiente.</p>
-          )}
+          <div className="flex flex-wrap items-center gap-3"><p className="text-[11px] font-semibold uppercase tracking-[0.2em]">{heroAssignment ? "Meu próximo serviço" : "Próximo culto"}</p>{heroAssignment && <Badge className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[heroAssignment.status] ?? ""}`}>{ASSIGNMENT_STATUS_LABELS[heroAssignment.status] ?? heroAssignment.status}</Badge>}</div>
+          <div className="mt-7 max-w-4xl"><h1 className="font-editorial text-[clamp(3.25rem,6vw,5.9rem)] font-medium leading-[0.9] tracking-[-0.05em]">{nextEvent?.title ?? "Prepare com propósito."}</h1><div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1"><span className="font-editorial text-5xl leading-none tracking-[-0.05em]">{day}</span><span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{month} · {weekday}</span><span className="text-sm font-medium">{nextEvent ? `Culto ${formatEventTime(nextEvent.starts_at)}` : "Tudo começa aqui"}</span></div></div>
+          {heroAssignment?.status === "convidado" && nextEvent && <div className="mt-6 max-w-sm"><QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={nextEvent.id} assignmentId={heroAssignment.id} /></div>}
+          {!heroAssignment && !nextEvent && <p className="mt-6 max-w-md text-sm leading-relaxed text-muted-foreground">Prepare o coração. Prepare o time. Prepare o ambiente.</p>}
         </div>
-
         <div className="relative z-10 mt-10 border-t border-foreground/10 bg-background/20 px-6 py-5 backdrop-blur-sm md:px-10 lg:flex lg:items-center lg:justify-between lg:gap-8 lg:px-12">
-          {heroAssignment ? (
-            <div className="flex min-w-0 flex-1 flex-wrap gap-x-5 gap-y-2 text-sm">
-              <span className="font-medium">{serviceSummary}</span>
-              {nextMinistries.length > 0 && <span><span className="text-muted-foreground">Equipe</span> <strong>{joinPtBr(nextMinistries)}</strong></span>}
-              {arrival && <span><span className="text-muted-foreground">Chegada</span> <strong>{arrival}</strong></span>}
-              {release && <span><span className="text-muted-foreground">Saída</span> <strong>{release}</strong></span>}
-              {nextContext && <span><span className="text-muted-foreground">Local</span> <strong>{nextContext}</strong></span>}
-              {heroAssignment.items_to_bring && <span><span className="text-muted-foreground">Levar</span> <strong>{heroAssignment.items_to_bring}</strong></span>}
-            </div>
-          ) : nextEvent ? (
-            <div className="min-w-0 flex-1 space-y-1 text-sm">
-              <p className="font-medium">
-                {nextAssignedEvent
-                  ? "Você não está escalado(a) para este culto."
-                  : "Você ainda não foi escalado(a) para nenhum serviço."}
-              </p>
-              <div className="flex flex-wrap gap-x-5 gap-y-1 text-muted-foreground">
-                {nextAssignedEvent && (
-                  <span>
-                    Próximo serviço: <strong className="text-foreground">{nextAssignedEvent.title} · {formatEventDate(nextAssignedEvent.starts_at)}</strong>
-                  </span>
-                )}
-                {nextContext && <span>Local <strong className="text-foreground">{nextContext}</strong></span>}
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Seu próximo compromisso vai aparecer aqui.</p>
-          )}
-
-          <Link href={nextEvent ? `/${churchSlug}/escalas/${nextEvent.id}` : `/${churchSlug}/escalas`} className="mt-4 flex min-h-12 w-full items-center justify-between rounded-md bg-[#6e5ce6] px-5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:mt-0 lg:w-[240px] lg:shrink-0">
-            {nextEvent ? (heroAssignment ? "Abrir meu preparo" : "Ver culto") : "Ver escalas"}
-            <ArrowRight className="size-5" />
-          </Link>
+          {heroAssignment ? <div className="flex min-w-0 flex-1 flex-wrap gap-x-5 gap-y-2 text-sm"><span className="font-medium">{serviceSummary}</span>{nextMinistries.length > 0 && <span><span className="text-muted-foreground">Equipe</span> <strong>{joinPtBr(nextMinistries)}</strong></span>}{arrival && <span><span className="text-muted-foreground">Chegada</span> <strong>{arrival}</strong></span>}{release && <span><span className="text-muted-foreground">Saída</span> <strong>{release}</strong></span>}{nextContext && <span><span className="text-muted-foreground">Local</span> <strong>{nextContext}</strong></span>}{heroAssignment.items_to_bring && <span><span className="text-muted-foreground">Levar</span> <strong>{heroAssignment.items_to_bring}</strong></span>}</div> : nextEvent ? <div className="min-w-0 flex-1 space-y-1 text-sm"><p className="font-medium">{nextAssignedEvent ? "Você não está escalado(a) para este culto." : "Você ainda não foi escalado(a) para nenhum serviço."}</p><div className="flex flex-wrap gap-x-5 gap-y-1 text-muted-foreground">{nextAssignedEvent && <span>Próximo serviço: <strong className="text-foreground">{nextAssignedEvent.title} · {formatEventDate(nextAssignedEvent.starts_at)}</strong></span>}{nextContext && <span>Local <strong className="text-foreground">{nextContext}</strong></span>}</div></div> : <p className="text-sm text-muted-foreground">Seu próximo compromisso vai aparecer aqui.</p>}
+          <Link href={nextEvent ? `/${churchSlug}/escalas/${nextEvent.id}` : `/${churchSlug}/escalas`} className="mt-4 flex min-h-12 w-full items-center justify-between rounded-md bg-[#6e5ce6] px-5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:mt-0 lg:w-[240px] lg:shrink-0">{nextEvent ? (heroAssignment ? "Abrir meu preparo" : "Ver culto") : "Ver escalas"}<ArrowRight className="size-5" /></Link>
         </div>
       </section>
 
-      {activeMinistry?.canManage && (
-        <AssistantHomeInput
-          churchSlug={churchSlug}
-          ministryId={activeMinistry.id}
-          ministryName={activeMinistry.name}
-        />
-      )}
+      {activeMinistry?.canManage && <AssistantHomeInput churchSlug={churchSlug} ministryId={activeMinistry.id} ministryName={activeMinistry.name} />}
+      {onboardingChecklist && <OnboardingChecklistCard churchId={tenant.church.id} checklist={onboardingChecklist} />}
+      {activeMinistry?.canManage && <Suspense fallback={<OperationalSummaryFallback />}><DeferredOperationalSummary churchSlug={churchSlug} summaryPromise={operationalSummaryPromise} /></Suspense>}
+      {activeMinistry?.canManage && <Suspense fallback={<DistributionPanelFallback />}><DeferredDistributionPanel churchSlug={churchSlug} ministryName={activeMinistry.name} overviewPromise={distributionPromise} /></Suspense>}
 
-      {onboardingChecklist && (
-        <OnboardingChecklistCard churchId={tenant.church.id} checklist={onboardingChecklist} />
-      )}
-
-      {activeMinistry?.canManage && (
-        <Suspense fallback={<OperationalSummaryFallback />}>
-          <DeferredOperationalSummary
-            churchSlug={churchSlug}
-            summaryPromise={operationalSummaryPromise}
-          />
-        </Suspense>
-      )}
-
-      {activeMinistry?.canManage && (
-        <Suspense fallback={<DistributionPanelFallback />}>
-          <DeferredDistributionPanel
-            churchSlug={churchSlug}
-            ministryName={activeMinistry.name}
-            overviewPromise={distributionPromise}
-          />
-        </Suspense>
-      )}
-
-      <section className="max-w-4xl">
-        <div>
-          <div className="flex items-end justify-between border-b border-foreground/25 pb-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Sua agenda</p>
-              <h2 className="mt-2 text-2xl font-medium tracking-tight">Onde você vai servir</h2>
-            </div>
-            <span className="text-xs text-muted-foreground">{agendaAssignments.length} próximas</span>
-          </div>
-          <div className="divide-y divide-foreground/15">
-            {agendaAssignments.map((a, index) => {
-              const ev = firstRelated(a.events);
-              if (!ev) return null;
-              const pendente = a.status === "convidado";
-              const context = homeEventContext(ev);
-              const window = serviceWindowFor(a);
-              const effectiveArrival = timeLabel(window?.arrivalAt);
-              const effectiveRelease = timeLabel(window?.releaseAt);
-              return (
-                <div key={a.id} className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 py-5">
-                  <span className="font-editorial text-3xl text-muted-foreground">{String(index + 1).padStart(2, "0")}</span>
-                  <Link href={`/${churchSlug}/escalas/${ev.id}`} className="min-w-0 hover:opacity-65">
-                    <p className="truncate font-medium">{ev.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {formatEventDate(ev.starts_at)} · {effectiveArrival ? `chegada ${effectiveArrival}` : formatEventTime(ev.starts_at)} · culto {formatEventTime(ev.starts_at)}{effectiveRelease ? ` · saída ${effectiveRelease}` : ""}{context ? ` · ${context}` : ""} · {assignmentServiceLabel(a)}
-                    </p>
-                  </Link>
-                  {pendente ? <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={ev.id} assignmentId={a.id} /> : (
-                    <Badge className={`shrink-0 rounded-none border-0 ${ASSIGNMENT_STATUS_BADGE[a.status] ?? ""}`}>{ASSIGNMENT_STATUS_LABELS[a.status] ?? a.status}</Badge>
-                  )}
-                </div>
-              );
-            })}
-            {agendaAssignments.length === 0 && (
-              <p className="py-7 text-sm text-muted-foreground">
-                {heroAssignment ? "Nenhuma outra escala agendada por enquanto." : "Você ainda não foi escalado(a) para nenhum serviço."}
-              </p>
-            )}
-          </div>
-        </div>
-      </section>
+      <section className="max-w-4xl"><div><div className="flex items-end justify-between border-b border-foreground/25 pb-3"><div><p className="text-[11px] font-semibold uppercase tracking-[0.18em]">Sua agenda</p><h2 className="mt-2 text-2xl font-medium tracking-tight">Onde você vai servir</h2></div><span className="text-xs text-muted-foreground">{agendaAssignments.length} próximas</span></div><div className="divide-y divide-foreground/15">
+        {agendaAssignments.map((a, index) => { const ev = firstRelated(a.events); if (!ev) return null; const pendente = a.status === "convidado"; const context = homeEventContext(ev); const window = serviceWindowFor(a); const effectiveArrival = timeLabel(window?.arrivalAt); const effectiveRelease = timeLabel(window?.releaseAt); return <div key={a.id} className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 py-5"><span className="font-editorial text-3xl text-muted-foreground">{String(index + 1).padStart(2, "0")}</span><Link href={`/${churchSlug}/escalas/${ev.id}`} className="min-w-0 hover:opacity-65"><p className="truncate font-medium">{ev.title}</p><p className="mt-1 text-xs text-muted-foreground">{formatEventDate(ev.starts_at)} · {effectiveArrival ? `chegada ${effectiveArrival}` : formatEventTime(ev.starts_at)} · culto {formatEventTime(ev.starts_at)}{effectiveRelease ? ` · saída ${effectiveRelease}` : ""}{context ? ` · ${context}` : ""} · {assignmentServiceLabel(a)}</p></Link>{pendente ? <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={ev.id} assignmentId={a.id} /> : <Badge className={`shrink-0 rounded-none border-0 ${ASSIGNMENT_STATUS_BADGE[a.status] ?? ""}`}>{ASSIGNMENT_STATUS_LABELS[a.status] ?? a.status}</Badge>}</div>; })}
+        {agendaAssignments.length === 0 && <p className="py-7 text-sm text-muted-foreground">{heroAssignment ? "Nenhuma outra escala agendada por enquanto." : "Você ainda não foi escalado(a) para nenhum serviço."}</p>}
+      </div></div></section>
     </div>
   );
 }
