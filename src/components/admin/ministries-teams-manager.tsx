@@ -61,7 +61,10 @@ export function MinistriesTeamsManager({
   ) {
     startTransition(async () => {
       const result = await action();
-      if (!result.ok) return toast.error(result.error);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
       form?.reset();
       toast.success(success);
     });
