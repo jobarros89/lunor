@@ -87,3 +87,44 @@ begin
   return new;
 end;
 $$;
+
+-- The legacy department trigger also ran on every status update. Preserve old
+-- assignments when their team is later deactivated; validate only new links.
+create or replace function public.enforce_assignment_department_scope()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_department_church uuid;
+  v_department_ministry uuid;
+begin
+  if new.department_id is null then
+    return new;
+  end if;
+
+  if tg_op = 'UPDATE'
+     and new.department_id is not distinct from old.department_id
+     and new.church_id is not distinct from old.church_id
+     and new.ministry_id is not distinct from old.ministry_id then
+    return new;
+  end if;
+
+  select church_id, ministry_id
+    into v_department_church, v_department_ministry
+  from public.departments
+  where id = new.department_id and active = true;
+
+  if v_department_church is null then
+    raise exception 'department_id % inexistente ou inativo', new.department_id;
+  end if;
+  if v_department_church <> new.church_id then
+    raise exception 'escala e time devem pertencer à mesma igreja';
+  end if;
+  if v_department_ministry is null or v_department_ministry <> new.ministry_id then
+    raise exception 'time deve pertencer ao ministério da escala';
+  end if;
+  return new;
+end;
+$$;
