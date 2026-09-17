@@ -135,7 +135,10 @@ function ItemForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Horário">
+        <Field
+          label="Horário"
+          description="Vazio = calculado automaticamente pela ordem e duração."
+        >
           <Input
             name="scheduledTime"
             type="time"
@@ -146,9 +149,6 @@ function ItemForm({
                 : ""
             }
           />
-          <p className="mt-1 text-xs text-muted-foreground">
-            Vazio = calculado automaticamente pela ordem e duração.
-          </p>
         </Field>
         <Field label="Duração em minutos" required>
           <Input
