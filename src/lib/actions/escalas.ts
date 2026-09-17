@@ -370,3 +370,42 @@ export async function requestSubstitution(raw: unknown): Promise<ActionResult> {
   revalidatePath(`/${d.churchSlug}/escalas/${assignmentContext.event_id}`);
   return { ok: true, data: undefined };
 }
+
+
+const eventMinistrySchema = z.object({
+  churchSlug: z.string().min(2),
+  churchId: z.string().uuid(),
+  eventId: z.string().uuid(),
+  ministryId: z.string().uuid(),
+});
+
+export async function addEventMinistry(raw: unknown): Promise<ActionResult> {
+  const parsed = eventMinistrySchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Dados inválidos" };
+  const d = parsed.data;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Não autenticado" };
+
+  const { error } = await supabase.from("event_ministries").insert({
+    church_id: d.churchId,
+    event_id: d.eventId,
+    ministry_id: d.ministryId,
+    created_by: user.id,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error:
+        error.code === "23505"
+          ? "Este time já está vinculado ao evento"
+          : "Sem permissão para adicionar este time",
+    };
+  }
+
+  revalidatePath(`/${d.churchSlug}/escalas/${d.eventId}`);
+  return { ok: true, data: undefined };
+}

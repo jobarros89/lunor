@@ -12,6 +12,8 @@ import { AssignmentManager, type AssignmentRow } from "@/components/escalas/assi
 import { MyAssignmentCard } from "@/components/escalas/my-assignment-card";
 import { MinistryServiceWindowCard } from "@/components/escalas/ministry-service-window-card";
 import { ASSIGNMENT_STATUS_BADGE, ASSIGNMENT_STATUS_LABELS } from "@/lib/escalas";
+import { buildTeamAvailabilityOverview } from "@/lib/availability-overview";
+import type { AvailabilityPeriod, AvailabilityStatus } from "@/lib/actions/availability";
 
 function firstRelated<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
@@ -58,7 +60,7 @@ export async function MinistryEventSchedule({
   ] = await Promise.all([
     supabase
       .from("events")
-      .select("id, title, starts_at, ends_at, location, service_period, campuses(name), event_types(name)")
+      .select("id, title, starts_at, ends_at, location, campus_id, service_period, campuses(name), event_types(name)")
       .eq("church_id", tenant.church.id)
       .eq("id", eventId)
       .maybeSingle(),
@@ -131,12 +133,15 @@ export async function MinistryEventSchedule({
       { data: availableEquipments },
       { data: monthLoads },
       { data: unavailable },
+      { data: eventAvailability },
+      { data: calendarAvailability },
+      { data: recurringAvailability },
       { data: skills },
       { data: interests },
     ] = await Promise.all([
       supabase
         .from("ministry_members")
-        .select("user_id, profiles!inner(full_name)")
+        .select("user_id, role, profiles!inner(full_name, avatar_url)")
         .eq("church_id", tenant.church.id)
         .eq("ministry_id", ministryId)
         .eq("active", true),
@@ -161,6 +166,26 @@ export async function MinistryEventSchedule({
         .lte("start_date", eventDay)
         .gte("end_date", eventDay),
       supabase
+        .from("member_availability")
+        .select("event_id, user_id, status")
+        .eq("church_id", tenant.church.id)
+        .eq("ministry_id", ministryId)
+        .eq("event_id", eventId),
+      supabase
+        .from("member_availability_calendar")
+        .select("user_id, ministry_id, campus_id, availability_date, period, status")
+        .eq("church_id", tenant.church.id)
+        .or(`ministry_id.eq.${ministryId},ministry_id.is.null`)
+        .eq("availability_date", eventDay)
+        .limit(5000),
+      supabase
+        .from("member_availability_recurring")
+        .select("user_id, ministry_id, campus_id, weekday, period, status")
+        .eq("church_id", tenant.church.id)
+        .or(`ministry_id.eq.${ministryId},ministry_id.is.null`)
+        .eq("weekday", new Date(`${eventDay}T12:00:00Z`).getUTCDay())
+        .limit(5000),
+      supabase
         .from("member_skills")
         .select("user_id, skills!inner(name)")
         .eq("church_id", tenant.church.id)
@@ -176,6 +201,54 @@ export async function MinistryEventSchedule({
       loadByUser.set(item.user_id, (loadByUser.get(item.user_id) ?? 0) + 1);
     }
     const unavailableUsers = new Set((unavailable ?? []).map((item) => item.user_id));
+    const availabilityMembers = (ministryMembers ?? []).map((item) => {
+      const profile = item.profiles as unknown as {
+        full_name: string;
+        avatar_url: string | null;
+      };
+      return {
+        userId: item.user_id,
+        name: profile.full_name,
+        avatarUrl: profile.avatar_url,
+        role: item.role,
+      };
+    });
+    const resolvedAvailability = buildTeamAvailabilityOverview({
+      ministryId,
+      members: availabilityMembers,
+      events: [{
+        id: eventId,
+        startsAt: event.starts_at,
+        campusId: event.campus_id,
+        servicePeriod: event.service_period,
+      }],
+      eventEntries: (eventAvailability ?? []).map((item) => ({
+        eventId: item.event_id,
+        userId: item.user_id,
+        status: item.status as AvailabilityStatus,
+      })),
+      calendarEntries: (calendarAvailability ?? []).map((item) => ({
+        userId: item.user_id,
+        ministryId: item.ministry_id,
+        campusId: item.campus_id,
+        date: item.availability_date,
+        period: item.period as AvailabilityPeriod,
+        status: item.status as AvailabilityStatus,
+      })),
+      recurringEntries: (recurringAvailability ?? []).map((item) => ({
+        userId: item.user_id,
+        ministryId: item.ministry_id,
+        campusId: item.campus_id,
+        weekday: item.weekday,
+        period: item.period as AvailabilityPeriod,
+        status: item.status as AvailabilityStatus,
+      })),
+    }).get(eventId) ?? [];
+    const unavailableByAvailability = new Set(
+      resolvedAvailability
+        .filter((item) => item.status === "unavailable")
+        .map((item) => item.userId)
+    );
     const skillsByUser = new Map<string, string[]>();
     for (const item of skills ?? []) {
       const name = (item.skills as unknown as { name: string }).name;
@@ -191,7 +264,7 @@ export async function MinistryEventSchedule({
       user_id: item.user_id,
       full_name: (item.profiles as unknown as { full_name: string }).full_name,
       cargaMes: loadByUser.get(item.user_id) ?? 0,
-      indisponivel: unavailableUsers.has(item.user_id),
+      indisponivel: unavailableUsers.has(item.user_id) || unavailableByAvailability.has(item.user_id),
       aptidoes: skillsByUser.get(item.user_id) ?? [],
       interesses: interestsByUser.get(item.user_id) ?? [],
     }));

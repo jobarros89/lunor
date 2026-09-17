@@ -21,16 +21,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  AssignmentManager,
-  type AssignmentRow,
-} from "@/components/escalas/assignment-manager";
 import { MyAssignmentCard } from "@/components/escalas/my-assignment-card";
 import { DeleteFutureEventButton } from "@/components/escalas/event-delete-control";
 import {
   ServiceOrderCard,
   type ServiceItem,
 } from "@/components/escalas/service-order-card";
+import { AddEventTeam } from "@/components/escalas/event-team-controls";
 import {
   EventSetlistSummary,
   type EventSetlistSummaryItem,
@@ -49,9 +46,15 @@ type EventAssignment = {
   leader: { full_name: string } | { full_name: string }[] | null;
 };
 
+type EventMinistryLink = {
+  ministry_id: string;
+  ministries: { id: string; name: string; module_key: "generic" | "worship" | "kids" } | { id: string; name: string; module_key: "generic" | "worship" | "kids" }[];
+};
+
 type TeamGroup = {
   ministryId: string;
   ministryName: string;
+  moduleKey: "generic" | "worship" | "kids";
   rows: EventAssignment[];
 };
 
@@ -74,15 +77,15 @@ export default async function EventoDetailPage({
 }) {
   const { churchSlug, id } = await params;
   const tenant = await getTenant(churchSlug);
-  const { active } = await getActiveMinistry(churchSlug);
-  const canManageActive = active?.canManage ?? false;
-  const activeMinistryId = active?.id ?? null;
+  const { options } = await getActiveMinistry(churchSlug);
+  const canManageEvent = tenant.isCoord || options.some((option) => option.canManage);
 
   const supabase = await createClient();
   const [
     { data: event, error: eventError },
     { data: assignments, error: assignmentsError },
     { data: serviceItems, error: serviceItemsError },
+    { data: eventMinistries, error: eventMinistriesError },
     louvor,
     kids,
   ] = await Promise.all([
@@ -106,6 +109,11 @@ export default async function EventoDetailPage({
       .eq("church_id", tenant.church.id)
       .eq("event_id", id)
       .order("position"),
+    supabase
+      .from("event_ministries")
+      .select("ministry_id, ministries!inner(id, name, module_key)")
+      .eq("church_id", tenant.church.id)
+      .eq("event_id", id),
     getLouvorMinistry(tenant.church.id),
     getInfantilMinistry(tenant.church.id),
   ]);
@@ -114,12 +122,6 @@ export default async function EventoDetailPage({
   if (!event) notFound();
 
   const allAssignments = (assignments ?? []) as unknown as EventAssignment[];
-  const isDedicatedMinistry =
-    !!activeMinistryId &&
-    (activeMinistryId === louvor?.id || activeMinistryId === kids?.id);
-  const canManageGeneric =
-    !!activeMinistryId && canManageActive && !isDedicatedMinistry;
-
   let canOpenLouvor = tenant.isCoord;
   if (louvor && !canOpenLouvor) {
     const { data: louvorMembership } = await supabase
@@ -142,13 +144,8 @@ export default async function EventoDetailPage({
   const itensRepertorio = (setlist ?? []) as unknown as EventSetlistSummaryItem[];
 
   const mineAssignments = allAssignments.filter((a) => a.user_id === tenant.userId);
-  const activeAssignments = activeMinistryId
-    ? allAssignments.filter((a) => a.ministry_id === activeMinistryId)
-    : [];
   const equipmentAssignmentIds = [
-    ...new Set(
-      [...mineAssignments, ...(canManageGeneric ? activeAssignments : [])].map((a) => a.id)
-    ),
+    ...new Set(mineAssignments.map((assignment) => assignment.id)),
   ];
   const { data: links } = equipmentAssignmentIds.length
     ? await supabase
@@ -167,107 +164,18 @@ export default async function EventoDetailPage({
     ]);
   }
 
-  const activeRows: AssignmentRow[] = activeAssignments.map((a) => ({
-    id: a.id,
-    user_id: a.user_id,
-    full_name: firstRelated(a.profiles)?.full_name ?? "—",
-    role_name: a.role_name,
-    status: a.status,
-    equipments: equipByAssignment.get(a.id) ?? [],
-  }));
-
-  let members: {
-    user_id: string;
-    full_name: string;
-    cargaMes: number;
-    indisponivel: boolean;
-    aptidoes: string[];
-    interesses: string[];
-  }[] = [];
-  let equipments: { id: string; name: string }[] = [];
-
-  // Enquanto os demais ministérios ainda não têm módulo próprio, preservamos
-  // a gestão do ministério ativo aqui. Louvor e Kids são geridos nos módulos dedicados.
-  if (canManageGeneric && activeMinistryId) {
-    const dt = new Date(event.starts_at);
-    const mesIni = new Date(dt.getFullYear(), dt.getMonth(), 1).toISOString();
-    const mesFim = new Date(dt.getFullYear(), dt.getMonth() + 1, 1).toISOString();
-    const eventoDia = (event.starts_at as string).slice(0, 10);
-    const cid = tenant.church.id;
-
-    const [
-      { data: m },
-      { data: eq },
-      { data: cargas },
-      { data: indisp },
-      { data: apts },
-      { data: ints },
-    ] = await Promise.all([
-      supabase
-        .from("ministry_members")
-        .select("user_id, profiles!inner(full_name)")
-        .eq("church_id", cid)
-        .eq("ministry_id", activeMinistryId)
-        .eq("active", true),
-      supabase
-        .from("equipments")
-        .select("id, name")
-        .eq("church_id", cid)
-        .or(`ministry_id.eq.${activeMinistryId},ministry_id.is.null`)
-        .in("status", ["disponivel", "em_uso"])
-        .order("name"),
-      supabase
-        .from("assignments")
-        .select("user_id, events!inner(starts_at)")
-        .eq("church_id", cid)
-        .eq("ministry_id", activeMinistryId)
-        .gte("events.starts_at", mesIni)
-        .lt("events.starts_at", mesFim),
-      supabase
-        .from("unavailability")
-        .select("user_id")
-        .eq("church_id", cid)
-        .lte("start_date", eventoDia)
-        .gte("end_date", eventoDia),
-      supabase
-        .from("member_skills")
-        .select("user_id, skills!inner(name)")
-        .eq("church_id", cid)
-        .not("approved_by", "is", null),
-      supabase
-        .from("member_interests")
-        .select("user_id, skills!inner(name)")
-        .eq("church_id", cid),
-    ]);
-
-    const cargaBy = new Map<string, number>();
-    for (const a of cargas ?? []) {
-      cargaBy.set(a.user_id, (cargaBy.get(a.user_id) ?? 0) + 1);
-    }
-    const indispSet = new Set((indisp ?? []).map((u) => u.user_id));
-    const skillsBy = new Map<string, string[]>();
-    for (const skill of apts ?? []) {
-      const nome = (skill.skills as unknown as { name: string }).name;
-      skillsBy.set(skill.user_id, [...(skillsBy.get(skill.user_id) ?? []), nome]);
-    }
-    const intBy = new Map<string, string[]>();
-    for (const interest of ints ?? []) {
-      const nome = (interest.skills as unknown as { name: string }).name;
-      intBy.set(interest.user_id, [...(intBy.get(interest.user_id) ?? []), nome]);
-    }
-
-    members = (m ?? []).map((member) => ({
-      user_id: member.user_id,
-      full_name: (member.profiles as unknown as { full_name: string }).full_name,
-      cargaMes: cargaBy.get(member.user_id) ?? 0,
-      indisponivel: indispSet.has(member.user_id),
-      aptidoes: skillsBy.get(member.user_id) ?? [],
-      interesses: intBy.get(member.user_id) ?? [],
-    }));
-    equipments = eq ?? [];
-  }
-
   const teamMap = new Map<string, TeamGroup>();
+  for (const link of (eventMinistries ?? []) as unknown as EventMinistryLink[]) {
+    const ministry = firstRelated(link.ministries);
+    if (!ministry) continue;
+    teamMap.set(link.ministry_id, {
+      ministryId: link.ministry_id,
+      ministryName: ministry.name,
+      moduleKey: ministry.module_key,
+      rows: [],
+    });
+  }
+  // Compatibility for assignments created before event_ministries existed.
   for (const assignment of allAssignments) {
     const ministry = firstRelated(assignment.ministries);
     if (!ministry) continue;
@@ -278,6 +186,12 @@ export default async function EventoDetailPage({
       teamMap.set(assignment.ministry_id, {
         ministryId: assignment.ministry_id,
         ministryName: ministry.name,
+        moduleKey:
+          assignment.ministry_id === louvor?.id
+            ? "worship"
+            : assignment.ministry_id === kids?.id
+              ? "kids"
+              : "generic",
         rows: [assignment],
       });
     }
@@ -285,6 +199,10 @@ export default async function EventoDetailPage({
   const teams = [...teamMap.values()].sort((a, b) =>
     a.ministryName.localeCompare(b.ministryName, "pt-BR")
   );
+  const linkedMinistryIds = new Set(teams.map((team) => team.ministryId));
+  const addableMinistries = options
+    .filter((option) => option.canManage && !linkedMinistryIds.has(option.id))
+    .map((option) => ({ id: option.id, name: option.name }));
 
   const totalConfirmados = allAssignments.filter((a) =>
     ["confirmado", "presente"].includes(a.status)
@@ -436,7 +354,7 @@ export default async function EventoDetailPage({
             eventId={id}
             startsAt={event.starts_at}
             items={(serviceItems ?? []) as ServiceItem[]}
-            canManage={canManageActive}
+            canManage={canManageEvent}
           />
         )}
       </section>
@@ -454,7 +372,15 @@ export default async function EventoDetailPage({
               Visão consolidada das equipes deste evento.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {addableMinistries.length > 0 && (
+              <AddEventTeam
+                churchSlug={churchSlug}
+                churchId={tenant.church.id}
+                eventId={id}
+                options={addableMinistries}
+              />
+            )}
             <Badge variant="secondary" >
               {teams.length} {teams.length === 1 ? "ministério" : "ministérios"}
             </Badge>
@@ -472,7 +398,7 @@ export default async function EventoDetailPage({
           </div>
         </div>
 
-        {assignmentsError ? (
+        {assignmentsError || eventMinistriesError ? (
           <LoadError oQue="os times do culto" />
         ) : teams.length > 0 ? (
           <div className="grid gap-3 lg:grid-cols-2">
@@ -485,11 +411,14 @@ export default async function EventoDetailPage({
                 ["convidado", "substituicao_solicitada", "falar_lider"].includes(row.status)
               ).length;
               const dedicatedHref =
-                team.ministryId === louvor?.id
+                team.moduleKey === "worship"
                   ? `/${churchSlug}/louvor/escalas/${id}`
-                  : team.ministryId === kids?.id
+                  : team.moduleKey === "kids"
                     ? `/${churchSlug}/infantil/escalas/${id}`
                     : null;
+              const canOpenGeneric = options.some(
+                (option) => option.id === team.ministryId && option.canManage
+              );
 
               return (
                 <Card key={team.ministryId} >
@@ -502,7 +431,7 @@ export default async function EventoDetailPage({
                           {pending > 0 ? ` · ${pending} pendências` : ""}
                         </CardDescription>
                       </div>
-                      {dedicatedHref && (
+                      {dedicatedHref ? (
                         <Link
                           href={dedicatedHref}
                           className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors hover:bg-accent"
@@ -510,7 +439,15 @@ export default async function EventoDetailPage({
                           Abrir escala
                           <ArrowUpRight className="size-3.5" />
                         </Link>
-                      )}
+                      ) : canOpenGeneric ? (
+                        <Link
+                          href={`/${churchSlug}/escalas/${id}/times/${team.ministryId}`}
+                          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors hover:bg-accent"
+                        >
+                          Abrir escala
+                          <ArrowUpRight className="size-3.5" />
+                        </Link>
+                      ) : null}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
@@ -536,7 +473,7 @@ export default async function EventoDetailPage({
                     ))}
                     {visibleRows.length === 0 && (
                       <p className="py-2 text-sm text-muted-foreground">
-                        Sua participação está destacada acima.
+                        {team.rows.length === 0 ? "Nenhuma pessoa escalada ainda." : "Sua participação está destacada acima."}
                       </p>
                     )}
                   </CardContent>
@@ -552,32 +489,6 @@ export default async function EventoDetailPage({
           </Card>
         )}
       </section>
-
-      {canManageGeneric && activeMinistryId && active && (
-        <section className="space-y-3" aria-labelledby="gestao-time-title">
-          <div className="px-1">
-            <h2 id="gestao-time-title" className="text-lg font-semibold tracking-tight">
-              Gerenciar {active.name}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Este ministério ainda usa a área geral de Escalas para montar sua equipe.
-            </p>
-          </div>
-          <Card>
-            <CardContent className="pt-6">
-              <AssignmentManager
-                churchSlug={churchSlug}
-                churchId={tenant.church.id}
-                ministryId={activeMinistryId}
-                eventId={id}
-                assignments={activeRows}
-                members={members}
-                equipments={equipments}
-              />
-            </CardContent>
-          </Card>
-        </section>
-      )}
 
       {(event.description || event.script) && (
         <section className="space-y-3" aria-labelledby="informacoes-title">
