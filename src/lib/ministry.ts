@@ -36,6 +36,7 @@ export const getActiveMinistry = cache(
         .from("ministries")
         .select("id, name, slug, module_key")
         .eq("church_id", tenant.church.id)
+        .eq("active", true)
         .order("name");
       options = (data ?? []).map((m) => ({ ...m, canManage: true }));
     } else {

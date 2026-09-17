@@ -12,6 +12,7 @@ export async function getInfantilMinistry(
     .select("id, name")
     .eq("church_id", churchId)
     .eq("module_key", "kids")
+    .eq("active", true)
     .limit(1)
     .maybeSingle();
   return data ?? null;
