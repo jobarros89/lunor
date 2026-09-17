@@ -33,24 +33,6 @@ import {
 import { InviteLink } from "@/components/invite-link";
 import { PushToggle } from "@/components/push/push-toggle";
 
-function isKidsMinistry(ministry: { name: string; slug: string }) {
-  const slug = ministry.slug.toLocaleLowerCase("pt-BR");
-  const name = ministry.name.toLocaleLowerCase("pt-BR");
-  return (
-    ["kids", "infantil", "criancas", "crianças"].includes(slug) ||
-    name.includes("kids") ||
-    name.includes("infantil") ||
-    name.includes("crianças") ||
-    name.includes("criancas")
-  );
-}
-
-function isLouvorMinistry(ministry: { name: string; slug: string }) {
-  const slug = ministry.slug.toLocaleLowerCase("pt-BR");
-  const name = ministry.name.toLocaleLowerCase("pt-BR");
-  return slug === "louvor" || name.includes("louvor");
-}
-
 const ICONS: Record<
   ShellNavItemId,
   React.ComponentType<{ className?: string }>
@@ -78,9 +60,9 @@ export default async function MaisPage({
   if (tenant.guardianOnly) redirect(`/${churchSlug}/perfil`);
 
   const { active, options } = await getActiveMinistry(churchSlug);
-  const hasLouvor = options.some(isLouvorMinistry);
-  const hasKids = tenant.isGuardian || options.some(isKidsMinistry);
-  const activeMinistryNavigation = active && !isLouvorMinistry(active) && !isKidsMinistry(active)
+  const hasLouvor = options.some((ministry) => ministry.module_key === "worship");
+  const hasKids = tenant.isGuardian || options.some((ministry) => ministry.module_key === "kids");
+  const activeMinistryNavigation = active?.module_key === "generic"
     ? {
         href: `/disponibilidade?ministry=${active.id}`,
         label: active.name,

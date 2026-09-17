@@ -1,10 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 
-/**
- * O módulo de repertório opera sobre o setor "Louvor" da igreja.
- * Retorna null quando a igreja ainda não criou esse setor.
- */
+/** Retorna a área configurada para o módulo de repertório. */
 export async function getLouvorMinistry(
   churchId: string
 ): Promise<{ id: string; name: string } | null> {
@@ -13,7 +10,7 @@ export async function getLouvorMinistry(
     .from("ministries")
     .select("id, name")
     .eq("church_id", churchId)
-    .or("slug.eq.louvor,name.ilike.%louvor%")
+    .eq("module_key", "worship")
     .limit(1)
     .maybeSingle();
   return data ?? null;

@@ -75,6 +75,7 @@ const assignmentSchema = z.object({
   eventId: z.string().uuid(),
   userId: z.string().uuid(),
   departmentId: z.string().uuid().nullable().default(null),
+  functionId: z.string().uuid().nullable().default(null),
   roleName: z.string().min(2, "Informe a função").max(80),
   arrivalTime: z.string().default(""),
   itemsToBring: z.string().max(1000).default(""),
@@ -102,6 +103,7 @@ export async function addAssignment(raw: unknown): Promise<ActionResult> {
     event_id: d.eventId,
     user_id: d.userId,
     department_id: d.departmentId,
+    function_id: d.functionId,
     role_name: d.roleName,
     arrival_time: arrivalTime?.toISOString() ?? null,
     items_to_bring: d.itemsToBring || null,
@@ -145,8 +147,11 @@ export async function getAssignmentServingContext(raw: unknown) {
   const d = parsed.data;
   const supabase = await createClient();
 
-  const [{ data: departments, error: departmentsError }, { data: assignments, error: assignmentsError }] =
-    await Promise.all([
+  const [
+    { data: departments, error: departmentsError },
+    { data: functions, error: functionsError },
+    { data: assignments, error: assignmentsError },
+  ] = await Promise.all([
       supabase
         .from("departments")
         .select("id, name")
@@ -155,14 +160,21 @@ export async function getAssignmentServingContext(raw: unknown) {
         .eq("active", true)
         .order("name"),
       supabase
+        .from("team_functions")
+        .select("id, name, department_id")
+        .eq("church_id", d.churchId)
+        .eq("ministry_id", d.ministryId)
+        .eq("active", true)
+        .order("name"),
+      supabase
         .from("assignments")
-        .select("id, department_id, departments(name)")
+        .select("id, department_id, function_id, departments(name)")
         .eq("church_id", d.churchId)
         .eq("ministry_id", d.ministryId)
         .eq("event_id", d.eventId),
     ]);
 
-  if (departmentsError || assignmentsError) {
+  if (departmentsError || functionsError || assignmentsError) {
     return { ok: false as const, error: "Não foi possível carregar onde servir" };
   }
 
@@ -170,9 +182,11 @@ export async function getAssignmentServingContext(raw: unknown) {
     ok: true as const,
     data: {
       departments: departments ?? [],
+      functions: functions ?? [],
       assignments: (assignments ?? []).map((assignment) => ({
         id: assignment.id,
         department_id: assignment.department_id,
+        function_id: assignment.function_id,
         department_name:
           (assignment.departments as unknown as { name: string } | null)?.name ?? null,
       })),

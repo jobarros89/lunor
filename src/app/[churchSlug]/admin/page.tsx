@@ -36,6 +36,7 @@ export default async function AdminPage({
     { data: ministries },
     { data: counts },
     { data: departments },
+    { data: teamFunctions },
     { data: interesses },
     { data: aptas },
     { data: campuses },
@@ -55,6 +56,12 @@ export default async function AdminPage({
       .from("departments")
       .select("id, name, ministry_id")
       .eq("church_id", cid)
+      .order("name"),
+    supabase
+      .from("team_functions")
+      .select("id, name, ministry_id, department_id")
+      .eq("church_id", cid)
+      .eq("active", true)
       .order("name"),
     supabase
       .from("member_interests")
@@ -240,11 +247,10 @@ export default async function AdminPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Onde vai servir?</CardTitle>
+          <CardTitle className="text-base">Times e funções</CardTitle>
           <CardDescription>
-            Subdivisões opcionais de cada ministério, como Vocal, Banda ou
-            Berçário. Só aparecem na escala quando o ministério selecionado
-            tiver opções cadastradas.
+            Organize cada ministério/área em times e defina as funções disponíveis
+            para as escalas.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -252,6 +258,7 @@ export default async function AdminPage({
             churchSlug={churchSlug}
             churchId={tenant.church.id}
             departments={departments ?? []}
+            functions={teamFunctions ?? []}
             ministries={ministries ?? []}
           />
         </CardContent>
@@ -259,10 +266,10 @@ export default async function AdminPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Equipes</CardTitle>
+          <CardTitle className="text-base">Ministérios e áreas</CardTitle>
           <CardDescription>
-            Crie os times que servem na igreja. Administradores e gestores têm
-            acesso a todas as equipes automaticamente.
+            Crie as áreas que servem na igreja. Administradores e gestores têm
+            acesso a todas elas automaticamente.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -284,7 +291,7 @@ export default async function AdminPage({
             ))}
             {(ministries ?? []).length === 0 && (
               <p className="text-sm text-muted-foreground">
-                Nenhuma equipe ainda — crie a primeira acima.
+                Nenhum ministério/área ainda — crie o primeiro acima.
               </p>
             )}
           </div>
