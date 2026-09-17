@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/shell/sidebar";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { SessionKeeper } from "@/components/shell/session-keeper";
 import { BrandLockup } from "@/components/brand-lockup";
+import { OfflineNotice } from "@/components/shell/offline-notice";
 import { KidsNoticeBanner, type KidsPersonalNotice } from "@/components/infantil/kids-notice-banner";
 
 function isKidsMinistry(ministry: { name: string; slug: string }) {
@@ -73,7 +74,7 @@ export default async function TenantLayout({ children, params }: { children: Rea
             </Avatar>
             <div className="hidden min-w-0 md:block">
               <p className="truncate text-sm font-medium">{tenant.profile.full_name}</p>
-              <p className="text-[10px] capitalize tracking-wide text-muted-foreground">{today}</p>
+              <p className="text-xs capitalize text-muted-foreground">{today}</p>
             </div>
             <div className="ml-auto flex min-w-0 items-center gap-1">
               <ThemeToggle />
@@ -84,6 +85,7 @@ export default async function TenantLayout({ children, params }: { children: Rea
           </div>
         </header>
         <main id="main-content" tabIndex={-1} className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-6 md:px-8 md:pb-12 md:pt-8">
+          <OfflineNotice />
           <KidsNoticeBanner
             churchSlug={churchSlug}
             notices={(kidsNotices ?? []) as KidsPersonalNotice[]}

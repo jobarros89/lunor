@@ -11,7 +11,6 @@ export function BottomNav({
   hasKids = false,
   escalasPending = 0,
   guardianOnly = false,
-  isLeader = false,
 }: {
   churchSlug: string;
   hasLouvor?: boolean;
@@ -26,8 +25,7 @@ export function BottomNav({
         { href: "/infantil", label: "Meus filhos", icon: Baby, badge: 0 },
         { href: "/perfil", label: "Perfil", icon: User, badge: 0 },
       ]
-    : isLeader
-      ? [
+    : [
           { href: "", label: "Início", icon: Home, badge: 0 },
           ...(hasLouvor
             ? [{ href: "/louvor", label: "Louvor", icon: Music2, badge: 0 }]
@@ -37,12 +35,6 @@ export function BottomNav({
             : []),
           { href: "/escalas", label: "Escalas", icon: Calendar, badge: escalasPending },
           { href: "/mais", label: "Mais", icon: Menu, badge: 0 },
-        ]
-      : [
-          // Voluntário: 3 itens — foco no essencial
-          { href: "", label: "Início", icon: Home, badge: 0 },
-          { href: "/escalas", label: "Escalas", icon: Calendar, badge: escalasPending },
-          { href: "/perfil", label: "Perfil", icon: User, badge: 0 },
         ];
 
   return (

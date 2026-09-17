@@ -25,6 +25,12 @@ const ICONS: Record<ShellNavItemId, React.ComponentType<{ className?: string; st
   admin: Settings,
 };
 
+const NAV_GROUPS: { label: string; ids: ShellNavItemId[] }[] = [
+  { label: "Seu dia", ids: ["home", "escalas", "assistente"] },
+  { label: "Ministérios", ids: ["louvor", "kids", "ministry"] },
+  { label: "Organização", ids: ["pessoas", "distribuicao", "equipamentos", "admin", "perfil"] },
+];
+
 function getSidebarSnapshot() {
   return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
 }
@@ -125,8 +131,13 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]"
         aria-label="Navegação principal"
       >
-        <div className="flex flex-col gap-1 pb-2">
-          {nav.map(({ id, href, label }) => {
+        <div className="space-y-5 pb-2">
+          {NAV_GROUPS.map((group) => {
+            const items = group.ids.flatMap((id) => nav.filter((item) => item.id === id));
+            if (!items.length) return null;
+            return <div key={group.label} className="space-y-1" role="group" aria-label={group.label}>
+              {!collapsed && <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">{group.label}</p>}
+              {items.map(({ id, href, label }) => {
             const Icon = ICONS[id];
             const full = `/${churchSlug}${href}`;
             const pathOnly = full.split("?")[0];
@@ -160,6 +171,8 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
                 )}
               </Link>
             );
+              })}
+            </div>;
           })}
         </div>
       </nav>
