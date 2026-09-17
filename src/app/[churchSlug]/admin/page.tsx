@@ -247,54 +247,66 @@ export default async function AdminPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Times e funções</CardTitle>
+          <CardTitle className="text-base">Estrutura das equipes</CardTitle>
           <CardDescription>
-            Organize cada ministério/área em times e defina as funções disponíveis
-            para as escalas.
+            Organize sem duplicidade: primeiro a área, depois os times e, por fim,
+            as funções usadas nas escalas.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <DepartmentsManager
-            churchSlug={churchSlug}
-            churchId={tenant.church.id}
-            departments={departments ?? []}
-            functions={teamFunctions ?? []}
-            ministries={ministries ?? []}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Ministérios e áreas</CardTitle>
-          <CardDescription>
-            Crie as áreas que servem na igreja. Administradores e gestores têm
-            acesso a todas elas automaticamente.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <CreateMinistryForm
-            churchSlug={churchSlug}
-            churchId={tenant.church.id}
-          />
-          <div className="space-y-2">
-            {(ministries ?? []).map((m) => (
-              <div
-                key={m.id}
-                className="flex items-center justify-between rounded-2xl border px-4 py-3"
-              >
-                <p className="font-medium">{m.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {countByMinistry.get(m.id) ?? 0} membros
-                </p>
-              </div>
-            ))}
-            {(ministries ?? []).length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Nenhum ministério/área ainda — crie o primeiro acima.
+        <CardContent className="space-y-6">
+          <section className="space-y-3" aria-labelledby="areas-title">
+            <div>
+              <p id="areas-title" className="font-medium">
+                1. Ministérios e áreas
               </p>
-            )}
-          </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Exemplos: Louvor, Kids, Produção, Comunicação e Pastoral.
+              </p>
+            </div>
+            <CreateMinistryForm
+              churchSlug={churchSlug}
+              churchId={tenant.church.id}
+            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(ministries ?? []).map((m) => (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between rounded-xl border px-4 py-3"
+                >
+                  <p className="font-medium">{m.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {countByMinistry.get(m.id) ?? 0} membros
+                  </p>
+                </div>
+              ))}
+              {(ministries ?? []).length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma área criada ainda.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <div className="border-t" />
+
+          <section className="space-y-3" aria-labelledby="times-functions-title">
+            <div>
+              <p id="times-functions-title" className="font-medium">
+                2. Times e funções
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Dentro de cada área, crie os times. Dentro de cada time, cadastre
+                as funções que podem ser escaladas.
+              </p>
+            </div>
+            <DepartmentsManager
+              churchSlug={churchSlug}
+              churchId={tenant.church.id}
+              departments={departments ?? []}
+              functions={teamFunctions ?? []}
+              ministries={ministries ?? []}
+            />
+          </section>
         </CardContent>
       </Card>
 
