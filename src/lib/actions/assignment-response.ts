@@ -134,7 +134,7 @@ async function notifyAssignmentLeaders({
 }: {
   supabase: Awaited<ReturnType<typeof createClient>>;
   churchId: string;
-  ministryId: string;
+  ministryId: string | null;
   eventId: string;
   assignmentId: string;
   churchSlug: string;
@@ -144,22 +144,36 @@ async function notifyAssignmentLeaders({
 }) {
   const [{ data: profile }, { data: leaders }, { data: assignment }, { data: event }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
-    supabase
-      .from("ministry_members")
-      .select("user_id, church_id, ministry_id, role, active")
-      .eq("church_id", churchId)
-      .eq("ministry_id", ministryId)
-      .eq("active", true)
-      .in("role", ["gerente", "lider"]),
+    ministryId
+      ? supabase
+          .from("ministry_members")
+          .select("user_id, church_id, ministry_id, role, active")
+          .eq("church_id", churchId)
+          .eq("ministry_id", ministryId)
+          .eq("active", true)
+          .in("role", ["gerente", "lider"])
+      : supabase
+          .from("church_members")
+          .select("user_id, church_id, role, status")
+          .eq("church_id", churchId)
+          .eq("status", "active")
+          .in("role", ["admin", "coordenador"]),
     supabase.from("assignments").select("leader_id").eq("id", assignmentId).maybeSingle(),
     supabase.from("events").select("title").eq("id", eventId).maybeSingle(),
   ]);
 
-  const targets = ministryOperationalRecipientIds(leaders ?? [], {
-    churchId,
-    ministryId,
-    explicitLeaderId: assignment?.leader_id,
-  });
+  const targets = ministryId
+    ? ministryOperationalRecipientIds(leaders ?? [], {
+        churchId,
+        ministryId,
+        explicitLeaderId: assignment?.leader_id,
+      })
+    : [
+        ...new Set([
+          ...(leaders ?? []).map((leader) => leader.user_id),
+          ...(assignment?.leader_id ? [assignment.leader_id] : []),
+        ]),
+      ];
 
   await notifyUsers(targets, {
     title,

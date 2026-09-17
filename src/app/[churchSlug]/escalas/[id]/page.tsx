@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowUpRight, CalendarDays, Clock3, MapPin, Users } from "lucide-react";
+import { ArrowUpRight, BriefcaseBusiness, CalendarDays, Clock3, MapPin, Users } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { getLouvorMinistry } from "@/lib/louvor-server";
 import { getInfantilMinistry } from "@/lib/infantil";
@@ -29,19 +29,24 @@ import {
 } from "@/components/escalas/service-order-card";
 import { AddEventTeam } from "@/components/escalas/event-team-controls";
 import {
+  EventResponsibilities,
+  type EventResponsibilityMember,
+} from "@/components/escalas/event-responsibilities";
+import {
   EventSetlistSummary,
   type EventSetlistSummaryItem,
 } from "@/components/louvor/event-setlist-summary";
 
 type EventAssignment = {
   id: string;
-  ministry_id: string;
+  ministry_id: string | null;
+  assignment_scope: "team" | "event";
   user_id: string;
   role_name: string;
   status: string;
   arrival_time: string | null;
   items_to_bring: string | null;
-  ministries: { id: string; name: string } | { id: string; name: string }[];
+  ministries: { id: string; name: string } | { id: string; name: string }[] | null;
   profiles: { full_name: string } | { full_name: string }[] | null;
   leader: { full_name: string } | { full_name: string }[] | null;
 };
@@ -85,6 +90,7 @@ export default async function EventoDetailPage({
     { data: assignments, error: assignmentsError },
     { data: serviceItems, error: serviceItemsError },
     { data: eventMinistries, error: eventMinistriesError },
+    { data: churchMembers, error: churchMembersError },
     louvor,
     kids,
   ] = await Promise.all([
@@ -97,7 +103,7 @@ export default async function EventoDetailPage({
     supabase
       .from("assignments")
       .select(
-        "id, ministry_id, user_id, role_name, status, arrival_time, items_to_bring, ministries!inner(id, name), profiles!assignments_user_id_fkey(full_name), leader:profiles!assignments_leader_id_fkey(full_name)"
+        "id, ministry_id, assignment_scope, user_id, role_name, status, arrival_time, items_to_bring, ministries(id, name), profiles!assignments_user_id_fkey(full_name), leader:profiles!assignments_leader_id_fkey(full_name)"
       )
       .eq("church_id", tenant.church.id)
       .eq("event_id", id)
@@ -113,6 +119,14 @@ export default async function EventoDetailPage({
       .select("ministry_id, ministries!inner(id, name, module_key)")
       .eq("church_id", tenant.church.id)
       .eq("event_id", id),
+    tenant.isCoord
+      ? supabase
+          .from("church_members")
+          .select("user_id, profiles!inner(full_name)")
+          .eq("church_id", tenant.church.id)
+          .eq("status", "active")
+          .order("full_name", { referencedTable: "profiles" })
+      : Promise.resolve({ data: [], error: null }),
     getLouvorMinistry(tenant.church.id),
     getInfantilMinistry(tenant.church.id),
   ]);
@@ -133,6 +147,22 @@ export default async function EventoDetailPage({
   const canManageEvent = tenant.isCoord || options.some(canManageAtEventCampus);
 
   const allAssignments = (assignments ?? []) as unknown as EventAssignment[];
+  const eventResponsibilities = allAssignments.filter(
+    (assignment) => assignment.assignment_scope === "event"
+  );
+  const teamAssignments = allAssignments.filter(
+    (assignment) => assignment.assignment_scope !== "event"
+  );
+  const responsibilityMembers = (churchMembers ?? []).map((membership) => ({
+    user_id: membership.user_id,
+    full_name:
+      firstRelated(
+        membership.profiles as unknown as
+          | { full_name: string }
+          | { full_name: string }[]
+          | null
+      )?.full_name ?? "Sem nome",
+  })) satisfies EventResponsibilityMember[];
   let canOpenLouvor = tenant.isCoord;
   if (louvor && !canOpenLouvor) {
     const { data: louvorMembership } = await supabase
@@ -187,7 +217,7 @@ export default async function EventoDetailPage({
     });
   }
   // Compatibility for assignments created before event_ministries existed.
-  for (const assignment of allAssignments) {
+  for (const assignment of teamAssignments) {
     const ministry = firstRelated(assignment.ministries);
     if (!ministry) continue;
     const current = teamMap.get(assignment.ministry_id);
@@ -215,10 +245,10 @@ export default async function EventoDetailPage({
     .filter((option) => canManageAtEventCampus(option) && !linkedMinistryIds.has(option.id))
     .map((option) => ({ id: option.id, name: option.name }));
 
-  const totalConfirmados = allAssignments.filter((a) =>
+  const totalConfirmados = teamAssignments.filter((a) =>
     ["confirmado", "presente"].includes(a.status)
   ).length;
-  const totalPendencias = allAssignments.filter((a) =>
+  const totalPendencias = teamAssignments.filter((a) =>
     ["convidado", "substituicao_solicitada", "falar_lider"].includes(a.status)
   ).length;
 
@@ -370,6 +400,48 @@ export default async function EventoDetailPage({
         )}
       </section>
 
+      {(eventResponsibilities.length > 0 || tenant.isCoord) && (
+        <section className="space-y-4" aria-labelledby="event-responsibilities-title">
+          <div className="px-1">
+            <div className="flex items-center gap-2">
+              <BriefcaseBusiness className="size-5" aria-hidden="true" />
+              <h2
+                id="event-responsibilities-title"
+                className="text-lg font-semibold tracking-tight"
+              >
+                Responsabilidades do evento
+              </h2>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Funções ligadas diretamente ao culto, sem vínculo artificial com um time.
+            </p>
+          </div>
+          <Card>
+            <CardContent className="pt-5">
+              {churchMembersError ? (
+                <LoadError oQue="as pessoas disponíveis" />
+              ) : (
+                <EventResponsibilities
+                  churchSlug={churchSlug}
+                  churchId={tenant.church.id}
+                  eventId={id}
+                  responsibilities={eventResponsibilities.map((assignment) => ({
+                    id: assignment.id,
+                    user_id: assignment.user_id,
+                    full_name:
+                      firstRelated(assignment.profiles)?.full_name ?? "—",
+                    role_name: assignment.role_name,
+                    status: assignment.status,
+                  }))}
+                  members={responsibilityMembers}
+                  canManage={tenant.isCoord}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
       <section className="space-y-4" aria-labelledby="times-title">
         <div className="flex flex-wrap items-end justify-between gap-3 px-1">
           <div>
@@ -396,7 +468,7 @@ export default async function EventoDetailPage({
               {teams.length} {teams.length === 1 ? "ministério" : "ministérios"}
             </Badge>
             <Badge variant="secondary" >
-              {allAssignments.length} escalados
+              {teamAssignments.length} escalados
             </Badge>
             <Badge className="border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
               {totalConfirmados} confirmados
