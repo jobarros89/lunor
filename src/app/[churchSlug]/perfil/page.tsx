@@ -51,7 +51,7 @@ export default async function PerfilPage({
   return (
     <div className="space-y-6">
       <h1 className="page-title ">Perfil</h1>
-      <Card className="rounded-3xl">
+      <Card>
         <CardContent className="flex items-center gap-4 pt-6">
           <Avatar className="size-16">
             <AvatarImage src={tenant.profile.avatar_url ?? undefined} />
@@ -64,7 +64,6 @@ export default async function PerfilPage({
                 <Badge
                   key={label}
                   variant="secondary"
-                  className="rounded-full"
                 >
                   {label}
                 </Badge>
@@ -74,7 +73,7 @@ export default async function PerfilPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardContent className="py-4">
           <PushToggle
             churchId={tenant.church.id}
@@ -84,7 +83,7 @@ export default async function PerfilPage({
       </Card>
 
       <Link href={`/${churchSlug}/pessoas/${tenant.userId}`} className="block">
-        <Card className="rounded-3xl transition-colors hover:bg-accent/40">
+        <Card className="transition-colors hover:bg-accent/40">
           <CardContent className="flex items-center justify-between gap-3 py-4">
             <div>
               <p className="font-medium">Meu perfil completo</p>
@@ -97,7 +96,7 @@ export default async function PerfilPage({
         </Card>
       </Link>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardContent className="space-y-3 py-4">
           <div>
             <p className="font-medium">Meus dados</p>
@@ -108,7 +107,7 @@ export default async function PerfilPage({
           <Button
             variant="outline"
             nativeButton={false}
-            className="h-11 w-full rounded-full"
+            className="w-full"
             render={<a href={`/${churchSlug}/exportar/pessoal`} download />}
           >
             <Download className="size-4" />
@@ -118,7 +117,7 @@ export default async function PerfilPage({
       </Card>
 
       <form action={signOut}>
-        <Button variant="outline" className="h-12 w-full rounded-full">
+        <Button variant="outline" className="h-12 w-full">
           Sair da conta
         </Button>
       </form>

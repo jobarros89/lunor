@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { notFound, redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
@@ -24,12 +25,15 @@ export default async function EditarHorarioEventoPage({
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="page-title ">Editar data e horário</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Corrija o horário do culto sem recriar o evento ou perder as escalas existentes.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Editar data e horário</>}
+        description={
+          <>
+            Corrija o horário do culto sem recriar o evento ou perder as escalas
+            existentes.
+          </>
+        }
+      />
 
       <EventScheduleForm
         churchSlug={churchSlug}

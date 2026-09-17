@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -46,21 +47,16 @@ export default async function EditarMusicaPage({
       <Button
         variant="ghost"
         nativeButton={false}
-        className="-ml-3 rounded-full"
+        className="-ml-3"
         render={<Link href={`/${churchSlug}/louvor/${songId}`} />}
       >
         <ArrowLeft className="size-4" />
         Voltar para a música
       </Button>
 
-      <div>
-        <h1 className="page-title ">
-          Editar música
-        </h1>
-        <p className="text-muted-foreground">{song.title}</p>
-      </div>
+      <PageHeader title={<>Editar música</>} description={<>{song.title}</>} />
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardContent className="pt-6">
           <SongForm
             mode="edit"

@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
@@ -25,22 +26,22 @@ export default async function ManutencoesPage({
   const { data: tickets } = await supabase
     .from("maintenance_tickets")
     .select(
-      "id, title, priority, status, opened_at, resolved_at, equipments!inner(name)"
+      "id, title, priority, status, opened_at, resolved_at, equipments!inner(name)",
     )
     .eq("church_id", tenant.church.id)
     .order("created_at", { ascending: false })
     .limit(100);
 
   const open = (tickets ?? []).filter(
-    (t) => !["concluido", "cancelado"].includes(t.status)
+    (t) => !["concluido", "cancelado"].includes(t.status),
   );
   const closed = (tickets ?? []).filter((t) =>
-    ["concluido", "cancelado"].includes(t.status)
+    ["concluido", "cancelado"].includes(t.status),
   );
 
   const TicketCard = ({ t }: { t: NonNullable<typeof tickets>[number] }) => (
     <Link href={`/${churchSlug}/manutencoes/${t.id}`}>
-      <Card className="mb-3 rounded-3xl transition-colors hover:bg-accent/40">
+      <Card className="mb-3 transition-colors hover:bg-accent/40">
         <CardContent className="space-y-2 py-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -70,33 +71,31 @@ export default async function ManutencoesPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-title ">
-            Manutenções
-          </h1>
-          <p className="text-muted-foreground">
-            {open.length} chamados abertos
-          </p>
-        </div>
-        {tenant.isLeader && (
-          <Button
-            className="h-11 rounded-full px-5"
-            nativeButton={false}
-            render={<Link href={`/${churchSlug}/manutencoes/novo`} />}
-          >
-            <Plus className="size-4" />
-            Novo
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title={<>Manutenções</>}
+        description={<>{open.length} chamados abertos</>}
+        actions={
+          <>
+            {tenant.isLeader && (
+              <Button
+                className="px-5"
+                nativeButton={false}
+                render={<Link href={`/${churchSlug}/manutencoes/novo`} />}
+              >
+                <Plus className="size-4" />
+                Novo
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <div>
         {open.map((t) => (
           <TicketCard key={t.id} t={t} />
         ))}
         {open.length === 0 && (
-          <Card className="rounded-3xl">
+          <Card>
             <CardContent className="py-10 text-center text-sm text-muted-foreground">
               Nenhum chamado aberto. 🎉
             </CardContent>

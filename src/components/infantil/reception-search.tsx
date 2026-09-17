@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { ChevronRight } from "lucide-react";
+import { SearchInput } from "@/components/ui/search-input";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -38,13 +40,13 @@ function matches(child: SessionChild, query: string) {
       child.fullName,
       child.className ?? "",
       ...child.guardians.map((guardian) => guardian.name),
-    ].join(" ")
+    ].join(" "),
   );
   if (text.includes(term)) return true;
 
   if (termDigits.length >= 3) {
     return child.guardians.some((guardian) =>
-      digitsOnly(guardian.phone ?? "").includes(termDigits)
+      digitsOnly(guardian.phone ?? "").includes(termDigits),
     );
   }
 
@@ -89,13 +91,14 @@ export function ReceptionSearch({
 
   const filtered = useMemo(
     () => sessionChildren.filter((child) => matches(child, query)),
-    [sessionChildren, query]
+    [sessionChildren, query],
   );
 
   const searching = query.trim().length > 0;
 
   const selectedChild = useMemo(() => {
-    const explicit = filtered.find((child) => child.id === selectedChildId) ?? null;
+    const explicit =
+      filtered.find((child) => child.id === selectedChildId) ?? null;
     if (explicit) return explicit;
     if (searching && filtered.length === 1) return filtered[0];
     return null;
@@ -126,23 +129,22 @@ export function ReceptionSearch({
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-2 z-10 rounded-3xl border bg-background/95 p-3 shadow-sm backdrop-blur">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setSelectedChildId(null);
-            }}
-            placeholder="Buscar criança, responsável ou telefone"
-            autoComplete="off"
-            inputMode="search"
-            className="h-14 rounded-2xl pl-12 text-base"
-            aria-label="Buscar criança, responsável ou telefone"
-          />
-        </div>
-        <p className="mt-2 px-1 text-xs text-muted-foreground">
+      <div className="rounded-xl border bg-card p-4 shadow-[var(--shadow-surface)]">
+        <SearchInput
+          label="Buscar criança, responsável ou telefone"
+          value={query}
+          onValueChange={(value) => {
+            setQuery(value);
+            setSelectedChildId(null);
+          }}
+          placeholder="Buscar criança, responsável ou telefone"
+          inputMode="search"
+        />
+        <p
+          role="status"
+          aria-live="polite"
+          className="mt-3 text-sm leading-relaxed text-muted-foreground"
+        >
           {searching
             ? `${filtered.length} resultado${filtered.length === 1 ? "" : "s"}${filtered.length > 1 ? " · toque para selecionar" : ""}`
             : "Digite o nome da criança, responsável ou telefone. Irmãos aparecem juntos quando compartilham o mesmo responsável."}
@@ -150,7 +152,7 @@ export function ReceptionSearch({
       </div>
 
       {searching && filtered.length > 1 && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="space-y-2 py-3">
             {filtered.map((child) => {
               const selected = child.id === selectedChildId;
@@ -194,10 +196,10 @@ export function ReceptionSearch({
       {!searching &&
         byClass.map(([className, items]) => {
           const presentes = items.filter(
-            (item) => item.checkin && !item.checkin.checkedOut
+            (item) => item.checkin && !item.checkin.checkedOut,
           ).length;
           return (
-            <Card key={className} className="rounded-3xl">
+            <Card key={className}>
               <CardHeader>
                 <CardTitle className="text-base">{className}</CardTitle>
                 <CardDescription>
@@ -215,14 +217,27 @@ export function ReceptionSearch({
         })}
 
       {searching && filtered.length === 0 && (
-        <Card className="rounded-3xl">
-          <CardContent className="py-8 text-center">
-            <p className="font-medium">Nenhum cadastro encontrado</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Tente outro nome ou alguns números do telefone.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="Nenhum cadastro encontrado"
+          description="Tente outro nome ou alguns números do telefone."
+          action={
+            <Button
+              variant="outline"
+              onClick={() => {
+                setQuery("");
+                setSelectedChildId(null);
+              }}
+            >
+              Limpar busca
+            </Button>
+          }
+        />
+      )}
+      {!searching && sessionChildren.length === 0 && (
+        <EmptyState
+          title="Nenhuma criança nesta recepção"
+          description="Os cadastros disponíveis para esta operação aparecerão aqui. Confira a sessão e o campus selecionados."
+        />
       )}
     </div>
   );

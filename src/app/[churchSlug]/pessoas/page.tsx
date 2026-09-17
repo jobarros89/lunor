@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { TeamDirectory } from "@/components/pessoas/team-directory";
 import { LoadError } from "@/components/shell/load-error";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -64,62 +62,39 @@ export default async function PessoasPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title ">Equipe</h1>
-        <p className="text-muted-foreground">
-          {members?.length ?? 0} pessoas na igreja
-          {tenant.role === "admin" && " · toque em uma pessoa para gerenciar permissões"}
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        {membersError && <LoadError oQue="a equipe" />}
-        {(members ?? []).map((m) => {
-          const profile = m.profiles as unknown as {
-            full_name: string;
-            avatar_url: string | null;
-            profession: string | null;
-          };
-          const initials = profile.full_name
-            .split(" ")
-            .map((n) => n[0])
-            .slice(0, 2)
-            .join("")
-            .toUpperCase();
-          const userRoles = rolesByUser.get(m.user_id) ?? [];
-          const count = skillCount.get(m.user_id) ?? 0;
-
-          return (
-            <Link key={m.user_id} href={`/${churchSlug}/pessoas/${m.user_id}`} className="block">
-              <Card className="rounded-3xl transition-colors hover:bg-accent/40">
-                <CardContent className="flex items-center gap-4 py-4">
-                  <Avatar className="size-12">
-                    <AvatarImage src={profile.avatar_url ?? undefined} />
-                    <AvatarFallback>{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{profile.full_name}</p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {profile.profession || "—"}
-                      {count > 0 && ` · ${count} aptidões`}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap justify-end gap-1">
-                    {CHURCH_ROLE_LABELS[m.role] && (
-                      <Badge className="rounded-full">{CHURCH_ROLE_LABELS[m.role]}</Badge>
-                    )}
-                    {userRoles.map((r) => (
-                      <Badge key={r} variant="secondary" className="rounded-full">
-                        {ROLE_LABELS[r] ?? r}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
+      <PageHeader
+        title="Equipe"
+        description={
+          tenant.role === "admin"
+            ? "Encontre as pessoas da igreja e acesse sua ficha para gerenciar funções e permissões."
+            : "Encontre as pessoas da igreja e consulte suas funções e aptidões."
+        }
+      />
+      {membersError ? (
+        <LoadError oQue="a equipe" />
+      ) : (
+        <TeamDirectory
+          churchSlug={churchSlug}
+          members={(members ?? []).map((member) => {
+            const profile = member.profiles as unknown as {
+              full_name: string;
+              avatar_url: string | null;
+              profession: string | null;
+            };
+            return {
+              id: member.user_id,
+              name: profile.full_name,
+              avatarUrl: profile.avatar_url,
+              profession: profile.profession,
+              skillCount: skillCount.get(member.user_id) ?? 0,
+              churchRole: CHURCH_ROLE_LABELS[member.role] ?? null,
+              roles: (rolesByUser.get(member.user_id) ?? []).map(
+                (role) => ROLE_LABELS[role] ?? role,
+              ),
+            };
+          })}
+        />
+      )}
     </div>
   );
 }

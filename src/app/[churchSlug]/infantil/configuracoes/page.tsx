@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { getInfantilMinistry } from "@/lib/infantil";
@@ -74,17 +75,16 @@ export default async function KidsPrintSettingsPage({
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Kids · Configurações
-        </p>
-        <h1 className="page-title mt-1">
-          Configurações do Kids
-        </h1>
-        <p className="mt-1 max-w-2xl text-muted-foreground">
-          Configure as turmas de cada campus e ajuste a impressão usada na operação do Kids.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Configurações do Kids</>}
+        eyebrow={<>Kids · Configurações</>}
+        description={
+          <>
+            Configure as turmas de cada campus e ajuste a impressão usada na
+            operação do Kids.
+          </>
+        }
+      />
 
       <KidsClassSettingsForm
         churchSlug={churchSlug}
@@ -96,9 +96,12 @@ export default async function KidsPrintSettingsPage({
 
       <section className="space-y-5">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Impressão de etiquetas</h2>
+          <h2 className="text-xl font-semibold tracking-tight">
+            Impressão de etiquetas
+          </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Defina o formato usado no check-in. O modo Universal continua sendo a opção compatível com o diálogo de impressão do dispositivo.
+            Defina o formato usado no check-in. O modo Universal continua sendo
+            a opção compatível com o diálogo de impressão do dispositivo.
           </p>
         </div>
         <KidsPrintSettingsForm

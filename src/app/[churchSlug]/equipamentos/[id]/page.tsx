@@ -83,7 +83,7 @@ export default async function EquipamentoDetailPage({
           </div>
           <div>
             <h1 className="page-title ">{eq.name}</h1>
-            <Badge variant="secondary" className="mt-1 rounded-full">
+            <Badge variant="secondary" className="mt-1">
               {STATUS_LABELS[eq.status]}
             </Badge>
           </div>
@@ -92,7 +92,7 @@ export default async function EquipamentoDetailPage({
           <div className="flex shrink-0 flex-col gap-2">
             <Button
               variant="outline"
-              className="h-10 rounded-full px-4"
+              className="h-10 px-4"
               nativeButton={false}
               render={
                 <Link href={`/${churchSlug}/equipamentos/${id}/editar`} />
@@ -104,7 +104,7 @@ export default async function EquipamentoDetailPage({
             {tenant.isManager && (
               <Button
                 variant="outline"
-                className="h-10 rounded-full px-4"
+                className="h-10 px-4"
                 nativeButton={false}
                 render={
                   <Link
@@ -120,7 +120,7 @@ export default async function EquipamentoDetailPage({
         )}
       </div>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Informações</CardTitle>
         </CardHeader>
@@ -169,7 +169,7 @@ export default async function EquipamentoDetailPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Histórico</CardTitle>
         </CardHeader>

@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { redirect } from "next/navigation";
 import { HeartHandshake } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
@@ -50,12 +51,12 @@ export default async function AssinaturaPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title ">Assinatura</h1>
-        <p className="text-muted-foreground">{tenant.church.name}</p>
-      </div>
+      <PageHeader
+        title={<>Assinatura</>}
+        description={<>{tenant.church.name}</>}
+      />
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardContent className="space-y-3 py-6">
           <div className="flex flex-wrap items-center gap-3">
             <Badge className={`rounded-full border-0 ${corStatus}`}>
@@ -85,7 +86,7 @@ export default async function AssinaturaPage({
       </Card>
 
       {status !== "isenta" && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Como pagar</CardTitle>
             <CardDescription>
@@ -102,12 +103,14 @@ export default async function AssinaturaPage({
                   </p>
                   <p className="mt-1 font-mono text-base break-all">{pixKey}</p>
                   {pixNome && (
-                    <p className="mt-1 text-sm text-muted-foreground">{pixNome}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {pixNome}
+                    </p>
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Depois de pagar, avise aqui — a validade é atualizada assim que
-                  conferirmos.
+                  Depois de pagar, avise aqui — a validade é atualizada assim
+                  que conferirmos.
                 </p>
                 <ClaimPaymentButton
                   churchSlug={churchSlug}
@@ -123,7 +126,7 @@ export default async function AssinaturaPage({
         </Card>
       )}
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <HeartHandshake className="size-4" />

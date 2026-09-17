@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { redirect } from "next/navigation";
 import { Link2, ShieldCheck } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
@@ -74,23 +75,25 @@ export default async function ResponsaveisPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          LUNOR Kids
-        </p>
-        <h1 className="page-title ">Responsáveis</h1>
-        <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Gere o acesso familiar para pais e responsáveis ou vincule uma conta LUNOR já existente.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Responsáveis</>}
+        eyebrow={<>LUNOR Kids</>}
+        description={
+          <>
+            Gere o acesso familiar para pais e responsáveis ou vincule uma conta
+            LUNOR já existente.
+          </>
+        }
+      />
 
-      <Card className="rounded-3xl border-brand/20 bg-brand/5 shadow-none">
+      <Card className="border-brand/20 bg-brand/5 shadow-none">
         <CardContent className="flex gap-3 py-4">
           <ShieldCheck className="mt-0.5 size-5 shrink-0 text-brand" />
           <div className="text-sm">
             <p className="font-medium">Acesso restrito à família</p>
             <p className="mt-1 text-muted-foreground">
-              O convite ou vínculo associa a conta ao responsável selecionado. A família vê somente as crianças associadas ao próprio vínculo.
+              O convite ou vínculo associa a conta ao responsável selecionado. A
+              família vê somente as crianças associadas ao próprio vínculo.
             </p>
           </div>
         </CardContent>
@@ -100,22 +103,26 @@ export default async function ResponsaveisPage({
         <div>
           <h2 className="text-lg font-semibold">Gerar acesso familiar</h2>
           <p className="text-sm text-muted-foreground">
-            Gere QR Code e link para quem ainda não possui uma conta LUNOR vinculada.
+            Gere QR Code e link para quem ainda não possui uma conta LUNOR
+            vinculada.
           </p>
         </div>
         <GuardianInvitePanel churchSlug={churchSlug} guardians={rows} />
       </section>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <div className="flex items-start gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted">
               <Link2 className="size-5" />
             </span>
             <div>
-              <CardTitle className="text-base">Vincular conta existente</CardTitle>
+              <CardTitle className="text-base">
+                Vincular conta existente
+              </CardTitle>
               <CardDescription className="mt-1">
-                Use quando o responsável já possui uma conta LUNOR ativa nesta igreja.
+                Use quando o responsável já possui uma conta LUNOR ativa nesta
+                igreja.
               </CardDescription>
             </div>
           </div>

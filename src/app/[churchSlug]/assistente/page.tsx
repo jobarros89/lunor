@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { redirect } from "next/navigation";
 import { AssistantPanel } from "@/components/ai/assistant-panel";
 import {
@@ -35,19 +36,25 @@ export default async function AssistantPage({
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-7 pb-8">
-      <header>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Inteligência operacional
-        </p>
-        <h1 className="page-title mt-2">Assistente LUNOR</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Um único copiloto para a operação da igreja. O contexto atual é {ministry.name}, mas você pode perguntar sobre outros módulos e ministérios que gerencia.
-        </p>
-      </header>
+      <PageHeader
+        title={<>Assistente LUNOR</>}
+        eyebrow={<>Inteligência operacional</>}
+        description={
+          <>
+            Um único copiloto para a operação da igreja. O contexto atual é{" "}
+            {ministry.name}, mas você pode perguntar sobre outros módulos e
+            ministérios que gerencia.
+          </>
+        }
+      />
 
       <AssistantPanel
         key={`${churchSlug}:${ministry.id}:${query.question ?? ""}`}
-        initialQuestion={typeof query.question === "string" ? query.question.slice(0, 1500) : ""}
+        initialQuestion={
+          typeof query.question === "string"
+            ? query.question.slice(0, 1500)
+            : ""
+        }
         churchSlug={churchSlug}
         ministryId={ministry.id}
         ministryName={ministry.name}
@@ -62,4 +69,3 @@ export default async function AssistantPage({
     </div>
   );
 }
-

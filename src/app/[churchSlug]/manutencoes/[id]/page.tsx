@@ -71,7 +71,7 @@ export default async function ChamadoDetailPage({
       </div>
 
       {t.description && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Detalhes</CardTitle>
           </CardHeader>
@@ -83,7 +83,7 @@ export default async function ChamadoDetailPage({
         </Card>
       )}
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Resolução</CardTitle>
         </CardHeader>

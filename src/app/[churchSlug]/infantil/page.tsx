@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
@@ -58,24 +59,21 @@ export default async function InfantilPage({
   if (!ministry) {
     return (
       <div className="space-y-6">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            LUNOR Kids
-          </p>
-          <h1 className="page-title ">Kids</h1>
-        </div>
-        <Card className="rounded-3xl">
+        <PageHeader title={<>Kids</>} eyebrow={<>LUNOR Kids</>} />
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base">Kids ainda não está ativo</CardTitle>
+            <CardTitle className="text-base">
+              Kids ainda não está ativo
+            </CardTitle>
             <CardDescription>
-              Crie um ministério Infantil/Kids na Administração para ativar o módulo.
+              Crie um ministério Infantil/Kids na Administração para ativar o
+              módulo.
             </CardDescription>
           </CardHeader>
           {tenant.isCoord && (
             <CardContent>
               <Button
                 nativeButton={false}
-                className="h-11 rounded-full"
                 render={<Link href={`/${churchSlug}/admin`} />}
               >
                 Ir para Administração
@@ -122,7 +120,9 @@ export default async function InfantilPage({
 
   // eslint-disable-next-line react-hooks/purity
   const requestNowMs = Date.now();
-  const sessionWindowStart = new Date(requestNowMs - 6 * 60 * 60 * 1000).toISOString();
+  const sessionWindowStart = new Date(
+    requestNowMs - 6 * 60 * 60 * 1000,
+  ).toISOString();
 
   const [
     { data: classes },
@@ -195,7 +195,10 @@ export default async function InfantilPage({
     }))
     .sort((a, b) => a.fullName.localeCompare(b.fullName, "pt-BR"));
 
-  let checkins: Array<{ class_id: string | null; checked_out_at: string | null }> = [];
+  let checkins: Array<{
+    class_id: string | null;
+    checked_out_at: string | null;
+  }> = [];
   let chamadasPendentes = 0;
   const sessionIds = activeReceptions.map((reception) => reception.session_id);
 
@@ -224,26 +227,24 @@ export default async function InfantilPage({
     if (!item.checked_out_at && item.class_id) {
       presentesPorTurma.set(
         item.class_id,
-        (presentesPorTurma.get(item.class_id) ?? 0) + 1
+        (presentesPorTurma.get(item.class_id) ?? 0) + 1,
       );
     }
   }
 
   const campusesWithoutClasses = campusRows.filter(
-    (campus) => !turmas.some((turma) => turma.campus_id === campus.id)
+    (campus) => !turmas.some((turma) => turma.campus_id === campus.id),
   );
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          LUNOR Kids
-        </p>
-        <h1 className="page-title mt-1">Dashboard Kids</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Crianças, turmas e operação da recepção em um só lugar.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Dashboard Kids</>}
+        eyebrow={<>LUNOR Kids</>}
+        description={
+          <>Crianças, turmas e operação da recepção em um só lugar.</>
+        }
+      />
 
       <KidsReceptionBar
         churchSlug={churchSlug}
@@ -262,7 +263,7 @@ export default async function InfantilPage({
       />
 
       {activeReceptions.length > 0 && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Operação atual</CardTitle>
             <CardDescription>
@@ -275,23 +276,33 @@ export default async function InfantilPage({
             <Metric icon={Users} value={presentes} label="Presentes" />
             <Metric icon={LogIn} value={entradas} label="Check-ins" />
             <Metric icon={LogOut} value={saidas} label="Check-outs" />
-            <Metric icon={BellRing} value={chamadasPendentes} label="Chamadas" />
+            <Metric
+              icon={BellRing}
+              value={chamadasPendentes}
+              label="Chamadas"
+            />
           </CardContent>
         </Card>
       )}
 
       {campusesWithoutClasses.length > 0 && podeGerir && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base">Configurar turmas por campus</CardTitle>
+            <CardTitle className="text-base">
+              Configurar turmas por campus
+            </CardTitle>
             <CardDescription>
-              {campusesWithoutClasses.map((campus) => campus.name).join(", ")} ainda {campusesWithoutClasses.length === 1 ? "não possui" : "não possuem"} turmas configuradas.
+              {campusesWithoutClasses.map((campus) => campus.name).join(", ")}{" "}
+              ainda{" "}
+              {campusesWithoutClasses.length === 1
+                ? "não possui"
+                : "não possuem"}{" "}
+              turmas configuradas.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button
               nativeButton={false}
-              className="h-11 rounded-full"
               render={<Link href={`/${churchSlug}/infantil/configuracoes`} />}
             >
               Configurar turmas
@@ -300,22 +311,25 @@ export default async function InfantilPage({
         </Card>
       )}
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Turmas</CardTitle>
           <CardDescription>
-            Expanda somente o campus que deseja visualizar. Campi com recepção aberta ficam abertos por padrão.
+            Expanda somente o campus que deseja visualizar. Campi com recepção
+            aberta ficam abertos por padrão.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {campusRows.map((campus) => {
-            const campusClasses = turmas.filter((turma) => turma.campus_id === campus.id);
+            const campusClasses = turmas.filter(
+              (turma) => turma.campus_id === campus.id,
+            );
             const receptionOpen = activeReceptions.some(
-              (reception) => reception.campus_id === campus.id
+              (reception) => reception.campus_id === campus.id,
             );
             const campusPresentes = campusClasses.reduce(
               (total, turma) => total + (presentesPorTurma.get(turma.id) ?? 0),
-              0
+              0,
             );
 
             return (
@@ -328,21 +342,25 @@ export default async function InfantilPage({
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{campus.name}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                      <span>{receptionOpen ? "Recepção aberta" : "Recepção fechada"}</span>
-                      <span aria-hidden="true">·</span>
                       <span>
-                        {campusClasses.length} {campusClasses.length === 1 ? "turma" : "turmas"}
+                        {receptionOpen ? "Recepção aberta" : "Recepção fechada"}
                       </span>
                       <span aria-hidden="true">·</span>
                       <span>
-                        {campusPresentes} {campusPresentes === 1 ? "presente" : "presentes"}
+                        {campusClasses.length}{" "}
+                        {campusClasses.length === 1 ? "turma" : "turmas"}
+                      </span>
+                      <span aria-hidden="true">·</span>
+                      <span>
+                        {campusPresentes}{" "}
+                        {campusPresentes === 1 ? "presente" : "presentes"}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
                     {receptionOpen && (
-                      <Badge className="hidden rounded-full border-0 bg-emerald-100 text-emerald-800 sm:inline-flex">
+                      <Badge className="hidden border-0 bg-emerald-100 text-emerald-800 sm:inline-flex">
                         Aberta
                       </Badge>
                     )}
@@ -357,8 +375,12 @@ export default async function InfantilPage({
                         nativeButton={false}
                         variant="ghost"
                         size="sm"
-                        className="h-8 rounded-full px-3 text-xs"
-                        render={<Link href={`/${churchSlug}/infantil/configuracoes`} />}
+                        className="h-8 px-3 text-xs"
+                        render={
+                          <Link
+                            href={`/${churchSlug}/infantil/configuracoes`}
+                          />
+                        }
                       >
                         Configurar {campus.name}
                       </Button>
@@ -378,7 +400,7 @@ export default async function InfantilPage({
                             {qtd} {qtd === 1 ? "presente" : "presentes"}
                           </p>
                         </div>
-                        <Badge variant="secondary" className="shrink-0 rounded-full">
+                        <Badge variant="secondary" className="shrink-0">
                           {qtd}
                         </Badge>
                       </div>
@@ -403,16 +425,18 @@ export default async function InfantilPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl">
-        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <div>
             <CardTitle className="text-base">Crianças</CardTitle>
-            <CardDescription>{children?.length ?? 0} cadastradas</CardDescription>
+            <CardDescription>
+              {children?.length ?? 0} cadastradas
+            </CardDescription>
           </div>
           {podeGerir && (
             <Button
               nativeButton={false}
-              className="h-10 shrink-0 rounded-full px-4"
+              className="h-10 shrink-0 px-4"
               render={<Link href={`/${churchSlug}/infantil/nova`} />}
             >
               + Cadastrar
@@ -433,7 +457,7 @@ export default async function InfantilPage({
                   </p>
                 </div>
                 {c.allergies && (
-                  <Badge className="shrink-0 rounded-full border-0 bg-amber-100 text-amber-800">
+                  <Badge className="shrink-0 border-0 bg-amber-100 text-amber-800">
                     <TriangleAlert className="mr-1 size-3" />
                     Alergia
                   </Badge>
@@ -453,19 +477,24 @@ export default async function InfantilPage({
                 {content}
               </Link>
             ) : (
-              <div key={c.id} className="flex items-center gap-3 rounded-2xl border px-4 py-3">
+              <div
+                key={c.id}
+                className="flex items-center gap-3 rounded-2xl border px-4 py-3"
+              >
                 {content}
               </div>
             );
           })}
           {(children ?? []).length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhuma criança cadastrada ainda.</p>
+            <p className="text-sm text-muted-foreground">
+              Nenhuma criança cadastrada ainda.
+            </p>
           )}
         </CardContent>
       </Card>
 
       {podeGerir && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Responsáveis</CardTitle>
             <CardDescription>
@@ -491,7 +520,7 @@ export default async function InfantilPage({
           : startMs + DEFAULT_EVENT_DURATION_MS;
         return endMs >= requestNowMs;
       }) && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Cultos próximos</CardTitle>
             <CardDescription>
@@ -509,7 +538,9 @@ export default async function InfantilPage({
               })
               .slice(0, 3)
               .map((e) => {
-                const eventCampus = e.campuses as unknown as { name: string } | null;
+                const eventCampus = e.campuses as unknown as {
+                  name: string;
+                } | null;
                 return (
                   <Link
                     key={e.id}
@@ -519,8 +550,11 @@ export default async function InfantilPage({
                     <div className="min-w-0">
                       <p className="truncate font-medium">{e.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatEventDate(e.starts_at)} · {formatEventTime(e.starts_at)}
-                        {eventCampus?.name ? ` · ${eventCampus.name}` : " · campus não definido"}
+                        {formatEventDate(e.starts_at)} ·{" "}
+                        {formatEventTime(e.starts_at)}
+                        {eventCampus?.name
+                          ? ` · ${eventCampus.name}`
+                          : " · campus não definido"}
                       </p>
                     </div>
                     <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
@@ -532,7 +566,8 @@ export default async function InfantilPage({
       )}
 
       <p className="px-1 text-xs text-muted-foreground">
-        Dados de menores permanecem restritos à equipe Kids e à coordenação da igreja.
+        Dados de menores permanecem restritos à equipe Kids e à coordenação da
+        igreja.
       </p>
     </div>
   );

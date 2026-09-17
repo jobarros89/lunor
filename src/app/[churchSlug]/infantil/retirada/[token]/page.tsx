@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { notFound, redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
@@ -80,25 +81,28 @@ export default async function KidsQrPickupPage({
 
   return (
     <div className="mx-auto max-w-xl space-y-5">
-      <header>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          LUNOR Kids · Retirada por QR
-        </p>
-        <h1 className="page-title mt-1">{child.full_name}</h1>
-        <p className="text-sm text-muted-foreground">
-          {event.title} · {formatEventDate(event.starts_at)} · {formatEventTime(event.starts_at)}
-          {context ? ` · ${context}` : ""}
-        </p>
-      </header>
+      <PageHeader
+        title={<>{child.full_name}</>}
+        eyebrow={<>LUNOR Kids · Retirada por QR</>}
+        description={
+          <>
+            {event.title} · {formatEventDate(event.starts_at)} ·{" "}
+            {formatEventTime(event.starts_at)}
+            {context ? ` · ${context}` : ""}
+          </>
+        }
+      />
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardContent className="space-y-5 py-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs text-muted-foreground">Código da sessão</p>
-              <p className="text-3xl font-bold tracking-[0.18em]">{checkin.code}</p>
+              <p className="text-3xl font-bold tracking-[0.18em]">
+                {checkin.code}
+              </p>
             </div>
-            <Badge variant="secondary" className="rounded-full px-3 py-1">
+            <Badge variant="secondary" className="px-3 py-1">
               {childClass?.name ?? "Turma não definida"}
             </Badge>
           </div>
@@ -108,7 +112,8 @@ export default async function KidsQrPickupPage({
               <ShieldCheck className="mx-auto size-7 text-emerald-700 dark:text-emerald-400" />
               <p className="mt-2 font-medium">Retirada já concluída</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Este QR não pode iniciar uma nova retirada. Para uma nova entrada, faça outro check-in da criança.
+                Este QR não pode iniciar uma nova retirada. Para uma nova
+                entrada, faça outro check-in da criança.
               </p>
             </div>
           ) : (

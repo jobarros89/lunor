@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarDays, Layers3, Music, Plus, Video } from "lucide-react";
@@ -5,19 +7,36 @@ import { getTenant } from "@/lib/tenant";
 import { type Song } from "@/lib/louvor";
 import { getLouvorMinistry } from "@/lib/louvor-server";
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { SongForm } from "@/components/louvor/song-form";
 import { Button } from "@/components/ui/button";
 import { YouTubeSongImporter } from "@/components/louvor/youtube-song-importer";
 import { SongLibrary } from "@/components/louvor/song-library";
 
-const youtubeStatusMessage: Record<string, { text: string; success?: boolean }> = {
+const youtubeStatusMessage: Record<
+  string,
+  { text: string; success?: boolean }
+> = {
   connected: { text: "Conta do YouTube conectada com sucesso.", success: true },
-  "not-configured": { text: "A conexão com o YouTube ainda não foi configurada no servidor." },
-  "connection-error": { text: "Não foi possível conectar a conta do YouTube. Tente novamente." },
+  "not-configured": {
+    text: "A conexão com o YouTube ainda não foi configurada no servidor.",
+  },
+  "connection-error": {
+    text: "Não foi possível conectar a conta do YouTube. Tente novamente.",
+  },
   "authorization-denied": { text: "A autorização do YouTube foi cancelada." },
-  "session-expired": { text: "Sua sessão expirou. Entre novamente antes de conectar o YouTube." },
-  "state-expired": { text: "A tentativa de conexão expirou. Inicie novamente." },
+  "session-expired": {
+    text: "Sua sessão expirou. Entre novamente antes de conectar o YouTube.",
+  },
+  "state-expired": {
+    text: "A tentativa de conexão expirou. Inicie novamente.",
+  },
 };
 
 type WorshipTab = "acervo" | "repertorios" | "arranjos";
@@ -33,11 +52,13 @@ type ArrangementRow = {
   id: string;
   name: string;
   updated_at: string;
-  songs: { id: string; title: string; artist: string | null } | { id: string; title: string; artist: string | null }[];
+  songs:
+    | { id: string; title: string; artist: string | null }
+    | { id: string; title: string; artist: string | null }[];
 };
 
 function firstRelated<T>(value: T | T[] | null | undefined): T | null {
-  return Array.isArray(value) ? value[0] ?? null : value ?? null;
+  return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
 }
 
 export default async function LouvorPage({
@@ -133,65 +154,110 @@ export default async function LouvorPage({
   const arranjos = (arrangements ?? []) as unknown as ArrangementRow[];
   return (
     <div className="space-y-8">
-      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Ministério de música</p>
-          <h1 className="page-title mt-2">Louvor</h1>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Música, repertórios, arranjos e operação do time em um só módulo.
-          </p>
-        </div>
-        {podeEditarAcervo && (
-          <Link
-            href={`/${churchSlug}/louvor?aba=${tab}&novo=1`}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:bg-primary/80"
-          >
-            <Plus className="size-4" />
-            Nova música
-          </Link>
-        )}
-      </header>
+      <PageHeader
+        title={<>Louvor</>}
+        eyebrow={<>Ministério de música</>}
+        description={
+          <>Música, repertórios, arranjos e operação do time em um só módulo.</>
+        }
+        actions={
+          <>
+            {podeEditarAcervo && (
+              <Link
+                href={`/${churchSlug}/louvor?aba=${tab}&novo=1`}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:bg-primary/80"
+              >
+                <Plus className="size-4" />
+                Nova música
+              </Link>
+            )}
+          </>
+        }
+      />
 
       <nav className="content-nav" aria-label="Conteúdo do Louvor">
-        <TabLink churchSlug={churchSlug} tab="acervo" active={tab === "acervo"} icon={<Music className="size-4" />} label="Acervo" />
-        <TabLink churchSlug={churchSlug} tab="repertorios" active={tab === "repertorios"} icon={<CalendarDays className="size-4" />} label="Repertórios" />
-        <TabLink churchSlug={churchSlug} tab="arranjos" active={tab === "arranjos"} icon={<Layers3 className="size-4" />} label="Arranjos" />
+        <TabLink
+          churchSlug={churchSlug}
+          tab="acervo"
+          active={tab === "acervo"}
+          icon={<Music className="size-4" />}
+          label="Acervo"
+        />
+        <TabLink
+          churchSlug={churchSlug}
+          tab="repertorios"
+          active={tab === "repertorios"}
+          icon={<CalendarDays className="size-4" />}
+          label="Repertórios"
+        />
+        <TabLink
+          churchSlug={churchSlug}
+          tab="arranjos"
+          active={tab === "arranjos"}
+          icon={<Layers3 className="size-4" />}
+          label="Arranjos"
+        />
       </nav>
 
       {showNew && podeEditarAcervo && (
-        <Card className="rounded-3xl border-foreground/20">
-          <CardHeader className="flex-row items-start justify-between gap-4">
+        <Card className="border-foreground/20">
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div>
               <CardTitle className="text-base">Adicionar música</CardTitle>
-              <CardDescription>Pesquise no YouTube e cadastre em poucos passos.</CardDescription>
+              <CardDescription>
+                Pesquise no YouTube e cadastre em poucos passos.
+              </CardDescription>
             </div>
-            <Link href={`/${churchSlug}/louvor?aba=${tab}`} className="text-sm text-muted-foreground underline underline-offset-4">Fechar</Link>
+            <Link
+              href={`/${churchSlug}/louvor?aba=${tab}`}
+              className="text-sm text-muted-foreground underline underline-offset-4"
+            >
+              Fechar
+            </Link>
           </CardHeader>
           <CardContent className="space-y-4">
             {podeGerenciar && (
               <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-2 text-sm font-medium"><Video className="size-4" /> Conta oficial no YouTube</p>
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    <Video className="size-4" /> Conta oficial no YouTube
+                  </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {youtubeIntegration?.account_label ? `Conectada: ${youtubeIntegration.account_label}` : "Conecte a conta que será dona das playlists não listadas."}
+                    {youtubeIntegration?.account_label
+                      ? `Conectada: ${youtubeIntegration.account_label}`
+                      : "Conecte a conta que será dona das playlists não listadas."}
                   </p>
                 </div>
                 <Button
                   nativeButton={false}
                   variant="ghost"
-                  className="h-9 shrink-0 rounded-full px-3"
-                  render={<a href={`/api/integrations/youtube/connect?churchId=${tenant.church.id}&returnTo=${encodeURIComponent(`/${churchSlug}/louvor?aba=${tab}&novo=1`)}`} />}
+                  className="h-9 shrink-0 px-3"
+                  render={
+                    <a
+                      href={`/api/integrations/youtube/connect?churchId=${tenant.church.id}&returnTo=${encodeURIComponent(`/${churchSlug}/louvor?aba=${tab}&novo=1`)}`}
+                    />
+                  }
                 >
                   {youtubeIntegration ? "Reconectar" : "Conectar YouTube"}
                 </Button>
               </div>
             )}
             {youtubeMessage && podeGerenciar && (
-              <p role="status" className={youtubeMessage.success ? "text-sm text-emerald-600 dark:text-emerald-400" : "text-sm text-destructive"}>
+              <p
+                role="status"
+                className={
+                  youtubeMessage.success
+                    ? "text-sm text-emerald-600 dark:text-emerald-400"
+                    : "text-sm text-destructive"
+                }
+              >
                 {youtubeMessage.text}
               </p>
             )}
-            <YouTubeSongImporter churchSlug={churchSlug} churchId={tenant.church.id} />
+            <YouTubeSongImporter
+              churchSlug={churchSlug}
+              churchId={tenant.church.id}
+            />
             <SongForm churchSlug={churchSlug} churchId={tenant.church.id} />
           </CardContent>
         </Card>
@@ -199,7 +265,11 @@ export default async function LouvorPage({
 
       {tab === "acervo" && (
         <section>
-          <SongLibrary churchSlug={churchSlug} songs={acervo} lastUsed={lastUsed} />
+          <SongLibrary
+            churchSlug={churchSlug}
+            songs={acervo}
+            lastUsed={lastUsed}
+          />
         </section>
       )}
 
@@ -208,30 +278,74 @@ export default async function LouvorPage({
           <div className="flex items-end justify-between border-b pb-3">
             <div>
               <h2 className="text-xl font-semibold">Repertórios</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Cultos recentes e próximos com a sequência musical.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Cultos recentes e próximos com a sequência musical.
+              </p>
             </div>
-            <span className="text-xs text-muted-foreground">{repertorios.length} cultos</span>
+            <span className="text-xs text-muted-foreground">
+              {repertorios.length} cultos
+            </span>
           </div>
           <div className="divide-y">
             {repertorios.map((event) => {
               const future = new Date(event.starts_at) >= now;
               return (
-                <Link key={event.id} href={`/${churchSlug}/louvor/repertorios/${event.id}`} className="grid gap-2 py-4 transition hover:opacity-70 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <Link
+                  key={event.id}
+                  href={`/${churchSlug}/louvor/repertorios/${event.id}`}
+                  className="grid gap-2 py-4 transition hover:opacity-70 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                >
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{event.title}</p>
+                    <p className="break-words font-medium">{event.title}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {new Date(event.starts_at).toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })} · {new Date(event.starts_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(event.starts_at).toLocaleDateString("pt-BR", {
+                        weekday: "short",
+                        day: "2-digit",
+                        month: "short",
+                      })}{" "}
+                      ·{" "}
+                      {new Date(event.starts_at).toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground sm:justify-end">
-                    <span>{event.setlist_items.length} {event.setlist_items.length === 1 ? "música" : "músicas"}</span>
-                    <span className="rounded-full bg-muted px-2.5 py-1">{event.setlist_status === "publicado" ? "Publicado" : future ? "Em preparo" : "Rascunho"}</span>
-                    {event.youtube_playlist_url && <span className="rounded-full bg-muted px-2.5 py-1">Playlist pronta</span>}
+                    <span>
+                      {event.setlist_items.length}{" "}
+                      {event.setlist_items.length === 1 ? "música" : "músicas"}
+                    </span>
+                    <span className="rounded-full bg-muted px-2.5 py-1">
+                      {event.setlist_status === "publicado"
+                        ? "Publicado"
+                        : future
+                          ? "Em preparo"
+                          : "Rascunho"}
+                    </span>
+                    {event.youtube_playlist_url && (
+                      <span className="rounded-full bg-muted px-2.5 py-1">
+                        Playlist pronta
+                      </span>
+                    )}
                   </div>
                 </Link>
               );
             })}
-            {repertorios.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">Nenhum repertório encontrado neste período.</p>}
+            {repertorios.length === 0 && (
+              <EmptyState
+                title="Nenhum repertório neste período"
+                description="Quando os cultos estiverem organizados, seus repertórios aparecerão aqui. Consulte as escalas para ver os próximos encontros."
+                action={
+                  <Button
+                    nativeButton={false}
+                    variant="outline"
+                    render={<Link href={`/${churchSlug}/louvor/escalas`} />}
+                  >
+                    Ver escalas de Louvor
+                  </Button>
+                }
+              />
+            )}
           </div>
         </section>
       )}
@@ -241,34 +355,75 @@ export default async function LouvorPage({
           <div className="flex items-end justify-between border-b pb-3">
             <div>
               <h2 className="text-xl font-semibold">Arranjos</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Versões que a igreja usa para executar cada música.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Versões que a igreja usa para executar cada música.
+              </p>
             </div>
-            <span className="text-xs text-muted-foreground">{arranjos.length} arranjos</span>
+            <span className="text-xs text-muted-foreground">
+              {arranjos.length} arranjos
+            </span>
           </div>
           <div className="divide-y">
             {arranjos.map((arrangement) => {
               const song = firstRelated(arrangement.songs);
               if (!song) return null;
               return (
-                <Link key={arrangement.id} href={`/${churchSlug}/louvor/${song.id}`} className="grid gap-2 py-4 transition hover:opacity-70 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <Link
+                  key={arrangement.id}
+                  href={`/${churchSlug}/louvor/${song.id}`}
+                  className="grid gap-2 py-4 transition hover:opacity-70 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                >
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{song.title}</p>
-                    <p className="mt-0.5 truncate text-sm text-muted-foreground">{arrangement.name}{song.artist ? ` · ${song.artist}` : ""}</p>
+                    <p className="break-words font-medium">{song.title}</p>
+                    <p className="mt-0.5 break-words text-sm text-muted-foreground">
+                      {arrangement.name}
+                      {song.artist ? ` · ${song.artist}` : ""}
+                    </p>
                   </div>
-                  <span className="text-xs text-muted-foreground">Atualizado {new Date(arrangement.updated_at).toLocaleDateString("pt-BR")}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Atualizado{" "}
+                    {new Date(arrangement.updated_at).toLocaleDateString(
+                      "pt-BR",
+                    )}
+                  </span>
                 </Link>
               );
             })}
-            {arranjos.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">Nenhum arranjo ativo ainda.</p>}
+            {arranjos.length === 0 && (
+              <EmptyState
+                title="Os arranjos da equipe aparecerão aqui"
+                description="Abra uma música do acervo para consultar suas versões e preparar o próximo culto."
+                action={
+                  <Button
+                    nativeButton={false}
+                    variant="outline"
+                    render={<Link href={`/${churchSlug}/louvor?tab=acervo`} />}
+                  >
+                    Explorar o acervo
+                  </Button>
+                }
+              />
+            )}
           </div>
         </section>
       )}
-
     </div>
   );
 }
 
-function TabLink({ churchSlug, tab, active, icon, label }: { churchSlug: string; tab: WorshipTab; active: boolean; icon: React.ReactNode; label: string }) {
+function TabLink({
+  churchSlug,
+  tab,
+  active,
+  icon,
+  label,
+}: {
+  churchSlug: string;
+  tab: WorshipTab;
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+}) {
   return (
     <Link
       href={`/${churchSlug}/louvor?aba=${tab}`}

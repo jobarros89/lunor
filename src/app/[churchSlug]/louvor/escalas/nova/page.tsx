@@ -1,10 +1,14 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { getLouvorMinistry } from "@/lib/louvor-server";
 import { createClient } from "@/lib/supabase/server";
-import { MinistryEventPicker, type MinistryEventPickerRow } from "@/components/escalas/ministry-event-picker";
+import {
+  MinistryEventPicker,
+  type MinistryEventPickerRow,
+} from "@/components/escalas/ministry-event-picker";
 
 export default async function NovaEscalaLouvorPage({
   params,
@@ -52,15 +56,16 @@ export default async function NovaEscalaLouvorPage({
         Escalas do Louvor
       </Link>
 
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Louvor
-        </p>
-        <h1 className="page-title mt-2">Adicionar escala do Louvor</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Escolha um culto existente. O horário do Louvor será configurado dentro dele, sem criar um evento duplicado.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Adicionar escala do Louvor</>}
+        eyebrow={<>Louvor</>}
+        description={
+          <>
+            Escolha um culto existente. O horário do Louvor será configurado
+            dentro dele, sem criar um evento duplicado.
+          </>
+        }
+      />
 
       <MinistryEventPicker
         churchSlug={churchSlug}

@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { getInfantilMinistry } from "@/lib/infantil";
@@ -23,12 +24,15 @@ export default async function NovaCriancaPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title ">Cadastrar criança</h1>
-        <p className="text-muted-foreground">
-          Cadastre a criança e o responsável. O check-in é feito separadamente no culto.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Cadastrar criança</>}
+        description={
+          <>
+            Cadastre a criança e o responsável. O check-in é feito separadamente
+            no culto.
+          </>
+        }
+      />
       <ChildForm
         churchSlug={churchSlug}
         churchId={tenant.church.id}
