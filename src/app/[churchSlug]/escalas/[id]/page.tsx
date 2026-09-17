@@ -294,7 +294,7 @@ export default async function EventoDetailPage({
         </div>
         <h1 className="page-title ">{event.title}</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Visão geral do culto: programação, repertório e todos os times que servem neste evento.
+          Visão geral do culto: programação, repertório e todas as equipes que participam deste evento.
         </p>
       </header>
 
@@ -458,11 +458,11 @@ export default async function EventoDetailPage({
             <div className="flex items-center gap-2">
               <Users className="size-5" />
               <h2 id="times-title" className="text-lg font-semibold tracking-tight">
-                Times do culto
+                Equipes do culto
               </h2>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Visão consolidada das equipes deste evento.
+              Áreas que participam deste evento. Abra uma equipe para definir time, função e pessoas.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -475,7 +475,7 @@ export default async function EventoDetailPage({
               />
             )}
             <Badge variant="secondary">
-              {teams.length} {teams.length === 1 ? "ministério" : "ministérios"}
+              {teams.length} {teams.length === 1 ? "área" : "áreas"}
             </Badge>
             <Badge variant="secondary">{teamAssignments.length} escalados</Badge>
             <Badge className="border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
@@ -490,7 +490,7 @@ export default async function EventoDetailPage({
         </div>
 
         {assignmentsError || eventMinistriesError ? (
-          <LoadError oQue="os times do culto" />
+          <LoadError oQue="as equipes do culto" />
         ) : teams.length > 0 ? (
           <div className="grid gap-3 lg:grid-cols-2">
             {teams.map((team) => {
@@ -577,7 +577,7 @@ export default async function EventoDetailPage({
         ) : (
           <Card>
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Nenhum time escalado neste evento ainda.
+              Nenhuma equipe vinculada a este evento ainda.
             </CardContent>
           </Card>
         )}
