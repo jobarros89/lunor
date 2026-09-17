@@ -27,7 +27,7 @@ function teamDescription(team: MinistryOption) {
   if (team.module_key === "kids") {
     return "Escalas, disponibilidade e operação especializada do Kids.";
   }
-  return "Disponibilidade, eventos e escalas deste time.";
+  return "Disponibilidade, eventos e escalas desta área.";
 }
 
 export default async function TimesPage({
@@ -45,20 +45,20 @@ export default async function TimesPage({
     <div className="space-y-6">
       <PageHeader
         eyebrow={<>Times</>}
-        title={<>Seus times</>}
+        title={<>Suas equipes</>}
         description={
-          <>Acesse somente as áreas da igreja em que você participa ou possui permissão.</>
+          <>Aqui aparecem as áreas em que você participa. Dentro delas ficam os times, funções e escalas.</>
         }
       />
 
       {options.length === 0 ? (
         <EmptyState
-          title="Nenhum time disponível"
-          description="Quando você for adicionado a um time, o acesso aparecerá aqui."
+          title="Nenhuma equipe disponível"
+          description="Quando você for adicionado a uma área da igreja, o acesso aparecerá aqui."
         />
       ) : (
         <section
-          aria-label="Times acessíveis"
+          aria-label="Equipes acessíveis"
           className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
         >
           {options.map((team) => {
