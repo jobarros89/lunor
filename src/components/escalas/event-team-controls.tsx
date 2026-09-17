@@ -37,7 +37,7 @@ export function AddEventTeam({
   const [pending, startTransition] = useTransition();
 
   function add() {
-    if (!ministryId) return toast.error("Selecione um time");
+    if (!ministryId) return toast.error("Selecione uma área");
     startTransition(async () => {
       const result = await addEventMinistry({
         churchSlug,
@@ -49,7 +49,7 @@ export function AddEventTeam({
         toast.error(result.error);
         return;
       }
-      toast.success("Time adicionado ao evento");
+      toast.success("Equipe adicionada ao culto");
       setMinistryId("");
       setOpen(false);
       router.refresh();
@@ -62,22 +62,22 @@ export function AddEventTeam({
         render={
           <Button type="button" size="sm" disabled={options.length === 0}>
             <Plus className="size-4" />
-            Adicionar time
+            Adicionar equipe
           </Button>
         }
       />
       <DialogContent>
-        <DialogTitle>Adicionar time ao evento</DialogTitle>
+        <DialogTitle>Adicionar equipe ao culto</DialogTitle>
         <DialogDescription>
-          Selecione um ministério ou área da igreja. Times já vinculados não aparecem nesta lista.
+          Escolha uma área já cadastrada. Depois, em Abrir escala, você define o time, as funções e as pessoas.
         </DialogDescription>
         <div className="mt-5 space-y-4">
           <Select
             value={ministryId}
             onChange={(event) => setMinistryId(event.target.value)}
-            aria-label="Time da igreja"
+            aria-label="Ministério ou área"
           >
-            <option value="">Selecione um time</option>
+            <option value="">Selecione uma área</option>
             {options.map((option) => (
               <option key={option.id} value={option.id}>{option.name}</option>
             ))}
@@ -87,7 +87,7 @@ export function AddEventTeam({
               Cancelar
             </Button>
             <Button type="button" disabled={pending || !ministryId} onClick={add}>
-              {pending ? "Adicionando…" : "Adicionar time"}
+              {pending ? "Adicionando…" : "Adicionar equipe"}
             </Button>
           </div>
         </div>
