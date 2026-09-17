@@ -70,15 +70,17 @@ describe("permissões separadas por ministério e campus", () => {
     });
     expect(otherChurch.error).toBeNull();
 
-    const church = await owner
+    const church = await service
       .from("churches")
       .select("invite_code")
       .eq("id", churchId)
       .single();
-    await Promise.all([
+    expect(church.error).toBeNull();
+    const joins = await Promise.all([
       leader.rpc("join_church", { p_invite_code: church.data!.invite_code }),
       volunteer.rpc("join_church", { p_invite_code: church.data!.invite_code }),
     ]);
+    expect(joins.every(({ error }) => error === null)).toBe(true);
 
     const campuses = await owner
       .from("campuses")
