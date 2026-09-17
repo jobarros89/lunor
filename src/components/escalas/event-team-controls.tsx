@@ -2,10 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { addEventMinistry } from "@/lib/actions/escalas";
-import { setActiveMinistry } from "@/lib/actions/ministry";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -97,40 +96,3 @@ export function AddEventTeam({
   );
 }
 
-export function OpenGenericTeamScale({
-  churchSlug,
-  ministryId,
-}: {
-  churchSlug: string;
-  ministryId: string;
-}) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-
-  function openScale() {
-    startTransition(async () => {
-      await setActiveMinistry(ministryId, churchSlug);
-      router.refresh();
-      window.setTimeout(() => {
-        document.getElementById("gestao-time-title")?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      }, 150);
-    });
-  }
-
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      disabled={pending}
-      className="h-9 shrink-0 rounded-full px-3 text-xs"
-      onClick={openScale}
-    >
-      Abrir escala
-      <ArrowUpRight className="size-3.5" />
-    </Button>
-  );
-}
