@@ -43,7 +43,7 @@ export async function MinistryEventSchedule({
 
   const { data: membership } = await supabase
     .from("ministry_members")
-    .select("role")
+    .select("ministry_id")
     .eq("church_id", tenant.church.id)
     .eq("ministry_id", ministryId)
     .eq("user_id", tenant.userId)
@@ -51,12 +51,13 @@ export async function MinistryEventSchedule({
     .maybeSingle();
 
   if (!tenant.isCoord && !membership) redirect(`/${churchSlug}`);
-  const canManage = tenant.isCoord || membership?.role === "gerente" || membership?.role === "lider";
 
   const [
     { data: event, error: eventError },
     { data: assignments, error: assignmentsError },
     { data: serviceWindow, error: serviceWindowError },
+    { data: permissions },
+    { data: campusMemberships },
   ] = await Promise.all([
     supabase
       .from("events")
@@ -78,11 +79,38 @@ export async function MinistryEventSchedule({
       .eq("event_id", eventId)
       .eq("ministry_id", ministryId)
       .maybeSingle(),
+    supabase
+      .from("ministry_admin_permissions")
+      .select("campus_id, role")
+      .eq("church_id", tenant.church.id)
+      .eq("ministry_id", ministryId)
+      .eq("user_id", tenant.userId),
+    supabase
+      .from("ministry_member_campuses")
+      .select("campus_id")
+      .eq("church_id", tenant.church.id)
+      .eq("ministry_id", ministryId)
+      .eq("user_id", tenant.userId),
   ]);
 
   if (eventError) console.error(`${ministryName}: evento da escala`, eventError);
   if (serviceWindowError) console.error(`${ministryName}: janela de serviço`, serviceWindowError);
   if (!event) notFound();
+
+  const campusRestrictions = (campusMemberships ?? []).map((item) => item.campus_id);
+  const canParticipateAtCampus =
+    tenant.isCoord ||
+    campusRestrictions.length === 0 ||
+    (event.campus_id !== null && campusRestrictions.includes(event.campus_id));
+  if (!canParticipateAtCampus) redirect(`/${churchSlug}/escalas/${eventId}`);
+
+  const canManage =
+    tenant.isCoord ||
+    (permissions ?? []).some(
+      (permission) =>
+        permission.campus_id === null ||
+        (event.campus_id !== null && permission.campus_id === event.campus_id)
+    );
 
   const assignmentIds = (assignments ?? []).map((item) => item.id);
   const { data: equipmentLinks } = assignmentIds.length

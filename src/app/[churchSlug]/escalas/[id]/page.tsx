@@ -78,7 +78,6 @@ export default async function EventoDetailPage({
   const { churchSlug, id } = await params;
   const tenant = await getTenant(churchSlug);
   const { options } = await getActiveMinistry(churchSlug);
-  const canManageEvent = tenant.isCoord || options.some((option) => option.canManage);
 
   const supabase = await createClient();
   const [
@@ -120,6 +119,18 @@ export default async function EventoDetailPage({
 
   if (eventError) console.error("evento:", eventError);
   if (!event) notFound();
+
+  const canManageAtEventCampus = (option: (typeof options)[number]) =>
+    option.canManage &&
+    (
+      tenant.isCoord ||
+      option.permissionCampusIds === null ||
+      (
+        event.campus_id !== null &&
+        option.permissionCampusIds.includes(event.campus_id)
+      )
+    );
+  const canManageEvent = tenant.isCoord || options.some(canManageAtEventCampus);
 
   const allAssignments = (assignments ?? []) as unknown as EventAssignment[];
   let canOpenLouvor = tenant.isCoord;
@@ -201,7 +212,7 @@ export default async function EventoDetailPage({
   );
   const linkedMinistryIds = new Set(teams.map((team) => team.ministryId));
   const addableMinistries = options
-    .filter((option) => option.canManage && !linkedMinistryIds.has(option.id))
+    .filter((option) => canManageAtEventCampus(option) && !linkedMinistryIds.has(option.id))
     .map((option) => ({ id: option.id, name: option.name }));
 
   const totalConfirmados = allAssignments.filter((a) =>
