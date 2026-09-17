@@ -96,7 +96,7 @@ export function EventForm({
             <select
               value={v.typeId ?? ""}
               onChange={(e) => setV({ ...v, typeId: e.target.value || null })}
-              className={selectCls}
+              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
             >
               {eventTypes.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -114,7 +114,7 @@ export function EventForm({
               <select
                 value={v.ministryId ?? ""}
                 onChange={(e) => setV({ ...v, ministryId: e.target.value || null })}
-                className={selectCls}
+                className={["lunor-control", selectCls].filter(Boolean).join(" ")}
               >
                 <option value="">Toda a igreja</option>
                 {ministries.map((m) => (
@@ -129,7 +129,7 @@ export function EventForm({
             <select
               value={v.campusId ?? ""}
               onChange={(e) => setV({ ...v, campusId: e.target.value || null })}
-              className={selectCls}
+              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
             >
               <option value="">Sem campus definido</option>
               {campuses.map((campus) => (
@@ -149,7 +149,7 @@ export function EventForm({
                     (e.target.value as "manha" | "tarde" | "noite") || null,
                 })
               }
-              className={selectCls}
+              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
             >
               <option value="">Não definido</option>
               <option value="manha">Manhã</option>
@@ -210,7 +210,7 @@ export function EventForm({
             value={v.script}
             onChange={(e) => setV({ ...v, script: e.target.value })}
             rows={4}
-            className="w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+            className="lunor-control w-full rounded-xl border bg-background p-3 text-base md:text-sm"
             placeholder="Cronograma / roteiro do evento"
           />
         </Field>

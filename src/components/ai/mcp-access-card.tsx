@@ -158,7 +158,7 @@ export function McpAccessCard({
               <select
                 value={expiresInDays}
                 onChange={(event) => setExpiresInDays(Number(event.target.value))}
-                className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                className="lunor-control h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
               >
                 <option value={30}>30 dias</option>
                 <option value={90}>90 dias</option>

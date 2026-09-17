@@ -194,7 +194,7 @@ export function ChildGuardianManager({
                   value={existingId}
                   onChange={(event) => setExistingId(event.target.value)}
                   disabled={pending}
-                  className="h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
+                  className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
                   aria-label="Responsável já cadastrado"
                 >
                   <option value="">Escolha uma pessoa…</option>

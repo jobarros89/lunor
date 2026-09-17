@@ -146,7 +146,7 @@ export function SongForm(props: SongFormProps) {
           maxLength={20000}
           rows={isEdit ? 14 : 8}
           placeholder="Letra — é o que a equipe lê para ensaiar"
-          className="w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+          className="lunor-control w-full rounded-xl border bg-background p-3 text-base md:text-sm"
         />
       </Field>
 
@@ -157,7 +157,7 @@ export function SongForm(props: SongFormProps) {
           maxLength={20000}
           rows={isEdit ? 16 : 10}
           placeholder="[Verso]\nC\nGrande é o Senhor"
-          className="w-full rounded-xl border bg-background p-3 font-mono text-base md:text-sm"
+          className="lunor-control w-full rounded-xl border bg-background p-3 font-mono text-base md:text-sm"
         />
       </Field>
 

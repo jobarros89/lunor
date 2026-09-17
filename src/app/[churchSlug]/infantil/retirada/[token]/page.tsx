@@ -84,7 +84,7 @@ export default async function KidsQrPickupPage({
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           LUNOR Kids · Retirada por QR
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{child.full_name}</h1>
+        <h1 className="page-title mt-1">{child.full_name}</h1>
         <p className="text-sm text-muted-foreground">
           {event.title} · {formatEventDate(event.starts_at)} · {formatEventTime(event.starts_at)}
           {context ? ` · ${context}` : ""}

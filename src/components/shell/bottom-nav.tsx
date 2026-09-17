@@ -48,7 +48,7 @@ export function BottomNav({
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-50 [backface-visibility:hidden] [transform:translateZ(0)] border-t border-foreground/12 bg-background/96 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 [backface-visibility:hidden] [transform:translateZ(0)] border-t border-border bg-background/96 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
     >
       <div className="mx-auto grid h-16 w-full grid-flow-col auto-cols-fr items-center gap-1 px-2">
         {items.map(({ href, label, icon: Icon, badge }) => {
@@ -64,14 +64,14 @@ export function BottomNav({
               className={cn(
                 "relative flex h-12 min-w-0 flex-col items-center justify-center overflow-hidden rounded-xl transition-colors duration-200",
                 active
-                  ? "bg-[#6e5ce6]/12 text-[#6e5ce6]"
+                  ? "bg-brand-soft text-brand"
                   : "text-muted-foreground hover:bg-foreground/8 hover:text-foreground"
               )}
             >
               <Icon className="size-[21px] shrink-0" strokeWidth={active ? 2.35 : 1.8} />
-              <span className="mt-1 max-w-full truncate text-[9px] font-medium leading-none">{label}</span>
+              <span className="mt-1 max-w-full truncate text-[11px] font-medium leading-none">{label}</span>
               {badge > 0 && (
-                <span className="absolute right-1 top-0.5 flex min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-4 text-white">
+                <span className="absolute right-1 top-0.5 flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-4 text-white">
                   {badge > 9 ? "9+" : badge}
                 </span>
               )}

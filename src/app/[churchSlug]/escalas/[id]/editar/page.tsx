@@ -25,7 +25,7 @@ export default async function EditarHorarioEventoPage({
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Editar data e horário</h1>
+        <h1 className="page-title ">Editar data e horário</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Corrija o horário do culto sem recriar o evento ou perder as escalas existentes.
         </p>

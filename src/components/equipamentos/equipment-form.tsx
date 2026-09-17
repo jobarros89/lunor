@@ -197,7 +197,7 @@ export function EquipmentForm({
             <select
               value={v.ownerId ?? ""}
               onChange={(e) => setV({ ...v, ownerId: e.target.value || null })}
-              className={selectCls}
+              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
             >
               <option value="">Da igreja</option>
               {members.map((m) => (
@@ -220,7 +220,7 @@ export function EquipmentForm({
               onChange={(e) =>
                 setV({ ...v, categoryId: e.target.value || null })
               }
-              className={selectCls}
+              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
             >
               <option value="">Sem categoria</option>
               {categories.map((c) => (
@@ -286,7 +286,7 @@ export function EquipmentForm({
             <select
               value={v.status}
               onChange={(e) => setV({ ...v, status: e.target.value })}
-              className={selectCls}
+              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -355,7 +355,7 @@ export function EquipmentForm({
               onChange={(e) =>
                 setV({ ...v, responsibleId: e.target.value || null })
               }
-              className={selectCls}
+              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
             >
               <option value="">Sem responsável</option>
               {members.map((m) => (

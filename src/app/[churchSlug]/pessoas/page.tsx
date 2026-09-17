@@ -65,7 +65,7 @@ export default async function PessoasPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Equipe</h1>
+        <h1 className="page-title ">Equipe</h1>
         <p className="text-muted-foreground">
           {members?.length ?? 0} pessoas na igreja
           {tenant.role === "admin" && " · toque em uma pessoa para gerenciar permissões"}

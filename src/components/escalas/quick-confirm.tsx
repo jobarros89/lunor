@@ -48,7 +48,7 @@ export function QuickConfirm({
     <DropdownMenu>
       <DropdownMenuTrigger
         disabled={pending}
-        className="inline-flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-primary px-4 text-[0.8rem] font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:pointer-events-none disabled:opacity-50"
+        className="inline-flex h-11 shrink-0 items-center justify-center gap-1 rounded-lg bg-primary px-4 text-[0.8rem] font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:pointer-events-none disabled:opacity-50"
       >
         {pending ? "Salvando…" : "Responder"}
         {!pending && <ChevronDown className="size-3.5" />}

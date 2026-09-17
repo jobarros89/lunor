@@ -131,7 +131,7 @@ export function KidsPrintSettingsForm({
             <select
               value={preset}
               onChange={(event) => selectPreset(event.target.value as KidsLabelPreset)}
-              className="h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
+              className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
             >
               <option value="62x50">62 × 50 mm — padrão LUNOR</option>
               <option value="60x40">60 × 40 mm</option>
@@ -150,7 +150,7 @@ export function KidsPrintSettingsForm({
                   orientation: event.target.value as "horizontal" | "vertical",
                 }))
               }
-              className="h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
+              className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
             >
               <option value="horizontal">Horizontal</option>
               <option value="vertical">Vertical</option>
@@ -221,7 +221,7 @@ export function KidsPrintSettingsForm({
                   copies: Number(event.target.value),
                 }))
               }
-              className="h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
+              className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
             >
               <option value={1}>1 via</option>
               <option value={2}>2 vias</option>

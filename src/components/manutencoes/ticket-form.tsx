@@ -48,7 +48,7 @@ export function TicketForm({
           <select
             value={v.equipmentId}
             onChange={(e) => setV({ ...v, equipmentId: e.target.value })}
-            className="h-11 w-full rounded-xl border bg-background px-3 text-sm"
+            className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-sm"
           >
             <option value="">Escolher equipamento…</option>
             {equipments.map((eq) => (
@@ -73,7 +73,7 @@ export function TicketForm({
             value={v.description}
             onChange={(e) => setV({ ...v, description: e.target.value })}
             rows={3}
-            className="w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+            className="lunor-control w-full rounded-xl border bg-background p-3 text-base md:text-sm"
             placeholder="Quando começou, o que já foi testado…"
           />
         </Field>

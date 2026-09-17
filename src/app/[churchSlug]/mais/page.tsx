@@ -84,7 +84,7 @@ export default async function MaisPage({
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Mais
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Mais opções</h1>
+        <h1 className="page-title mt-2">Mais opções</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Acesse configurações, perfil e recursos complementares do LUNOR.
         </p>
@@ -121,7 +121,7 @@ export default async function MaisPage({
       </Link>
 
       {tenant.role === "admin" && inviteCode && (
-        <Card className="rounded-3xl border-[#6e5ce6]/35 bg-[#6e5ce6]/8">
+        <Card className="rounded-3xl border-brand/35 bg-brand/8">
           <CardHeader>
             <CardTitle className="text-base">Convidar pessoa</CardTitle>
             <CardDescription>

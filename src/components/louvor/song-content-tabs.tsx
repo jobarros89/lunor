@@ -259,7 +259,7 @@ export function SongContentTabs({
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value as MaterialCategory)}
-                      className="mt-1 h-11 w-full rounded-xl border bg-background px-3 text-sm"
+                      className="lunor-control mt-1 h-11 w-full rounded-xl border bg-background px-3 text-sm"
                     >
                       {Object.entries(CATEGORY_LABELS).map(([value, text]) => (
                         <option key={value} value={value}>{text}</option>
@@ -272,7 +272,7 @@ export function SongContentTabs({
                       <select
                         value={versionId}
                         onChange={(e) => setVersionId(e.target.value)}
-                        className="mt-1 h-11 w-full rounded-xl border bg-background px-3 text-sm"
+                        className="lunor-control mt-1 h-11 w-full rounded-xl border bg-background px-3 text-sm"
                       >
                         <option value="">Geral da música</option>
                         {arrangementVersions.map((version) => (

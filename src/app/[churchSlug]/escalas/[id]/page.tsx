@@ -322,7 +322,7 @@ export default async function EventoDetailPage({
             Repertório {event.setlist_status === "publicado" ? "publicado" : "em rascunho"}
           </Badge>
         </div>
-        <h1 className="text-3xl font-semibold leading-tight tracking-tight">
+        <h1 className="page-title ">
           {event.title}
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">

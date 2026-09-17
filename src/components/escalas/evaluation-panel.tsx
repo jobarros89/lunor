@@ -122,7 +122,7 @@ export function EvaluationPanel({
         onChange={(e) => setV((prev) => ({ ...prev, notes: e.target.value }))}
         placeholder="Observações (opcional)"
         rows={2}
-        className="w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+        className="lunor-control w-full rounded-xl border bg-background p-3 text-base md:text-sm"
       />
       <div className="flex gap-2">
         <Button

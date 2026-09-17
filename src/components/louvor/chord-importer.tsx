@@ -223,7 +223,7 @@ export function ChordImporter({
                   setUrlRawContent(null);
                 }}
                 rows={12}
-                className="w-full rounded-2xl border bg-transparent p-3 font-mono text-sm"
+                className="lunor-control w-full rounded-2xl border bg-transparent p-3 font-mono text-sm"
                 placeholder={"Tom: C\n\nIntrodução:\nC  G  Am  F\n\nVerso:\nC             G\nGrande é o Senhor…"}
               />
               <p className={content.length > MAX_LENGTH ? "text-sm text-destructive" : "text-xs text-muted-foreground"}>
@@ -313,7 +313,7 @@ export function ChordImporter({
               <Label htmlFor="arrangement">Salvar em</Label>
               <select
                 id="arrangement"
-                className="h-10 w-full rounded-xl border bg-background px-3 text-sm"
+                className="lunor-control h-10 w-full rounded-xl border bg-background px-3 text-sm"
                 value={arrangementId}
                 onChange={(e) => setArrangementId(e.target.value)}
               >

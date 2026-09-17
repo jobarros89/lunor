@@ -82,24 +82,24 @@ export function AssistantAttentionCenter({
   const hiddenCount = Math.max(0, orderedInsights.length - visibleInsights.length);
 
   return (
-    <section className="overflow-hidden rounded-[28px] border border-[#6e5ce6]/18 bg-card shadow-sm">
+    <section className="overflow-hidden rounded-[28px] border border-brand/18 bg-card shadow-sm">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="flex w-full items-start gap-3 px-4 py-4 text-left sm:gap-4 sm:px-5 sm:py-5 md:px-6"
         aria-expanded={open}
       >
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#6e5ce6] text-white shadow-sm sm:size-11">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-brand text-brand-foreground shadow-sm sm:size-11">
           <Sparkles className="size-4.5 sm:size-5" />
         </span>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6e5ce6] sm:text-[11px]">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-brand sm:text-[11px]">
               Assistente LUNOR
             </p>
             {hasAttention ? (
-              <span className="rounded-full bg-[#6e5ce6]/10 px-2.5 py-1 text-[10px] font-semibold text-[#6e5ce6] sm:text-[11px]">
+              <span className="rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-semibold text-brand sm:text-[11px]">
                 {attentionCount} {attentionCount === 1 ? "prioridade" : "prioridades"}
               </span>
             ) : (
@@ -156,7 +156,7 @@ export function AssistantAttentionCenter({
                     </span>
                   )}
                   {index === 0 && hasAttention && (
-                    <span className="ml-auto text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6e5ce6]">
+                    <span className="ml-auto text-[10px] font-semibold uppercase tracking-[0.14em] text-brand">
                       Comece aqui
                     </span>
                   )}
@@ -169,9 +169,9 @@ export function AssistantAttentionCenter({
                   {insight.detail}
                 </p>
 
-                <div className="mt-3 rounded-xl bg-[#6e5ce6]/7 px-3.5 py-3">
+                <div className="mt-3 rounded-xl bg-brand/7 px-3.5 py-3">
                   <p className="text-xs leading-relaxed text-foreground/85">
-                    <span className="font-semibold text-[#6e5ce6]">Sugestão do LUNOR:</span>{" "}
+                    <span className="font-semibold text-brand">Sugestão do LUNOR:</span>{" "}
                     {insight.suggestedAction}
                   </p>
                 </div>
@@ -179,7 +179,7 @@ export function AssistantAttentionCenter({
                 <div className="mt-3 flex flex-wrap items-center gap-2.5">
                   <Link
                     href={copilotSuggestionHref(churchSlug, insight)}
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#6e5ce6] px-4 text-xs font-semibold text-white transition-transform hover:-translate-y-0.5"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand px-4 text-xs font-semibold text-brand-foreground transition-transform hover:-translate-y-0.5"
                   >
                     {copilotSuggestion(insight).label}
                     <Sparkles className="size-3.5" />
@@ -225,7 +225,7 @@ export function AssistantAttentionCenter({
             </p>
             <Link
               href={`/${churchSlug}/assistente`}
-              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-[#6e5ce6]/25 px-4 text-xs font-semibold text-[#6e5ce6] transition-colors hover:bg-[#6e5ce6]/8"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-brand/25 px-4 text-xs font-semibold text-brand transition-colors hover:bg-brand/8"
             >
               Conversar com o LUNOR
               <ArrowRight className="size-3.5" />

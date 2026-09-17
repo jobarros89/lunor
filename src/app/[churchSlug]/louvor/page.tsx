@@ -136,7 +136,7 @@ export default async function LouvorPage({
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Ministério de música</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Louvor</h1>
+          <h1 className="page-title mt-2">Louvor</h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
             Música, repertórios, arranjos e operação do time em um só módulo.
           </p>
@@ -152,7 +152,7 @@ export default async function LouvorPage({
         )}
       </header>
 
-      <nav className="flex gap-1 overflow-x-auto border-b" aria-label="Conteúdo do Louvor">
+      <nav className="content-nav" aria-label="Conteúdo do Louvor">
         <TabLink churchSlug={churchSlug} tab="acervo" active={tab === "acervo"} icon={<Music className="size-4" />} label="Acervo" />
         <TabLink churchSlug={churchSlug} tab="repertorios" active={tab === "repertorios"} icon={<CalendarDays className="size-4" />} label="Repertórios" />
         <TabLink churchSlug={churchSlug} tab="arranjos" active={tab === "arranjos"} icon={<Layers3 className="size-4" />} label="Arranjos" />
@@ -273,7 +273,7 @@ function TabLink({ churchSlug, tab, active, icon, label }: { churchSlug: string;
     <Link
       href={`/${churchSlug}/louvor?aba=${tab}`}
       aria-current={active ? "page" : undefined}
-      className={`flex h-11 shrink-0 items-center gap-2 border-b-2 px-4 text-sm font-medium transition ${active ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+      className="content-nav-link"
     >
       {icon}
       {label}

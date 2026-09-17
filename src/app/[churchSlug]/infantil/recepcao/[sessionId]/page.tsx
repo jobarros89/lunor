@@ -223,7 +223,7 @@ export default async function KidsReceptionPage({
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Kids · Recepção aberta{reception.campus_name ? ` · ${reception.campus_name}` : ""}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{reception.title}</h1>
+        <h1 className="page-title mt-1">{reception.title}</h1>
         <p className="text-muted-foreground">
           {event
             ? `Contexto: ${event.title}${receptionContext ? ` · ${receptionContext}` : ""}`

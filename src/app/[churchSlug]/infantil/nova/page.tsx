@@ -24,7 +24,7 @@ export default async function NovaCriancaPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Cadastrar criança</h1>
+        <h1 className="page-title ">Cadastrar criança</h1>
         <p className="text-muted-foreground">
           Cadastre a criança e o responsável. O check-in é feito separadamente no culto.
         </p>

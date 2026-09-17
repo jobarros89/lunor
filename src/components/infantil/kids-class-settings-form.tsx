@@ -190,7 +190,7 @@ export function KidsClassSettingsForm({
               setSelectedCampusId(event.target.value);
               clearNewClass();
             }}
-            className="h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
+            className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
           >
             {campuses.map((campus) => (
               <option key={campus.id} value={campus.id}>

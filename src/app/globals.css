@@ -5,6 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-strong: var(--brand-strong);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -48,6 +52,11 @@
 }
 
 :root {
+  --brand: #6752d9;
+  --brand-foreground: #ffffff;
+  --brand-soft: #edeafa;
+  --brand-strong: #5944c4;
+  --shadow-surface: 0 1px 2px rgb(22 20 30 / 3%), 0 4px 18px rgb(22 20 30 / 2%);
   --background: oklch(0.978 0.004 95);
   --foreground: oklch(0.12 0.004 285);
   --card: oklch(0.995 0 0);
@@ -60,18 +69,18 @@
   --secondary-foreground: var(--foreground);
   --muted: oklch(0.95 0.004 95);
   --muted-foreground: oklch(0.45 0.006 285);
-  --accent: oklch(0.64 0.19 292);
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.944 0.008 285);
+  --accent-foreground: var(--foreground);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.72 0.005 285);
-  --input: oklch(0.72 0.005 285);
+  --border: oklch(0.89 0.006 285);
+  --input: oklch(0.70 0.012 285);
   --ring: oklch(0.56 0.16 292);
   --chart-1: oklch(0.64 0.19 292);
   --chart-2: oklch(0.7 0.1 220);
   --chart-3: oklch(0.68 0.12 330);
   --chart-4: oklch(0.75 0.1 70);
   --chart-5: oklch(0.3 0.006 285);
-  --radius: 0.625rem;
+  --radius: 0.875rem;
   --sidebar: oklch(0.978 0.004 95);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
@@ -83,6 +92,12 @@
 }
 
 .dark {
+  color-scheme: dark;
+  --brand: #a99afa;
+  --brand-foreground: #181226;
+  --brand-soft: #29233d;
+  --brand-strong: #bdb1ff;
+  --shadow-surface: 0 1px 2px rgb(0 0 0 / 18%);
   --background: oklch(0.12 0.004 285);
   --foreground: oklch(0.975 0 0);
   --card: oklch(0.16 0.004 285);
@@ -95,10 +110,10 @@
   --secondary-foreground: var(--foreground);
   --muted: oklch(0.22 0.004 285);
   --muted-foreground: oklch(0.72 0 0);
-  --accent: oklch(0.69 0.18 292);
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.25 0.012 285);
+  --accent-foreground: var(--foreground);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 20%);
+  --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 20%);
   --ring: oklch(0.68 0.15 292);
   --sidebar: oklch(0.12 0.004 285);
@@ -115,7 +130,7 @@
   * { @apply border-border outline-ring/50; }
   html { @apply max-w-full overflow-x-clip font-sans; min-height: 100dvh; -webkit-tap-highlight-color: transparent; }
   body { @apply max-w-full overflow-x-clip bg-background text-foreground; min-height: 100dvh; font-feature-settings: "cv11", "ss01"; letter-spacing: -0.01em; }
-  ::selection { background: color-mix(in oklab, var(--accent) 78%, white); color: #111; }
+  ::selection { background: var(--brand-soft); color: var(--foreground); }
   h1 { text-wrap: balance; letter-spacing: -0.035em; }
   h2 { text-wrap: balance; letter-spacing: -0.025em; }
   h3 { text-wrap: balance; letter-spacing: -0.018em; }
@@ -158,7 +173,7 @@
 }
 .dark .lunor-prism .text-muted-foreground { color: rgb(212 212 216); }
 
-[data-slot="card"] { border-color: color-mix(in oklab, currentColor 15%, transparent); box-shadow: none; }
+
 
 @media (min-width: 768px) {
   .tenant-shell { transition: padding-left 200ms ease; }
@@ -170,7 +185,39 @@
   .lunor-prism::before { background-position: 60% center; }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a, button { transition-duration: 180ms; }
+/* Shared product patterns: utility classes can still override local sizing. */
+@layer components {
+  .page-title { font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem); font-weight: 600; line-height: 1.2; letter-spacing: -0.035em; overflow-wrap: anywhere; }
+  .section-nav { display: flex; gap: .25rem; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; padding: .25rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--muted); }
+  .section-nav-link { display: flex; flex-shrink: 0; align-items: center; justify-content: center; gap: .5rem; min-height: 2.75rem; padding: .5rem .875rem; border-radius: calc(var(--radius) - .25rem); color: var(--muted-foreground); font-size: .875rem; font-weight: 500; transition: background-color 160ms, color 160ms; }
+  .section-nav-link:hover { background: var(--card); color: var(--foreground); }
+  .section-nav-link[aria-current="page"] { background: var(--card); color: var(--foreground); box-shadow: var(--shadow-surface); }
+  .content-nav { display: flex; gap: 1rem; overflow-x: auto; border-bottom: 1px solid var(--border); scrollbar-width: thin; }
+  .content-nav-link { display: flex; flex-shrink: 0; align-items: center; gap: .5rem; min-height: 2.75rem; padding: .5rem .25rem; border-bottom: 2px solid transparent; font-size: .875rem; font-weight: 500; color: var(--muted-foreground); }
+  .content-nav-link:hover { color: var(--foreground); }
+  .content-nav-link[aria-current="page"] { border-color: var(--brand); color: var(--foreground); }
+  .lunor-control { min-width: 0; max-width: 100%; min-height: 2.75rem; border: 1px solid var(--input); border-radius: .625rem; background: var(--card); color: var(--foreground); padding: .625rem .75rem; }
+  .lunor-control:focus-visible { border-color: var(--ring); outline: 2px solid var(--ring); outline-offset: 2px; }
+  .lunor-control:disabled { cursor: not-allowed; opacity: .55; }
+  .home-agenda-row > :last-child { grid-column: 2; justify-self: start; }
+  @media (min-width: 640px) { .home-agenda-row > :last-child { grid-column: 3; justify-self: end; } }
+  .skip-link { position: fixed; top: .75rem; left: .75rem; z-index: 100; transform: translateY(-200%); border-radius: .5rem; padding: .75rem 1rem; background: var(--foreground); color: var(--background); }
+  .skip-link:focus { transform: translateY(0); }
+}
+
+@layer base {
+  :where(a, button, summary, select, textarea, input):focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+  :where(button, a, summary) { touch-action: manipulation; }
+  :where(textarea) { resize: vertical; }
+  :where(img, video) { max-width: 100%; }
+}
+
+@media (pointer: coarse) {
+  [data-slot="button"], [data-slot="input"], [data-slot="dropdown-menu-item"] { min-height: 44px; }
+  [data-slot="button"] { min-width: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
 

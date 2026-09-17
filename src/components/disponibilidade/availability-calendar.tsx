@@ -198,7 +198,7 @@ export function AvailabilityCalendar({
             <select
               value={campusId ?? ""}
               onChange={(event) => setCampusId(event.target.value || null)}
-              className="h-10 rounded-xl border bg-background px-3 text-sm text-foreground"
+              className="lunor-control h-10 rounded-xl border bg-background px-3 text-sm text-foreground"
             >
               <option value="">Todos os campus</option>
               {campuses.map((campus) => (
@@ -213,7 +213,7 @@ export function AvailabilityCalendar({
             <select
               value={period}
               onChange={(event) => setPeriod(event.target.value as AvailabilityPeriod)}
-              className="h-10 rounded-xl border bg-background px-3 text-sm text-foreground"
+              className="lunor-control h-10 rounded-xl border bg-background px-3 text-sm text-foreground"
             >
               {periodOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -293,6 +293,7 @@ export function AvailabilityCalendar({
                     status === "available" && "bg-emerald-500/15",
                     status === "unavailable" && "bg-rose-500/15"
                   )}
+                  aria-pressed={selected}
                   aria-label={`${day} de ${monthLabel}: ${statusLabel(status)}`}
                 >
                   {day}
@@ -324,7 +325,7 @@ export function AvailabilityCalendar({
                   </Button>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2 min-[400px]:grid-cols-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -391,7 +392,7 @@ export function AvailabilityCalendar({
               type="button"
               disabled={pending || !monthDirty}
               onClick={submitMonth}
-              className="h-11 w-full rounded-full px-5 sm:w-auto"
+              className="min-h-11 h-auto w-full whitespace-normal rounded-lg px-5 py-3 sm:w-auto"
             >
               <Send className="size-4" />
               {pending ? "Enviando…" : "Confirmar disponibilidade do mês"}

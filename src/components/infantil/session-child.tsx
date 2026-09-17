@@ -217,7 +217,7 @@ export function SessionChildRow({
           <select
             value={selectedClassId}
             onChange={(event) => setSelectedClassId(event.target.value)}
-            className="h-10 w-full rounded-xl border bg-background px-3 text-sm font-normal"
+            className="lunor-control h-10 w-full rounded-xl border bg-background px-3 text-sm font-normal"
             aria-label={`Turma de ${child.fullName}`}
           >
             <option value="">Automática pela idade</option>
@@ -305,7 +305,7 @@ export function SessionChildRow({
               <select
                 value={guardianId}
                 onChange={(e) => setGuardianId(e.target.value)}
-                className="h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
+                className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
                 aria-label="Responsável que está retirando"
               >
                 <option value="">Escolher…</option>

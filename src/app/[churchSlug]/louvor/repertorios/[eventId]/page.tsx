@@ -120,7 +120,7 @@ export default async function LouvorRepertorioPage({
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Repertório do Louvor
         </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">{event.title}</h1>
+        <h1 className="page-title mt-2">{event.title}</h1>
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="size-4" />

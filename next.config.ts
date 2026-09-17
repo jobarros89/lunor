@@ -43,4 +43,8 @@ export default nextConfig;
 
 // OpenNext (Cloudflare) — permite usar getCloudflareContext() no `next dev`.
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
-initOpenNextCloudflareForDev();
+// The development proxy must not require Cloudflare credentials during a build.
+// Production receives its bindings from the Worker entrypoint.
+if (process.env.NODE_ENV === "development") {
+  initOpenNextCloudflareForDev();
+}

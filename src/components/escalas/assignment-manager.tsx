@@ -290,7 +290,7 @@ export function AssignmentManager({
                     value=""
                     disabled={pending}
                     onChange={(e) => e.target.value && act(() => linkEquipment({ churchSlug, churchId, eventId, assignmentId: a.id, equipmentId: e.target.value }))}
-                    className="h-9 rounded-full border bg-background px-3 text-sm"
+                    className="lunor-control h-9 rounded-full border bg-background px-3 text-sm"
                     aria-label={`Vincular equipamento a ${a.full_name}`}
                   >
                     <option value="">+ equipamento</option>
@@ -304,7 +304,7 @@ export function AssignmentManager({
                   value={a.status}
                   disabled={pending}
                   onChange={(e) => act(() => setAssignmentStatus({ churchSlug, eventId, assignmentId: a.id, status: e.target.value }))}
-                  className={selectCls}
+                  className={["lunor-control", selectCls].filter(Boolean).join(" ")}
                   aria-label={`Status de ${a.full_name}`}
                 >
                   {!statusIsManual && <option value={a.status}>{ASSIGNMENT_STATUS_LABELS[a.status] ?? a.status}</option>}
@@ -323,7 +323,7 @@ export function AssignmentManager({
           <p className="text-sm font-medium">Escalar pessoa</p>
         </div>
         <div className="grid min-w-0 max-w-full gap-2 sm:grid-cols-2">
-          <select value={userId} onChange={(e) => setUserId(e.target.value)} className={selectCls} aria-label="Escolher pessoa">
+          <select value={userId} onChange={(e) => setUserId(e.target.value)} className={["lunor-control", selectCls].filter(Boolean).join(" ")} aria-label="Escolher pessoa">
             <option value="">Escolher pessoa…</option>
             {members.map((m) => (
               <option key={m.user_id} value={m.user_id}>
@@ -335,7 +335,7 @@ export function AssignmentManager({
             <select
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
-              className={selectCls}
+              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
               aria-label="Onde vai servir?"
             >
               <option value="">Onde vai servir?</option>

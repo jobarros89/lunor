@@ -69,7 +69,7 @@ export function QrPickupConfirm({
           id="pickup-guardian"
           value={guardianId}
           onChange={(event) => setGuardianId(event.target.value)}
-          className="mt-1 h-12 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
+          className="lunor-control mt-1 h-12 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
         >
           <option value="">Escolher responsável…</option>
           {authorized.map((guardian) => (

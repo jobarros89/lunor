@@ -75,7 +75,7 @@ export function MinistryManager({
                       })
                     )
                   }
-                  className="h-11 rounded-xl border bg-background px-3 text-base md:text-sm"
+                  className="lunor-control h-11 rounded-xl border bg-background px-3 text-base md:text-sm"
                   aria-label={`Papel em ${min.name}`}
                 >
                   <option value="">Fora do ministério</option>

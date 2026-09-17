@@ -94,7 +94,7 @@ export default async function KidsChildPage({
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Kids · Cadastro
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{child.full_name}</h1>
+          <h1 className="page-title mt-1">{child.full_name}</h1>
           <p className="text-muted-foreground">
             Edite os dados operacionais da criança. Toda alteração fica registrada.
           </p>

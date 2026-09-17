@@ -29,20 +29,20 @@ function Chip({ selected, onClick, children }: { selected: boolean; onClick: () 
   return <button type="button" aria-pressed={selected} onClick={onClick} className={cn(
     "min-h-11 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
     selected
-      ? "border-[#6e5ce6] bg-[#6e5ce6] text-white"
-      : "border-white/15 bg-[#0b0b0c] text-zinc-300 hover:border-[#6e5ce6]/70 hover:text-white"
+      ? "border-brand bg-brand text-brand-foreground"
+      : "border-white/15 bg-[#0b0b0c] text-zinc-300 hover:border-brand/70 hover:text-white"
   )}>{children}</button>;
 }
 
 function Progress({ step, total }: { step: number; total: number }) {
   return <div className="flex justify-center gap-1.5" aria-label={`Passo ${step + 1} de ${total}`}>
-    {Array.from({ length: total }).map((_, i) => <span key={i} className={cn("h-1.5 rounded-full", i === step ? "w-6 bg-[#6e5ce6]" : "w-1.5 bg-white/15")} />)}
+    {Array.from({ length: total }).map((_, i) => <span key={i} className={cn("h-1.5 rounded-full", i === step ? "w-6 bg-brand" : "w-1.5 bg-white/15")} />)}
   </div>;
 }
 
 const cardClass = "rounded-3xl border-white/10 bg-[#111113] text-[#f4f3ef] shadow-none";
-const inputClass = "h-12 rounded-full border-white/15 bg-[#0b0b0c] text-[#f4f3ef] placeholder:text-zinc-600 focus-visible:border-[#6e5ce6] focus-visible:ring-[#6e5ce6]/25";
-const primaryButtonClass = "h-12 flex-1 rounded-full bg-[#6e5ce6] text-white hover:bg-[#5f4fd1]";
+const inputClass = "h-12 rounded-full border-white/15 bg-[#0b0b0c] text-[#f4f3ef] placeholder:text-zinc-600 focus-visible:border-brand focus-visible:ring-brand/25";
+const primaryButtonClass = "h-12 flex-1 rounded-full bg-brand text-brand-foreground hover:bg-brand-strong";
 const secondaryButtonClass = "h-12 flex-1 rounded-full border-white/15 bg-transparent text-zinc-200 hover:bg-white/5 hover:text-white";
 
 export function OnboardingWizard(props: Props) {

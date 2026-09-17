@@ -56,7 +56,7 @@ export default async function NovaEscalaKidsPage({
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           LUNOR Kids
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Adicionar escala do Kids</h1>
+        <h1 className="page-title mt-2">Adicionar escala do Kids</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Escolha um culto existente. O horário do Kids será configurado dentro dele, sem criar um evento duplicado.
         </p>

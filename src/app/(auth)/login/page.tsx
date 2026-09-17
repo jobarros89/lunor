@@ -63,7 +63,7 @@ function LoginForm() {
       <CardHeader className="space-y-4 pb-7 text-center">
         <BrandLockup className="items-center [&_span]:text-[#f4f3ef] [&_span:last-child]:text-zinc-400" />
         {familyAccess && (
-          <p className="mx-auto w-fit rounded-full bg-[#6e5ce6]/15 px-3 py-1 text-xs font-medium text-[#b9afff]">
+          <p className="mx-auto w-fit rounded-full bg-brand/15 px-3 py-1 text-xs font-medium text-[#b9afff]">
             Acesso de responsável · LUNOR Kids
           </p>
         )}
@@ -97,14 +97,14 @@ function LoginForm() {
             </p>
           )}
           {existingFamilyAccount && (
-            <p className="rounded-xl border border-[#6e5ce6]/30 bg-[#6e5ce6]/10 px-4 py-3 text-sm text-[#d7d1ff]">
+            <p className="rounded-xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm text-[#d7d1ff]">
               Este e-mail já possui uma conta no LUNOR. Entre com a senha dessa conta para concluir o vínculo como responsável.
             </p>
           )}
-          <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" name="email" type="email" autoComplete="email" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-[#6e5ce6] focus-visible:ring-[#6e5ce6]/25" /></div>
-          <div className="space-y-2"><Label htmlFor="password">Senha</Label><Input id="password" name="password" type="password" autoComplete="current-password" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-[#6e5ce6] focus-visible:ring-[#6e5ce6]/25" /></div>
-          {visibleError && <p className="text-sm text-destructive">{visibleError}</p>}
-          <Button type="submit" disabled={pending} className="h-12 w-full rounded-lg bg-[#6e5ce6] text-base font-semibold text-white hover:bg-[#5f4fd1]">{pending ? "Entrando…" : familyAccess ? "Entrar como responsável" : "Entrar"}</Button>
+          <div className="space-y-2"><Label htmlFor="email">E-mail</Label><Input id="email" name="email" type="email" autoComplete="email" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-brand focus-visible:ring-brand/25" /></div>
+          <div className="space-y-2"><Label htmlFor="password">Senha</Label><Input id="password" name="password" type="password" autoComplete="current-password" required className="h-12 rounded-lg border-white/15 bg-[#0b0b0c] focus-visible:border-brand focus-visible:ring-brand/25" /></div>
+          {visibleError && <p role="alert" className="text-sm text-destructive">{visibleError}</p>}
+          <Button type="submit" disabled={pending} className="h-12 w-full rounded-lg bg-brand text-base font-semibold text-brand-foreground hover:bg-brand-strong">{pending ? "Entrando…" : familyAccess ? "Entrar como responsável" : "Entrar"}</Button>
           <p className="text-center text-sm"><Link href="/esqueci-senha" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Esqueci minha senha</Link></p>
           <p className="text-center text-sm text-muted-foreground">Ainda não tem conta?{" "}<Link href={familyAccess ? "/signup?familia=acesso" : "/signup"} className="font-medium text-foreground underline-offset-4 hover:underline">{familyAccess ? "Criar conta de responsável" : "Criar conta"}</Link></p>
         </form>

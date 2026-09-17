@@ -46,7 +46,7 @@ export function InviteLink({ inviteCode }: { inviteCode: string }) {
         <button
           type="button"
           onClick={copyInvite}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6e5ce6] dark:border-white/20 dark:bg-transparent dark:text-white dark:hover:bg-white/10"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-950 transition-colors hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand dark:border-white/20 dark:bg-transparent dark:text-white dark:hover:bg-white/10"
         >
           {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
           {copied ? "Copiado" : "Copiar link"}
@@ -55,7 +55,7 @@ export function InviteLink({ inviteCode }: { inviteCode: string }) {
         <button
           type="button"
           onClick={shareInvite}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#6e5ce6] px-4 text-sm font-semibold text-white transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6e5ce6]"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-brand px-4 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
           <Share2 className="size-4" />
           Compartilhar

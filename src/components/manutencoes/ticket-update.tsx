@@ -46,7 +46,7 @@ export function TicketUpdate({
             id={statusId}
             value={v.status}
             onChange={(e) => setV({ ...v, status: e.target.value })}
-            className="h-11 w-full rounded-xl border bg-background px-3 text-sm"
+            className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-sm"
           >
             {Object.entries(TICKET_STATUS_LABELS).map(([value, label]) => (
               <option key={value} value={value}>

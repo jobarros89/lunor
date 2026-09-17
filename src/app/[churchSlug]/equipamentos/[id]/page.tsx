@@ -82,7 +82,7 @@ export default async function EquipamentoDetailPage({
             )}
           </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{eq.name}</h1>
+            <h1 className="page-title ">{eq.name}</h1>
             <Badge variant="secondary" className="mt-1 rounded-full">
               {STATUS_LABELS[eq.status]}
             </Badge>

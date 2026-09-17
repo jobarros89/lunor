@@ -50,7 +50,7 @@ export default async function PerfilPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Perfil</h1>
+      <h1 className="page-title ">Perfil</h1>
       <Card className="rounded-3xl">
         <CardContent className="flex items-center gap-4 pt-6">
           <Avatar className="size-16">

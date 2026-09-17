@@ -135,7 +135,7 @@ export default async function MusicaDetalhePage({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm text-muted-foreground">Música</p>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="page-title ">
               {musica.title}
             </h1>
             <p className="mt-1 text-muted-foreground">

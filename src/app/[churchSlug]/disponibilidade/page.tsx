@@ -302,7 +302,7 @@ export default async function DisponibilidadePage({
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Disponibilidade
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Escolha o ministério</h1>
+          <h1 className="page-title mt-2">Escolha o ministério</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Cada equipe mantém sua própria disponibilidade. Escolha onde você vai informar ou consultar as respostas.
           </p>
@@ -355,7 +355,7 @@ export default async function DisponibilidadePage({
               ? "Visão da liderança"
               : "Área pessoal"}
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+        <h1 className="page-title mt-2">
 {query.module && active
             ? `Disponibilidade do ${active.name}`
             : active?.canManage

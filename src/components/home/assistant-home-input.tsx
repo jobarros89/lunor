@@ -80,7 +80,7 @@ export function AssistantHomeInput({
             />
           }
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#6e5ce6] text-white">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand text-brand-foreground">
             <Sparkles className="size-4" />
           </span>
           <span className="min-w-0 flex-1 text-sm text-muted-foreground">
@@ -95,7 +95,7 @@ export function AssistantHomeInput({
         >
           <SheetHeader className="sticky top-0 z-20 shrink-0 border-b bg-popover/95 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur sm:px-5 sm:pt-4">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#6e5ce6] text-white">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
                 <Sparkles className="size-5" />
               </span>
               <div className="min-w-0 flex-1">

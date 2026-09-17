@@ -137,7 +137,7 @@ export function SkillManager({
           <select
             value={newSkillId}
             onChange={(e) => setNewSkillId(e.target.value)}
-            className="h-10 flex-1 rounded-xl border bg-background px-3 text-sm"
+            className="lunor-control h-10 flex-1 rounded-xl border bg-background px-3 text-sm"
             aria-label="Escolher aptidão"
           >
             <option value="">Marcar apto em…</option>
@@ -152,7 +152,7 @@ export function SkillManager({
             onChange={(e) =>
               setNewSource(e.target.value as typeof newSource)
             }
-            className="h-11 rounded-xl border bg-background px-3 text-base md:text-sm"
+            className="lunor-control h-11 rounded-xl border bg-background px-3 text-base md:text-sm"
             aria-label="Origem da aptidão"
           >
             <option value="experience">Por experiência</option>

@@ -132,7 +132,7 @@ export function GuardianAccountLink({
             value={guardianId}
             onChange={(event) => setGuardianId(event.target.value)}
             disabled={pending}
-            className="h-11 rounded-xl border bg-background px-3 text-sm"
+            className="lunor-control h-11 rounded-xl border bg-background px-3 text-sm"
             aria-label="Responsável"
           >
             <option value="">Selecione o responsável</option>
@@ -147,7 +147,7 @@ export function GuardianAccountLink({
             value={userId}
             onChange={(event) => setUserId(event.target.value)}
             disabled={pending}
-            className="h-11 rounded-xl border bg-background px-3 text-sm"
+            className="lunor-control h-11 rounded-xl border bg-background px-3 text-sm"
             aria-label="Conta LUNOR"
           >
             <option value="">Selecione a conta LUNOR</option>

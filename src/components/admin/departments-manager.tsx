@@ -60,7 +60,7 @@ export function DepartmentsManager({
             name="ministryId"
             required
             defaultValue=""
-            className="h-11 rounded-xl border bg-background px-3 text-sm"
+            className="lunor-control h-11 rounded-xl border bg-background px-3 text-sm"
           >
             <option value="" disabled>
               Selecione o ministério

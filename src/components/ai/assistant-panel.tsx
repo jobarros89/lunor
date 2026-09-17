@@ -281,9 +281,9 @@ export function AssistantPanel({
   return (
     <div className={cn("space-y-5", compact && "space-y-4")}>
       {!compact && (
-        <Card className="overflow-hidden rounded-3xl border-[#6e5ce6]/25 bg-gradient-to-br from-[#6e5ce6]/10 via-background to-background">
+        <Card className="overflow-hidden rounded-3xl border-brand/25 bg-gradient-to-br from-brand/10 via-background to-background">
           <CardHeader className="space-y-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-[#6e5ce6] text-white">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
               <Sparkles className="size-5" />
             </div>
             <div>
@@ -312,7 +312,7 @@ export function AssistantPanel({
       )}
 
       {compact && messages.length === 0 && (
-        <div className="space-y-3 rounded-2xl border border-[#6e5ce6]/20 bg-[#6e5ce6]/5 p-4">
+        <div className="space-y-3 rounded-2xl border border-brand/20 bg-brand/5 p-4">
           <div>
             <p className="text-sm font-medium">Como posso ajudar no LUNOR?</p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -349,7 +349,7 @@ export function AssistantPanel({
             )}
           >
             {message.role === "assistant" && (
-              <span className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-[#6e5ce6]/12 text-[#6e5ce6]">
+              <span className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-brand/12 text-brand">
                 <Bot className="size-4" />
               </span>
             )}
@@ -382,11 +382,11 @@ export function AssistantPanel({
                   return (
                     <div
                       key={key}
-                      className="rounded-2xl border border-[#6e5ce6]/25 bg-background p-4 shadow-sm"
+                      className="rounded-2xl border border-brand/25 bg-background p-4 shadow-sm"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6e5ce6]">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">
                             Sugestão de escala
                           </p>
                           <p className="mt-1 font-semibold">
@@ -429,7 +429,7 @@ export function AssistantPanel({
                           "mt-3 w-full rounded-full",
                           isConfirmed
                             ? "bg-emerald-600 text-white hover:bg-emerald-600"
-                            : "bg-[#6e5ce6] text-white hover:bg-[#5f4fd1]"
+                            : "bg-brand text-brand-foreground hover:bg-brand-strong"
                         )}
                       >
                         {isConfirming ? (
@@ -461,14 +461,14 @@ export function AssistantPanel({
                   return (
                     <div
                       key={key}
-                      className="rounded-2xl border border-[#6e5ce6]/25 bg-background p-4 shadow-sm"
+                      className="rounded-2xl border border-brand/25 bg-background p-4 shadow-sm"
                     >
                       <div className="flex items-start gap-3">
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#6e5ce6]/12 text-[#6e5ce6]">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand/12 text-brand">
                           <Music2 className="size-4" />
                         </span>
                         <div className="min-w-0">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6e5ce6]">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">
                             Proposta de repertório
                           </p>
                           <p className="mt-1 font-semibold">{proposal.event.title}</p>
@@ -485,7 +485,7 @@ export function AssistantPanel({
                             key={song.songId}
                             className="flex gap-3 rounded-xl border border-foreground/10 bg-muted/25 px-3 py-2.5"
                           >
-                            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#6e5ce6]/10 text-xs font-semibold text-[#6e5ce6]">
+                            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand">
                               {song.position}
                             </span>
                             <div className="min-w-0">
@@ -535,7 +535,7 @@ export function AssistantPanel({
                           "mt-3 w-full rounded-full",
                           isConfirmed
                             ? "bg-emerald-600 text-white hover:bg-emerald-600"
-                            : "bg-[#6e5ce6] text-white hover:bg-[#5f4fd1]"
+                            : "bg-brand text-brand-foreground hover:bg-brand-strong"
                         )}
                       >
                         {isConfirming ? (
@@ -569,7 +569,7 @@ export function AssistantPanel({
         ))}
         {pending && (
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span className="flex size-8 items-center justify-center rounded-full bg-[#6e5ce6]/12 text-[#6e5ce6]">
+            <span className="flex size-8 items-center justify-center rounded-full bg-brand/12 text-brand">
               <Bot className="size-4" />
             </span>
             Consultando o LUNOR…
@@ -586,18 +586,19 @@ export function AssistantPanel({
       >
         <div className="flex items-end gap-2">
           <textarea
+            aria-label="Pergunta para o assistente LUNOR"
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             placeholder="Ex.: Como está a igreja como um todo?"
             rows={2}
             maxLength={1500}
-            className="min-h-12 flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
+            className="lunor-control min-h-12 flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
           />
           <Button
             type="submit"
             size="icon"
             disabled={pending || !question.trim()}
-            className="size-11 shrink-0 rounded-full bg-[#6e5ce6] text-white hover:bg-[#5f4fd1]"
+            className="size-11 shrink-0 rounded-full bg-brand text-brand-foreground hover:bg-brand-strong"
             aria-label="Enviar pergunta"
           >
             <ArrowUp className="size-5" />
@@ -611,4 +612,3 @@ export function AssistantPanel({
     </div>
   );
 }
-

@@ -56,7 +56,7 @@ export default async function NovaEscalaLouvorPage({
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Louvor
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Adicionar escala do Louvor</h1>
+        <h1 className="page-title mt-2">Adicionar escala do Louvor</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Escolha um culto existente. O horário do Louvor será configurado dentro dele, sem criar um evento duplicado.
         </p>

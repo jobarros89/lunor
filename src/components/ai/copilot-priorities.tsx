@@ -36,7 +36,7 @@ export function CopilotPriorities({ churchSlug, ministryId, pending, onPrepare }
     .filter(item => !dismissed.has(item.id)).slice(0, 3);
 
   return (
-    <section aria-label="Prioridades do copiloto" className="space-y-3 rounded-2xl border border-[#6e5ce6]/20 bg-[#6e5ce6]/5 p-4">
+    <section aria-label="Prioridades do copiloto" className="space-y-3 rounded-2xl border border-brand/20 bg-brand/5 p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">O que podemos adiantar?</h2>
         <button type="button" disabled={!result && !failed}
@@ -57,9 +57,9 @@ export function CopilotPriorities({ churchSlug, ministryId, pending, onPrepare }
             <div className="flex flex-wrap items-center gap-2">
               {insight.ministry.id === ministryId ? (
                 <button type="button" disabled={pending} onClick={() => onPrepare(action.question)}
-                  className="min-h-10 rounded-full bg-[#6e5ce6] px-4 text-xs font-medium text-white disabled:opacity-50">{action.label}</button>
+                  className="min-h-10 rounded-full bg-brand px-4 text-xs font-medium text-brand-foreground disabled:opacity-50">{action.label}</button>
               ) : (
-                <Link href={copilotSuggestionHref(churchSlug, insight)} className="inline-flex min-h-10 items-center rounded-full bg-[#6e5ce6] px-4 text-xs font-medium text-white">Revisar em {insight.ministry.name}</Link>
+                <Link href={copilotSuggestionHref(churchSlug, insight)} className="inline-flex min-h-10 items-center rounded-full bg-brand px-4 text-xs font-medium text-brand-foreground">Revisar em {insight.ministry.name}</Link>
               )}
               <button type="button" onClick={() => setDismissed(current => new Set(current).add(insight.id))}
                 className="min-h-10 px-3 text-xs text-muted-foreground">Agora não</button>

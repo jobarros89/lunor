@@ -40,7 +40,7 @@ export default async function LouvorEscalasPage({
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Ministério de música
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Escalas do Louvor</h1>
+          <h1 className="page-title mt-2">Escalas do Louvor</h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
             Equipe, confirmações e pendências do Louvor separadas da visão geral do culto.
           </p>

@@ -78,7 +78,7 @@ export default async function KidsPrintSettingsPage({
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Kids · Configurações
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+        <h1 className="page-title mt-1">
           Configurações do Kids
         </h1>
         <p className="mt-1 max-w-2xl text-muted-foreground">

@@ -32,7 +32,7 @@ export function SectorSwitcher({
         onChange={(e) =>
           startTransition(() => setActiveMinistry(e.target.value, churchSlug))
         }
-        className="w-full min-w-0 max-w-[4.75rem] cursor-pointer truncate bg-transparent font-medium outline-none sm:max-w-[9rem]"
+        className="lunor-control w-full min-w-0 max-w-[4.75rem] cursor-pointer truncate bg-transparent font-medium outline-none sm:max-w-[9rem]"
         aria-label="Trocar de setor"
       >
         {options.map((o) => (

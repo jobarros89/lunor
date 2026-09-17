@@ -28,7 +28,7 @@ export default function Error({
     <div className="flex min-h-[60dvh] items-center justify-center">
       <Card className="w-full max-w-sm rounded-3xl">
         <CardContent className="space-y-4 py-8 text-center">
-          <h1 className="text-lg font-semibold tracking-tight">
+          <h1 className="page-title text-lg">
             Ops, algo não carregou
           </h1>
           <p className="text-sm text-muted-foreground">

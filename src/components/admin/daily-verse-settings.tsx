@@ -134,7 +134,7 @@ export function DailyVerseSettings({
                 id="verse-version"
                 value={version}
                 onChange={(event) => setVersion(event.target.value as Version)}
-                className={selectCls}
+                className={["lunor-control", selectCls].filter(Boolean).join(" ")}
               >
                 {VERSIONS.map((item) => (
                   <option key={item.value} value={item.value}>
@@ -157,7 +157,7 @@ export function DailyVerseSettings({
                 id="verse-theme"
                 value={theme}
                 onChange={(event) => setTheme(event.target.value as Theme)}
-                className={selectCls}
+                className={["lunor-control", selectCls].filter(Boolean).join(" ")}
               >
                 {THEMES.map((item) => (
                   <option key={item.value} value={item.value}>

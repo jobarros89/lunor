@@ -90,7 +90,7 @@ function ItemForm({ item, pending, onCancel, onSubmit }: ItemFormProps) {
           <select
             name="type"
             defaultValue={item?.type ?? "OTHER"}
-            className="h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
+            className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
           >
             {Object.entries(TYPE_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
@@ -119,7 +119,7 @@ function ItemForm({ item, pending, onCancel, onSubmit }: ItemFormProps) {
           name="notes"
           defaultValue={item?.notes ?? ""}
           rows={3}
-          className="w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+          className="lunor-control w-full rounded-xl border bg-background p-3 text-base md:text-sm"
           placeholder="Informações opcionais para a equipe"
         />
       </Field>

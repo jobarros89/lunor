@@ -51,7 +51,7 @@ export default async function AssinaturaPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Assinatura</h1>
+        <h1 className="page-title ">Assinatura</h1>
         <p className="text-muted-foreground">{tenant.church.name}</p>
       </div>
 

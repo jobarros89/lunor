@@ -60,6 +60,7 @@ export default async function TenantLayout({ children, params }: { children: Rea
 
   return (
     <div className="relative h-dvh w-full max-w-full overflow-hidden md:h-auto md:min-h-dvh md:overflow-x-clip">
+      <a href="#main-content" className="skip-link">Pular para o conteúdo</a>
       <SessionKeeper />
       <Sidebar churchSlug={churchSlug} churchName={tenant.church.name} canAdmin={tenant.isCoord} isLeader={tenant.isLeader} activeMinistryNavigation={activeMinistryNavigation} hasLouvor={hasLouvor} hasKids={hasKids} escalasPending={escalasPending ?? 0} guardianOnly={tenant.guardianOnly} />
       <div className="tenant-shell h-full min-w-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch] md:h-auto md:overflow-visible md:pl-60">
@@ -77,12 +78,12 @@ export default async function TenantLayout({ children, params }: { children: Rea
             <div className="ml-auto flex min-w-0 items-center gap-1">
               <ThemeToggle />
               <form action="/auth/logout" method="post">
-                <Button type="submit" variant="ghost" className="h-10 rounded-none px-3" aria-label="Sair" title="Sair"><LogOut className="size-4" /><span className="hidden lg:inline">Sair</span></Button>
+                <Button type="submit" variant="ghost" className="h-10 rounded-lg px-3" aria-label="Sair" title="Sair"><LogOut className="size-4" /><span className="hidden lg:inline">Sair</span></Button>
               </form>
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-4 md:px-8 md:pb-12">
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full min-w-0 max-w-7xl overflow-x-clip px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-6 md:px-8 md:pb-12 md:pt-8">
           <KidsNoticeBanner
             churchSlug={churchSlug}
             notices={(kidsNotices ?? []) as KidsPersonalNotice[]}

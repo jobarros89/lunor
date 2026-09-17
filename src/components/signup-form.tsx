@@ -69,7 +69,7 @@ export function SignupForm({
     <Card className="rounded-3xl shadow-sm">
       <CardHeader className="space-y-2 text-center">
         {isFamilyAccess && (
-          <p className="mx-auto w-fit rounded-full bg-[#6e5ce6]/10 px-3 py-1 text-xs font-medium text-[#6e5ce6]">
+          <p className="mx-auto w-fit rounded-full bg-brand/10 px-3 py-1 text-xs font-medium text-brand">
             Convite familiar
           </p>
         )}
@@ -130,7 +130,7 @@ export function SignupForm({
               <button
                 type="button"
                 onClick={() => setShowPassword((current) => !current)}
-                className="absolute inset-y-0 right-1 flex w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6e5ce6]"
+                className="absolute inset-y-0 right-1 flex w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                 title={showPassword ? "Ocultar senha" : "Mostrar senha"}
               >
@@ -141,7 +141,7 @@ export function SignupForm({
               id="password-requirement"
               className={`flex items-center gap-2 text-xs ${passwordReady ? "text-foreground" : "text-muted-foreground"}`}
             >
-              <span className={`flex size-4 items-center justify-center rounded-full border ${passwordReady ? "border-[#6e5ce6] bg-[#6e5ce6] text-white" : "border-foreground/25"}`}>
+              <span className={`flex size-4 items-center justify-center rounded-full border ${passwordReady ? "border-brand bg-brand text-brand-foreground" : "border-foreground/25"}`}>
                 {passwordReady && <Check className="size-3" strokeWidth={2.5} />}
               </span>
               Pelo menos 8 caracteres
@@ -153,7 +153,7 @@ export function SignupForm({
               name="legalAccepted"
               value="true"
               required
-              className="mt-1 size-4 shrink-0 accent-[#6e5ce6]"
+              className="mt-1 size-4 shrink-0 accent-brand"
             />
             <span>
               Li e aceito os{" "}

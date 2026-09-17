@@ -78,15 +78,15 @@ export default async function ResponsaveisPage({
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           LUNOR Kids
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight">Responsáveis</h1>
+        <h1 className="page-title ">Responsáveis</h1>
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
           Gere o acesso familiar para pais e responsáveis ou vincule uma conta LUNOR já existente.
         </p>
       </div>
 
-      <Card className="rounded-3xl border-[#6e5ce6]/20 bg-[#6e5ce6]/5 shadow-none">
+      <Card className="rounded-3xl border-brand/20 bg-brand/5 shadow-none">
         <CardContent className="flex gap-3 py-4">
-          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-[#6e5ce6]" />
+          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-brand" />
           <div className="text-sm">
             <p className="font-medium">Acesso restrito à família</p>
             <p className="mt-1 text-muted-foreground">

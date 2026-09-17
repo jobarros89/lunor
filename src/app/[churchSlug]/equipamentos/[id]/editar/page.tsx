@@ -71,7 +71,7 @@ export default async function EditarEquipamentoPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="page-title ">
           Editar equipamento
         </h1>
         <p className="text-muted-foreground">{eq.name}</p>

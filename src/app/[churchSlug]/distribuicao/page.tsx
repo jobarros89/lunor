@@ -33,7 +33,7 @@ export default async function DistribuicaoPage({
     <div className="space-y-8">
       <header>
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Cuidado com a equipe</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Radar de carga</h1>
+        <h1 className="page-title mt-2">Radar de carga</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
           Sinais para ajudar a revezar melhor, perceber quem está servindo demais e lembrar de quem pode estar ficando de fora. O radar não avalia pessoas — ele apoia conversas de cuidado.
         </p>

@@ -86,7 +86,7 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 hidden min-h-0 flex-col overflow-hidden border-r border-black/10 bg-[#f8f8f5]/95 py-7 backdrop-blur-xl transition-[width,padding] duration-200 md:flex dark:border-white/10 dark:bg-[#111]/95",
+        "fixed inset-y-0 left-0 z-40 hidden min-h-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar/95 py-6 backdrop-blur-xl transition-[width,padding] duration-200 md:flex",
         collapsed ? "w-16 px-2" : "w-60 px-5"
       )}
     >
@@ -135,14 +135,15 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
               <Link
                 key={`${href}-${label}`}
                 href={full}
+                aria-current={active ? "page" : undefined}
                 title={collapsed ? label : undefined}
                 aria-label={collapsed ? label : undefined}
                 className={cn(
-                  "group relative flex min-h-11 items-center border-l-2 py-2.5 text-sm transition-colors",
+                  "group relative flex min-h-11 items-center rounded-lg py-2.5 text-sm transition-colors",
                   collapsed ? "justify-center px-2" : "gap-3 px-3",
                   active
-                    ? "border-[#d8ff00] bg-black text-white dark:bg-white dark:text-black"
-                    : "border-transparent text-muted-foreground hover:border-foreground/25 hover:text-foreground"
+                    ? "bg-brand-soft font-semibold text-brand"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 <Icon className="size-4 shrink-0" strokeWidth={1.7} />
@@ -150,7 +151,7 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
                 {id === "escalas" && escalasPending > 0 && (
                   <span
                     className={cn(
-                      "flex min-w-5 items-center justify-center bg-[#d8ff00] px-1.5 text-[10px] font-bold text-black",
+                      "flex min-w-5 items-center justify-center rounded-md bg-brand px-1.5 text-[10px] font-bold text-brand-foreground",
                       collapsed && "absolute right-0.5 top-0.5 min-w-4 px-1 text-[9px]"
                     )}
                   >

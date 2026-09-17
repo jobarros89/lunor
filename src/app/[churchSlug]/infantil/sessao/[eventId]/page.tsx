@@ -194,7 +194,7 @@ export default async function SessaoInfantilPage({
           Kids · Recepção · {formatEventDate(event.starts_at)} · {formatEventTime(event.starts_at)}
           {eventContext ? ` · ${eventContext}` : ""}
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{event.title}</h1>
+        <h1 className="page-title mt-1">{event.title}</h1>
         <p className="text-muted-foreground">
           Busque a família e faça entrada, retirada ou chamada em poucos toques.
         </p>

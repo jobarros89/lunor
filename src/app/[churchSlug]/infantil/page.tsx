@@ -62,7 +62,7 @@ export default async function InfantilPage({
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             LUNOR Kids
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight">Kids</h1>
+          <h1 className="page-title ">Kids</h1>
         </div>
         <Card className="rounded-3xl">
           <CardHeader>
@@ -239,7 +239,7 @@ export default async function InfantilPage({
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           LUNOR Kids
         </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Dashboard Kids</h1>
+        <h1 className="page-title mt-1">Dashboard Kids</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Crianças, turmas e operação da recepção em um só lugar.
         </p>

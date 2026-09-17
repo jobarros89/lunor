@@ -144,7 +144,7 @@ export default async function PessoaDetailPage({
           <AvatarFallback className="text-lg">{initials}</AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="page-title ">
             {profile.full_name}
           </h1>
           <div className="mt-1 flex flex-wrap gap-1">
