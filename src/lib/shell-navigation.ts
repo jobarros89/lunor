@@ -1,8 +1,7 @@
 export type ShellNavItemId =
   | "home"
-  | "louvor"
-  | "kids"
-  | "ministry"
+  | "agenda"
+  | "times"
   | "escalas"
   | "assistente"
   | "perfil"
@@ -25,9 +24,6 @@ export type ActiveMinistryNavigation = {
 
 export function buildShellNavigation({
   guardianOnly,
-  hasLouvor,
-  hasKids,
-  activeMinistryNavigation,
   isLeader,
   canAdmin,
 }: {
@@ -40,29 +36,16 @@ export function buildShellNavigation({
 }): ShellNavItem[] {
   if (guardianOnly) {
     return [
-      { id: "kids", href: "/infantil", label: "Meus filhos" },
+      { id: "times", href: "/infantil", label: "Meus filhos" },
       { id: "perfil", href: "/perfil", label: "Perfil" },
     ];
   }
 
   return [
-    { id: "home", href: "", label: "Visão geral" },
-    ...(hasLouvor
-      ? [{ id: "louvor" as const, href: "/louvor", label: "Louvor" }]
-      : []),
-    ...(hasKids
-      ? [{ id: "kids" as const, href: "/infantil", label: "Kids" }]
-      : []),
-    ...(activeMinistryNavigation
-      ? [
-          {
-            id: "ministry" as const,
-            href: activeMinistryNavigation.href,
-            label: activeMinistryNavigation.label,
-          },
-        ]
-      : []),
-    { id: "escalas", href: "/escalas", label: "Cultos e escalas" },
+    { id: "home", href: "", label: "Início" },
+    { id: "agenda", href: "/escalas?filtro=todas", label: "Agenda" },
+    { id: "times", href: "/times", label: "Times" },
+    { id: "escalas", href: "/escalas?filtro=minhas", label: "Escalas" },
     ...(isLeader
       ? [
           { id: "assistente" as const, href: "/assistente", label: "Assistente LUNOR" },

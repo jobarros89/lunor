@@ -129,11 +129,16 @@ export default async function EscalasPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title={<>Escalas</>}
-        description={<>Próximos eventos</>}
+        eyebrow={verMinhas ? <>Escalas</> : <>Agenda</>}
+        title={verMinhas ? <>Minhas escalas</> : <>Agenda da igreja</>}
+        description={
+          verMinhas
+            ? <>Suas participações, funções e confirmações.</>
+            : <>Próximos eventos e cultos da igreja.</>
+        }
         actions={
           <>
-            {tenant.isLeader && (
+            {tenant.isLeader && !verMinhas && (
               <Button
                 className="px-5"
                 nativeButton={false}
