@@ -53,7 +53,9 @@ type EventAssignment = {
 
 type EventMinistryLink = {
   ministry_id: string;
-  ministries: { id: string; name: string; module_key: "generic" | "worship" | "kids" } | { id: string; name: string; module_key: "generic" | "worship" | "kids" }[];
+  ministries:
+    | { id: string; name: string; module_key: "generic" | "worship" | "kids" }
+    | { id: string; name: string; module_key: "generic" | "worship" | "kids" }[];
 };
 
 type TeamGroup = {
@@ -110,7 +112,9 @@ export default async function EventoDetailPage({
       .order("created_at"),
     supabase
       .from("service_items")
-      .select("id, type, title, notes, duration_minutes, position")
+      .select(
+        "id, type, title, notes, duration_minutes, position, scheduled_offset_minutes, ministry_id, responsible_assignment_id"
+      )
       .eq("church_id", tenant.church.id)
       .eq("event_id", id)
       .order("position"),
@@ -220,10 +224,10 @@ export default async function EventoDetailPage({
   for (const assignment of teamAssignments) {
     const ministry = firstRelated(assignment.ministries);
     if (!ministry) continue;
-    const current = teamMap.get(assignment.ministry_id);
+    const current = assignment.ministry_id ? teamMap.get(assignment.ministry_id) : undefined;
     if (current) {
       current.rows.push(assignment);
-    } else {
+    } else if (assignment.ministry_id) {
       teamMap.set(assignment.ministry_id, {
         ministryId: assignment.ministry_id,
         ministryName: ministry.name,
@@ -245,6 +249,17 @@ export default async function EventoDetailPage({
     .filter((option) => canManageAtEventCampus(option) && !linkedMinistryIds.has(option.id))
     .map((option) => ({ id: option.id, name: option.name }));
 
+  const serviceOrderTeams = teams.map((team) => ({
+    id: team.ministryId,
+    name: team.ministryName,
+  }));
+  const serviceOrderResponsibles = allAssignments.map((assignment) => ({
+    id: assignment.id,
+    name: firstRelated(assignment.profiles)?.full_name ?? "—",
+    roleName: assignment.role_name,
+    ministryId: assignment.ministry_id,
+  }));
+
   const totalConfirmados = teamAssignments.filter((a) =>
     ["confirmado", "presente"].includes(a.status)
   ).length;
@@ -263,14 +278,10 @@ export default async function EventoDetailPage({
     <div className="space-y-6">
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" >
+          <Badge variant="secondary">
             {type?.name ?? "Evento"}
           </Badge>
-          {dept?.name && (
-            <Badge variant="outline" >
-              {dept.name}
-            </Badge>
-          )}
+          {dept?.name && <Badge variant="outline">{dept.name}</Badge>}
           <Badge
             className={`rounded-full border-0 ${
               event.setlist_status === "publicado"
@@ -281,9 +292,7 @@ export default async function EventoDetailPage({
             Repertório {event.setlist_status === "publicado" ? "publicado" : "em rascunho"}
           </Badge>
         </div>
-        <h1 className="page-title ">
-          {event.title}
-        </h1>
+        <h1 className="page-title ">{event.title}</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Visão geral do culto: programação, repertório e todos os times que servem neste evento.
         </p>
@@ -395,6 +404,8 @@ export default async function EventoDetailPage({
             eventId={id}
             startsAt={event.starts_at}
             items={(serviceItems ?? []) as ServiceItem[]}
+            teams={serviceOrderTeams}
+            responsibles={serviceOrderResponsibles}
             canManage={canManageEvent}
           />
         )}
@@ -428,8 +439,7 @@ export default async function EventoDetailPage({
                   responsibilities={eventResponsibilities.map((assignment) => ({
                     id: assignment.id,
                     user_id: assignment.user_id,
-                    full_name:
-                      firstRelated(assignment.profiles)?.full_name ?? "—",
+                    full_name: firstRelated(assignment.profiles)?.full_name ?? "—",
                     role_name: assignment.role_name,
                     status: assignment.status,
                   }))}
@@ -464,12 +474,10 @@ export default async function EventoDetailPage({
                 options={addableMinistries}
               />
             )}
-            <Badge variant="secondary" >
+            <Badge variant="secondary">
               {teams.length} {teams.length === 1 ? "ministério" : "ministérios"}
             </Badge>
-            <Badge variant="secondary" >
-              {teamAssignments.length} escalados
-            </Badge>
+            <Badge variant="secondary">{teamAssignments.length} escalados</Badge>
             <Badge className="border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
               {totalConfirmados} confirmados
             </Badge>
@@ -504,7 +512,7 @@ export default async function EventoDetailPage({
               );
 
               return (
-                <Card key={team.ministryId} >
+                <Card key={team.ministryId}>
                   <CardHeader className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -556,7 +564,9 @@ export default async function EventoDetailPage({
                     ))}
                     {visibleRows.length === 0 && (
                       <p className="py-2 text-sm text-muted-foreground">
-                        {team.rows.length === 0 ? "Nenhuma pessoa escalada ainda." : "Sua participação está destacada acima."}
+                        {team.rows.length === 0
+                          ? "Nenhuma pessoa escalada ainda."
+                          : "Sua participação está destacada acima."}
                       </p>
                     )}
                   </CardContent>

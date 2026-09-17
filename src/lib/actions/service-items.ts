@@ -13,6 +13,9 @@ const itemFields = z.object({
     .int("Informe uma duração inteira")
     .min(0, "A duração não pode ser negativa")
     .max(1440, "A duração máxima é 1440 minutos"),
+  scheduledOffsetMinutes: z.number().int().min(0).max(2880).nullable().default(null),
+  ministryId: z.string().uuid().nullable().default(null),
+  responsibleAssignmentId: z.string().uuid().nullable().default(null),
   notes: z.string().default(""),
 });
 
@@ -29,6 +32,11 @@ const moveSchema = itemSchema.extend({ direction: z.enum(["up", "down"]) });
 
 function eventPath(churchSlug: string, eventId: string) {
   return `/${churchSlug}/escalas/${eventId}`;
+}
+
+function revalidateEvent(churchSlug: string, eventId: string) {
+  revalidatePath(eventPath(churchSlug, eventId));
+  revalidatePath(`${eventPath(churchSlug, eventId)}/modo-culto`);
 }
 
 export async function createServiceItem(raw: unknown): Promise<ActionResult> {
@@ -57,16 +65,19 @@ export async function createServiceItem(raw: unknown): Promise<ActionResult> {
       type: d.type,
       title: d.title,
       duration_minutes: d.durationMinutes,
+      scheduled_offset_minutes: d.scheduledOffsetMinutes,
+      ministry_id: d.ministryId,
+      responsible_assignment_id: d.responsibleAssignmentId,
       notes: d.notes.trim() || null,
       position: last ? last.position + 1 : 0,
     })
     .select("id")
     .maybeSingle();
   if (error || !created) {
-    return { ok: false, error: "Sem permissão para adicionar este item" };
+    return { ok: false, error: "Sem permissão ou vínculo válido para adicionar este item" };
   }
 
-  revalidatePath(eventPath(d.churchSlug, d.eventId));
+  revalidateEvent(d.churchSlug, d.eventId);
   return { ok: true, data: undefined };
 }
 
@@ -82,6 +93,9 @@ export async function updateServiceItem(raw: unknown): Promise<ActionResult> {
       type: d.type,
       title: d.title,
       duration_minutes: d.durationMinutes,
+      scheduled_offset_minutes: d.scheduledOffsetMinutes,
+      ministry_id: d.ministryId,
+      responsible_assignment_id: d.responsibleAssignmentId,
       notes: d.notes.trim() || null,
     })
     .eq("id", d.itemId)
@@ -90,10 +104,10 @@ export async function updateServiceItem(raw: unknown): Promise<ActionResult> {
     .select("id")
     .maybeSingle();
   if (error || !updated) {
-    return { ok: false, error: "Sem permissão para editar este item" };
+    return { ok: false, error: "Sem permissão ou vínculo válido para editar este item" };
   }
 
-  revalidatePath(eventPath(d.churchSlug, d.eventId));
+  revalidateEvent(d.churchSlug, d.eventId);
   return { ok: true, data: undefined };
 }
 
@@ -115,7 +129,7 @@ export async function removeServiceItem(raw: unknown): Promise<ActionResult> {
     return { ok: false, error: "Sem permissão para remover este item" };
   }
 
-  revalidatePath(eventPath(d.churchSlug, d.eventId));
+  revalidateEvent(d.churchSlug, d.eventId);
   return { ok: true, data: undefined };
 }
 
@@ -200,6 +214,6 @@ export async function moveServiceItem(raw: unknown): Promise<ActionResult> {
     return { ok: false, error: "Não foi possível concluir a nova ordem" };
   }
 
-  revalidatePath(eventPath(d.churchSlug, d.eventId));
+  revalidateEvent(d.churchSlug, d.eventId);
   return { ok: true, data: undefined };
 }
