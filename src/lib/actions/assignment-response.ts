@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { notifyUsers } from "@/lib/push/notify";
-import { ministryOperationalRecipientIds } from "@/lib/push/ministry-recipients";
+import { ministryOperationalRecipientIds, type MinistryRecipientMembership } from "@/lib/push/ministry-recipients";
 import type { ActionResult } from "./types";
 
 const responseSchema = z.object({
@@ -163,7 +163,7 @@ async function notifyAssignmentLeaders({
   ]);
 
   const targets = ministryId
-    ? ministryOperationalRecipientIds(leaders ?? [], {
+    ? ministryOperationalRecipientIds((leaders ?? []) as MinistryRecipientMembership[], {
         churchId,
         ministryId,
         explicitLeaderId: assignment?.leader_id,
