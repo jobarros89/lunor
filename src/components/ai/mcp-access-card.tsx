@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy, KeyRound, PlugZap, X } from "lucide-react";
@@ -102,7 +104,7 @@ export function McpAccessCard({
   const revokedTokens = initialTokens.filter((token) => token.revoked_at);
 
   return (
-    <Card className="rounded-3xl border-foreground/10">
+    <Card className="border-foreground/10">
       <CardHeader className="space-y-2">
         <div className="flex items-center gap-2">
           <PlugZap className="size-5" />
@@ -133,7 +135,7 @@ export function McpAccessCard({
               </div>
             </div>
             <div className="mt-3 flex gap-2">
-              <Input value={createdToken} readOnly className="h-11 min-w-0 font-mono text-xs" />
+              <Input value={createdToken} readOnly className="min-w-0 font-mono text-xs" />
               <Button type="button" variant="outline" size="icon-lg" onClick={copyToken} aria-label="Copiar token">
                 {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
               </Button>
@@ -150,27 +152,26 @@ export function McpAccessCard({
                 onChange={(event) => setName(event.target.value)}
                 maxLength={80}
                 placeholder="Ex.: ChatGPT da liderança"
-                className="h-11 rounded-xl"
               />
             </label>
             <label className="space-y-1.5 text-sm font-medium">
               Validade
-              <select
+              <Select
                 value={expiresInDays}
                 onChange={(event) => setExpiresInDays(Number(event.target.value))}
-                className="lunor-control h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                className="w-full"
               >
                 <option value={30}>30 dias</option>
                 <option value={90}>90 dias</option>
                 <option value={180}>180 dias</option>
                 <option value={365}>1 ano</option>
-              </select>
+              </Select>
             </label>
             <Button
               type="button"
               onClick={createToken}
               disabled={pending || name.trim().length < 2}
-              className="h-11 rounded-full px-5"
+              className="px-5"
             >
               {pending ? "Aguarde…" : "Criar acesso"}
             </Button>

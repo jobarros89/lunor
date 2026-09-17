@@ -90,7 +90,6 @@ export function GuardianInlineInvite({
           variant={inviteUrl ? "outline" : "default"}
           disabled={pending || !email}
           onClick={createInvite}
-          className="rounded-full"
         >
           <Send className="size-3.5" />
           {pending ? "Gerando…" : inviteUrl ? "Gerar novo convite" : "Gerar convite"}

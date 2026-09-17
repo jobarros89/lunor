@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateTicket } from "@/lib/actions/manutencoes";
@@ -42,18 +44,18 @@ export function TicketUpdate({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor={statusId}>Status</Label>
-          <select
+          <Select
             id={statusId}
             value={v.status}
             onChange={(e) => setV({ ...v, status: e.target.value })}
-            className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-sm"
+            className="w-full"
           >
             {Object.entries(TICKET_STATUS_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor={costId}>Custo (R$)</Label>
@@ -70,7 +72,6 @@ export function TicketUpdate({
                 costReais: e.target.value === "" ? null : Number(e.target.value),
               })
             }
-            className="h-11 rounded-xl"
           />
         </div>
         <div className="space-y-1.5">
@@ -79,7 +80,6 @@ export function TicketUpdate({
             id={supplierId}
             value={v.supplier}
             onChange={(e) => setV({ ...v, supplier: e.target.value })}
-            className="h-11 rounded-xl"
           />
         </div>
         <div className="space-y-1.5">
@@ -88,7 +88,6 @@ export function TicketUpdate({
             id={partsId}
             value={v.parts}
             onChange={(e) => setV({ ...v, parts: e.target.value })}
-            className="h-11 rounded-xl"
           />
         </div>
       </div>
@@ -96,7 +95,7 @@ export function TicketUpdate({
         type="button"
         disabled={pending}
         onClick={submit}
-        className="h-12 w-full rounded-full text-base"
+        className="h-12 w-full text-base"
       >
         {pending ? "Salvando…" : "Salvar atualização"}
       </Button>

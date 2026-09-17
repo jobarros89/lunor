@@ -30,7 +30,7 @@ export function EndSessionButton({
       <Button
         variant="outline"
         disabled={pending}
-        className="h-11 w-full rounded-full"
+        className="w-full"
         onClick={() => {
           if (!window.confirm("Encerrar a recepção do Kids? Os responsáveis não poderão mais fazer check-in nesta sessão.")) return;
           startTransition(async () => {
@@ -61,7 +61,7 @@ export function EndSessionButton({
       <div className="space-y-2">
         <Button
           variant="outline"
-          className="h-11 w-full rounded-full"
+          className="w-full"
           onClick={() => setConfirmando(true)}
         >
           <Megaphone className="size-4" />
@@ -86,7 +86,7 @@ export function EndSessionButton({
       <div className="flex gap-2">
         <Button
           disabled={pending}
-          className="h-10 flex-1 rounded-full"
+          className="h-10 flex-1"
           onClick={() =>
             startTransition(async () => {
               const r = await encerrarSessao({
@@ -109,7 +109,7 @@ export function EndSessionButton({
         <Button
           variant="outline"
           disabled={pending}
-          className="h-10 rounded-full"
+          className="h-10"
           onClick={() => setConfirmando(false)}
         >
           Cancelar

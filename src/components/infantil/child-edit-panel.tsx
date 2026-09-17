@@ -1,5 +1,7 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -34,7 +36,6 @@ export function ChildEditPanel({
   const router = useRouter();
   const [saving, startSaving] = useTransition();
   const [photoConsent, setPhotoConsent] = useState(child.photoConsent);
-  const campo = "h-11 rounded-xl";
 
   function saveChild(fd: FormData) {
     startSaving(async () => {
@@ -74,43 +75,42 @@ export function ChildEditPanel({
 
       <div className="space-y-2">
         <Label htmlFor="fullName">Nome completo</Label>
-        <Input id="fullName" name="fullName" defaultValue={child.fullName} required className={campo} />
+        <Input id="fullName" name="fullName" defaultValue={child.fullName} required />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="birthDate">Data de nascimento</Label>
-        <Input id="birthDate" name="birthDate" type="date" defaultValue={child.birthDate} required className={campo} />
+        <Input id="birthDate" name="birthDate" type="date" defaultValue={child.birthDate} required />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="allergies">Alergias / restrições</Label>
-        <Input id="allergies" name="allergies" defaultValue={child.allergies ?? ""} className={campo} />
+        <Input id="allergies" name="allergies" defaultValue={child.allergies ?? ""} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="healthNotes">Condição de saúde / medicação</Label>
-        <Input id="healthNotes" name="healthNotes" defaultValue={child.healthNotes ?? ""} className={campo} />
+        <Input id="healthNotes" name="healthNotes" defaultValue={child.healthNotes ?? ""} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="specialNeeds">Necessidades especiais</Label>
-        <Input id="specialNeeds" name="specialNeeds" defaultValue={child.specialNeeds ?? ""} className={campo} />
+        <Input id="specialNeeds" name="specialNeeds" defaultValue={child.specialNeeds ?? ""} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="emergencyName">Contato de emergência</Label>
-          <Input id="emergencyName" name="emergencyName" defaultValue={child.emergencyName ?? ""} className={campo} />
+          <Input id="emergencyName" name="emergencyName" defaultValue={child.emergencyName ?? ""} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="emergencyPhone">Telefone</Label>
-          <Input id="emergencyPhone" name="emergencyPhone" defaultValue={child.emergencyPhone ?? ""} className={campo} />
+          <Input id="emergencyPhone" name="emergencyPhone" defaultValue={child.emergencyPhone ?? ""} />
         </div>
       </div>
 
       <label className="flex items-center gap-3 text-sm">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={photoConsent}
           onChange={(event) => setPhotoConsent(event.target.checked)}
           className="size-5"
@@ -118,7 +118,7 @@ export function ChildEditPanel({
         Autoriza uso de imagem da criança
       </label>
 
-      <Button type="submit" disabled={saving} className="h-11 w-full rounded-full">
+      <Button type="submit" disabled={saving} className="w-full">
         {saving ? "Salvando…" : "Salvar alterações"}
       </Button>
     </form>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Textarea } from "@/components/ui/textarea";
+
 import { FormEvent, useState } from "react";
 import {
   ArrowUp,
@@ -281,7 +283,7 @@ export function AssistantPanel({
   return (
     <div className={cn("space-y-5", compact && "space-y-4")}>
       {!compact && (
-        <Card className="overflow-hidden rounded-3xl border-brand/25 bg-gradient-to-br from-brand/10 via-background to-background">
+        <Card className="overflow-hidden border-brand/25 bg-gradient-to-br from-brand/10 via-background to-background">
           <CardHeader className="space-y-3">
             <div className="flex size-11 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
               <Sparkles className="size-5" />
@@ -585,20 +587,20 @@ export function AssistantPanel({
         )}
       >
         <div className="flex items-end gap-2">
-          <textarea
+          <Textarea
             aria-label="Pergunta para o assistente LUNOR"
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             placeholder="Ex.: Como está a igreja como um todo?"
             rows={2}
             maxLength={1500}
-            className="lunor-control min-h-12 flex-1 resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
+            className="min-h-12 flex-1 resize-none bg-transparent outline-none placeholder:text-muted-foreground"
           />
           <Button
             type="submit"
             size="icon"
             disabled={pending || !question.trim()}
-            className="size-11 shrink-0 rounded-full bg-brand text-brand-foreground hover:bg-brand-strong"
+            className="size-11 shrink-0 bg-brand text-brand-foreground hover:bg-brand-strong"
             aria-label="Enviar pergunta"
           >
             <ArrowUp className="size-5" />

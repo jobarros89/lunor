@@ -1,5 +1,8 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createEventWithContext } from "@/lib/actions/event-create";
@@ -76,34 +79,30 @@ export function EventForm({
     });
   }
 
-  const inputCls = "h-11 rounded-xl";
-  const selectCls = "h-11 w-full rounded-xl border bg-background px-3 text-sm";
 
   return (
-    <Card className="rounded-3xl">
+    <Card>
       <CardContent className="space-y-4 pt-6">
         <Field label="Título" required>
           <Input
             value={v.title}
             onChange={(e) => setV({ ...v, title: e.target.value })}
             placeholder="Ex.: Culto de Domingo"
-            className={inputCls}
           />
         </Field>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Tipo">
-            <select
+            <Select
               value={v.typeId ?? ""}
               onChange={(e) => setV({ ...v, typeId: e.target.value || null })}
-              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
             >
               {eventTypes.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Ministério">
             {fixedMinistryName ? (
@@ -111,10 +110,9 @@ export function EventForm({
                 {fixedMinistryName}
               </div>
             ) : (
-              <select
+              <Select
                 value={v.ministryId ?? ""}
                 onChange={(e) => setV({ ...v, ministryId: e.target.value || null })}
-                className={["lunor-control", selectCls].filter(Boolean).join(" ")}
               >
                 <option value="">Toda a igreja</option>
                 {ministries.map((m) => (
@@ -122,14 +120,13 @@ export function EventForm({
                     {m.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             )}
           </Field>
           <Field label="Campus">
-            <select
+            <Select
               value={v.campusId ?? ""}
               onChange={(e) => setV({ ...v, campusId: e.target.value || null })}
-              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
             >
               <option value="">Sem campus definido</option>
               {campuses.map((campus) => (
@@ -137,10 +134,10 @@ export function EventForm({
                   {campus.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Período do culto">
-            <select
+            <Select
               value={v.servicePeriod ?? ""}
               onChange={(e) =>
                 setV({
@@ -149,13 +146,12 @@ export function EventForm({
                     (e.target.value as "manha" | "tarde" | "noite") || null,
                 })
               }
-              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
             >
               <option value="">Não definido</option>
               <option value="manha">Manhã</option>
               <option value="tarde">Tarde</option>
               <option value="noite">Noite</option>
-            </select>
+            </Select>
           </Field>
           <Field label="Início" required>
             <Input
@@ -169,7 +165,6 @@ export function EventForm({
                   servicePeriod: v.servicePeriod ?? inferServicePeriod(startsAt),
                 });
               }}
-              className={inputCls}
             />
           </Field>
           <Field label="Fim">
@@ -177,7 +172,6 @@ export function EventForm({
               type="datetime-local"
               value={v.endsAt}
               onChange={(e) => setV({ ...v, endsAt: e.target.value })}
-              className={inputCls}
             />
           </Field>
         </div>
@@ -187,7 +181,6 @@ export function EventForm({
             value={v.location}
             onChange={(e) => setV({ ...v, location: e.target.value })}
             placeholder="Ex.: Auditório 2 (opcional)"
-            className={inputCls}
           />
         </Field>
         <Field label="Mapa (URL)">
@@ -195,22 +188,20 @@ export function EventForm({
             value={v.mapUrl}
             onChange={(e) => setV({ ...v, mapUrl: e.target.value })}
             placeholder="Link do Google Maps"
-            className={inputCls}
           />
         </Field>
         <Field label="Observações">
           <Input
             value={v.description}
             onChange={(e) => setV({ ...v, description: e.target.value })}
-            className={inputCls}
           />
         </Field>
         <Field label="Roteiro">
-          <textarea
+          <Textarea
             value={v.script}
             onChange={(e) => setV({ ...v, script: e.target.value })}
             rows={4}
-            className="lunor-control w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+            className="w-full p-3 text-base md:text-sm"
             placeholder="Cronograma / roteiro do evento"
           />
         </Field>
@@ -219,7 +210,7 @@ export function EventForm({
           type="button"
           disabled={pending}
           onClick={submit}
-          className="h-12 w-full rounded-full text-base"
+          className="h-12 w-full text-base"
         >
           {pending ? "Criando…" : redirectContext ? "Criar escala" : "Criar evento"}
         </Button>

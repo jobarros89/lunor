@@ -32,14 +32,14 @@ export function EditChurchName({
       <Input
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="h-11 flex-1 rounded-xl"
+        className="flex-1"
         maxLength={80}
       />
       <Button
         type="button"
         disabled={!changed || pending}
         onClick={save}
-        className="h-11 rounded-full px-5"
+        className="px-5"
       >
         {pending ? "Salvando…" : "Salvar"}
       </Button>

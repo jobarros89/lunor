@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useTransition } from "react";
 import { Layers } from "lucide-react";
 import { setActiveMinistry } from "@/lib/actions/ministry";
@@ -21,18 +23,21 @@ export function SectorSwitcher({
 
   return (
     <label
-      className="flex min-w-0 max-w-[7rem] items-center gap-1.5 rounded-full border bg-background px-2 py-1.5 text-sm data-[pending=true]:opacity-60 sm:max-w-none sm:px-3"
+      className="relative block min-w-0 max-w-36 text-sm data-[pending=true]:opacity-60 sm:max-w-56"
       data-pending={pending}
       title="Setor ativo"
     >
-      <Layers className="size-4 shrink-0 text-muted-foreground" />
-      <select
+      <Layers
+        className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground"
+        aria-hidden="true"
+      />
+      <Select
         value={activeId}
         disabled={pending}
         onChange={(e) =>
           startTransition(() => setActiveMinistry(e.target.value, churchSlug))
         }
-        className="lunor-control w-full min-w-0 max-w-[4.75rem] cursor-pointer truncate bg-transparent font-medium outline-none sm:max-w-[9rem]"
+        className="w-full cursor-pointer truncate pl-9 font-medium"
         aria-label="Trocar de setor"
       >
         {options.map((o) => (
@@ -40,7 +45,7 @@ export function SectorSwitcher({
             {o.name}
           </option>
         ))}
-      </select>
+      </Select>
     </label>
   );
 }

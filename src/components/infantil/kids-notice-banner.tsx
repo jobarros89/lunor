@@ -94,7 +94,7 @@ export function KidsNoticeBanner({
             variant="outline"
             disabled={pending && pendingId === notice.page_id}
             onClick={() => acknowledge(notice.page_id)}
-            className="h-9 shrink-0 rounded-full border-white/35 bg-white/10 px-4 text-white hover:bg-white hover:text-black"
+            className="h-9 shrink-0 border-white/35 bg-white/10 px-4 text-white hover:bg-white hover:text-black"
           >
             <Check className="size-4" />
             {pending && pendingId === notice.page_id ? "…" : "OK"}

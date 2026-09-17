@@ -48,7 +48,7 @@ export function EventSetlistSummary({
   canOpenLouvor: boolean;
 }) {
   return (
-    <Card className="rounded-3xl">
+    <Card>
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

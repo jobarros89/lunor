@@ -1,11 +1,14 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormSection } from "@/components/ui/form-section";
 import { createChild } from "@/lib/actions/infantil";
 
 export function ChildForm({
@@ -21,8 +24,6 @@ export function ChildForm({
   const [pending, startTransition] = useTransition();
   const [consent, setConsent] = useState(false);
   const [photoConsent, setPhotoConsent] = useState(false);
-
-  const campo = "h-12 rounded-2xl";
 
   function onSubmit(fd: FormData) {
     startTransition(async () => {
@@ -52,43 +53,57 @@ export function ChildForm({
   }
 
   return (
-    <form action={onSubmit} className="space-y-6">
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground">A criança</h2>
+    <form action={onSubmit} aria-busy={pending} className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Preencha os dados obrigatórios da criança e do responsável. Informações
+        de cuidado ajudam a equipe na recepção.
+      </p>
+      <FormSection title="A criança">
         <div className="space-y-2">
-          <Label htmlFor="fullName">Nome completo</Label>
-          <Input id="fullName" name="fullName" required className={campo} />
+          <Label htmlFor="fullName">
+            Nome completo{" "}
+            <span className="text-muted-foreground">(obrigatório)</span>
+          </Label>
+          <Input id="fullName" name="fullName" required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="birthDate">Data de nascimento</Label>
-          <Input id="birthDate" name="birthDate" type="date" required className={campo} />
-          <p className="text-xs text-muted-foreground">Define a turma sugerida.</p>
+          <Label htmlFor="birthDate">
+            Data de nascimento{" "}
+            <span className="text-muted-foreground">(obrigatório)</span>
+          </Label>
+          <Input
+            id="birthDate"
+            name="birthDate"
+            type="date"
+            required
+            aria-describedby="birthDate-help"
+          />
+          <p id="birthDate-help" className="text-xs text-muted-foreground">
+            Define a turma sugerida.
+          </p>
         </div>
-      </section>
+      </FormSection>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Cuidado e emergência
-        </h2>
+      <FormSection title="Cuidado e emergência">
         <div className="space-y-2">
           <Label htmlFor="allergies">Alergias / restrições alimentares</Label>
           <Input
             id="allergies"
             name="allergies"
             placeholder="Ex.: amendoim, leite"
-            className={campo}
           />
           <p className="text-xs text-muted-foreground">
-            Aparece em destaque na sessão, para o voluntário ver antes do lanche.
+            Aparece em destaque na sessão, para o voluntário ver antes do
+            lanche.
           </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="healthNotes">Condição de saúde / medicação</Label>
-          <Input id="healthNotes" name="healthNotes" className={campo} />
+          <Input id="healthNotes" name="healthNotes" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="specialNeeds">Necessidades especiais</Label>
-          <Input id="specialNeeds" name="specialNeeds" className={campo} />
+          <Input id="specialNeeds" name="specialNeeds" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="emergencyPhone">Telefone de emergência</Label>
@@ -97,18 +112,16 @@ export function ChildForm({
             name="emergencyPhone"
             type="tel"
             autoComplete="tel"
-            className={campo}
           />
         </div>
-      </section>
+      </FormSection>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Responsável (autorizado a retirar)
-        </h2>
+      <FormSection title="Responsável autorizado a retirar">
         <div className="space-y-2">
-          <Label htmlFor="guardianName">Nome</Label>
-          <Input id="guardianName" name="guardianName" required className={campo} />
+          <Label htmlFor="guardianName">
+            Nome <span className="text-muted-foreground">(obrigatório)</span>
+          </Label>
+          <Input id="guardianName" name="guardianName" required />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
@@ -117,7 +130,6 @@ export function ChildForm({
               id="guardianRelationship"
               name="guardianRelationship"
               placeholder="mãe, pai, avó…"
-              className={campo}
             />
           </div>
           <div className="space-y-2">
@@ -127,20 +139,17 @@ export function ChildForm({
               name="guardianPhone"
               type="tel"
               autoComplete="tel"
-              className={campo}
             />
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
           Outros responsáveis podem ser adicionados depois, na ficha da criança.
         </p>
-      </section>
+      </FormSection>
 
-      <section className="space-y-3 rounded-2xl border p-4">
-        <h2 className="text-sm font-medium">Consentimentos</h2>
+      <FormSection title="Consentimentos">
         <label className="flex items-start gap-3 text-sm">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
             className="mt-0.5 size-5 shrink-0 rounded"
@@ -152,8 +161,7 @@ export function ChildForm({
           </span>
         </label>
         <label className="flex items-start gap-3 text-sm">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={photoConsent}
             onChange={(e) => setPhotoConsent(e.target.checked)}
             className="mt-0.5 size-5 shrink-0 rounded"
@@ -165,12 +173,12 @@ export function ChildForm({
             </span>
           </span>
         </label>
-      </section>
+      </FormSection>
 
       <Button
         type="submit"
         disabled={pending || !consent}
-        className="h-12 w-full rounded-full text-base"
+        className="h-12 w-full text-base"
       >
         {pending ? "Salvando…" : "Cadastrar criança"}
       </Button>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { approveSkill, removeSkill } from "@/lib/actions/pessoas";
@@ -78,11 +80,11 @@ export function SkillManager({
             </div>
             <div className="flex items-center gap-2">
               {ms.approved_by ? (
-                <Badge className="rounded-full">
+                <Badge >
                   {SOURCE_LABELS[ms.source]}
                 </Badge>
               ) : (
-                <Badge variant="outline" className="rounded-full">
+                <Badge variant="outline" >
                   Pendente
                 </Badge>
               )}
@@ -90,7 +92,7 @@ export function SkillManager({
                 <Button
                   size="sm"
                   disabled={pending}
-                  className="h-8 rounded-full"
+                  className="h-8"
                   onClick={() =>
                     act(() =>
                       approveSkill({
@@ -111,7 +113,7 @@ export function SkillManager({
                   size="icon"
                   variant="ghost"
                   disabled={pending}
-                  className="size-9 rounded-full text-muted-foreground"
+                  className="size-9 text-muted-foreground"
                   aria-label={`Remover ${ms.skill_name}`}
                   onClick={() =>
                     act(() =>
@@ -134,10 +136,10 @@ export function SkillManager({
 
       {canManage && availableSkills.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed p-3">
-          <select
+          <Select
             value={newSkillId}
             onChange={(e) => setNewSkillId(e.target.value)}
-            className="lunor-control h-10 flex-1 rounded-xl border bg-background px-3 text-sm"
+            className="flex-1"
             aria-label="Escolher aptidão"
           >
             <option value="">Marcar apto em…</option>
@@ -146,23 +148,23 @@ export function SkillManager({
                 {s.name}
               </option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
             value={newSource}
             onChange={(e) =>
               setNewSource(e.target.value as typeof newSource)
             }
-            className="lunor-control h-11 rounded-xl border bg-background px-3 text-base md:text-sm"
+            className="text-base md:text-sm"
             aria-label="Origem da aptidão"
           >
             <option value="experience">Por experiência</option>
             <option value="training">Por treinamento</option>
             <option value="both">Ambos</option>
-          </select>
+          </Select>
           <Button
             size="sm"
             disabled={pending || !newSkillId}
-            className="h-10 rounded-full px-4"
+            className="h-10 px-4"
             onClick={() => {
               act(() =>
                 approveSkill({

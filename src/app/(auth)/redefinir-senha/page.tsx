@@ -1,5 +1,7 @@
 "use client";
 
+import { FormSkeleton } from "@/components/ui/form-skeleton";
+
 import Link from "next/link";
 import { Suspense, useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -81,7 +83,7 @@ function RedefinirSenhaContent() {
 
   if (estado === "verificando") {
     return (
-      <Card className="rounded-3xl shadow-sm">
+      <Card className="shadow-sm">
         <CardContent className="py-10 text-center">
           <p className="text-sm text-muted-foreground">Verificando o link…</p>
         </CardContent>
@@ -91,7 +93,7 @@ function RedefinirSenhaContent() {
 
   if (estado === "invalido") {
     return (
-      <Card className="rounded-3xl shadow-sm">
+      <Card className="shadow-sm">
         <CardContent className="space-y-4 py-8 text-center">
           <h1 className="text-lg font-semibold tracking-tight">
             Link inválido ou expirado
@@ -100,7 +102,7 @@ function RedefinirSenhaContent() {
             Peça um novo link para criar sua senha.
           </p>
           <Link href="/esqueci-senha" className="block">
-            <Button className="h-12 w-full rounded-full text-base">
+            <Button className="h-12 w-full text-base">
               Pedir novo link
             </Button>
           </Link>
@@ -113,7 +115,7 @@ function RedefinirSenhaContent() {
   const senhasIguais = confirma.length > 0 && senha === confirma;
 
   return (
-    <Card className="rounded-3xl shadow-sm">
+    <Card className="shadow-sm">
       <CardHeader className="space-y-2 text-center">
         <CardTitle className="text-2xl font-semibold tracking-tight">
           Criar nova senha
@@ -132,7 +134,7 @@ function RedefinirSenhaContent() {
               required
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
-              className="h-12 rounded-full pr-12"
+              className="h-12 pr-12"
             />
             <button
               type="button"
@@ -159,7 +161,7 @@ function RedefinirSenhaContent() {
               required
               value={confirma}
               onChange={(e) => setConfirma(e.target.value)}
-              className="h-12 rounded-full pr-12"
+              className="h-12 pr-12"
             />
             <button
               type="button"
@@ -181,7 +183,7 @@ function RedefinirSenhaContent() {
           type="button"
           disabled={pending || !senhaValida || !senhasIguais}
           onClick={submit}
-          className="h-12 w-full rounded-full text-base"
+          className="h-12 w-full text-base"
         >
           {pending ? "Salvando…" : "Salvar nova senha"}
         </Button>
@@ -192,7 +194,7 @@ function RedefinirSenhaContent() {
 
 export default function RedefinirSenhaPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<FormSkeleton />}>
       <RedefinirSenhaContent />
     </Suspense>
   );

@@ -22,7 +22,7 @@ export function NovaIgreja() {
     return (
       <Button
         onClick={() => setOpen(true)}
-        className="h-11 rounded-full px-5"
+        className="px-5"
       >
         <Plus className="size-4" />
         Nova igreja
@@ -40,12 +40,12 @@ export function NovaIgreja() {
         placeholder="Nome da nova igreja"
         required
         autoFocus
-        className="h-11 flex-1 rounded-full sm:w-64"
+        className="flex-1 sm:w-64"
       />
       <Button
         type="submit"
         disabled={pending}
-        className="h-11 rounded-full px-5"
+        className="px-5"
       >
         {pending ? "Criando…" : "Criar"}
       </Button>
@@ -53,7 +53,7 @@ export function NovaIgreja() {
         type="button"
         variant="ghost"
         size="icon"
-        className="size-11 rounded-full"
+        className="size-11"
         onClick={() => setOpen(false)}
         aria-label="Cancelar"
       >

@@ -1,5 +1,8 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { useState, useTransition } from "react";
 import { Printer, Save, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -128,21 +131,21 @@ export function KidsPrintSettingsForm({
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <label className="space-y-2 text-sm font-medium">
             Tamanho
-            <select
+            <Select
               value={preset}
               onChange={(event) => selectPreset(event.target.value as KidsLabelPreset)}
-              className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
+              className="w-full text-base font-normal md:text-sm"
             >
               <option value="62x50">62 × 50 mm — padrão LUNOR</option>
               <option value="60x40">60 × 40 mm</option>
               <option value="50x30">50 × 30 mm — compacto</option>
               <option value="custom">Personalizado</option>
-            </select>
+            </Select>
           </label>
 
           <label className="space-y-2 text-sm font-medium">
             Orientação
-            <select
+            <Select
               value={settings.orientation}
               onChange={(event) =>
                 setSettings((current) => ({
@@ -150,11 +153,11 @@ export function KidsPrintSettingsForm({
                   orientation: event.target.value as "horizontal" | "vertical",
                 }))
               }
-              className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
+              className="w-full text-base font-normal md:text-sm"
             >
               <option value="horizontal">Horizontal</option>
               <option value="vertical">Vertical</option>
-            </select>
+            </Select>
           </label>
 
           <label className="space-y-2 text-sm font-medium">
@@ -171,7 +174,6 @@ export function KidsPrintSettingsForm({
                   labelWidthMm: Number(event.target.value),
                 }))
               }
-              className="h-11 rounded-xl"
             />
           </label>
 
@@ -189,7 +191,6 @@ export function KidsPrintSettingsForm({
                   labelHeightMm: Number(event.target.value),
                 }))
               }
-              className="h-11 rounded-xl"
             />
           </label>
 
@@ -207,13 +208,12 @@ export function KidsPrintSettingsForm({
                   marginMm: Number(event.target.value),
                 }))
               }
-              className="h-11 rounded-xl"
             />
           </label>
 
           <label className="space-y-2 text-sm font-medium">
             Quantidade de vias
-            <select
+            <Select
               value={settings.copies}
               onChange={(event) =>
                 setSettings((current) => ({
@@ -221,12 +221,12 @@ export function KidsPrintSettingsForm({
                   copies: Number(event.target.value),
                 }))
               }
-              className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
+              className="w-full text-base font-normal md:text-sm"
             >
               <option value={1}>1 via</option>
               <option value={2}>2 vias</option>
               <option value={3}>3 vias</option>
-            </select>
+            </Select>
           </label>
         </div>
 
@@ -237,8 +237,7 @@ export function KidsPrintSettingsForm({
               Mantém o QR de segurança impresso junto do código numérico.
             </p>
           </div>
-          <input
-            type="checkbox"
+          <Checkbox
             checked={settings.qrEnabled}
             onChange={(event) =>
               setSettings((current) => ({
@@ -258,11 +257,11 @@ export function KidsPrintSettingsForm({
           Imprima uma etiqueta de teste e confirme no diálogo do sistema que a escala está em 100% e que o papel selecionado corresponde ao tamanho configurado.
         </p>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <Button type="button" variant="outline" onClick={testPrint} className="h-11 rounded-full px-5">
+          <Button type="button" variant="outline" onClick={testPrint} className="px-5">
             <Printer className="size-4" />
             Imprimir etiqueta de teste
           </Button>
-          <Button type="button" disabled={pending} onClick={save} className="h-11 rounded-full px-5">
+          <Button type="button" disabled={pending} onClick={save} className="px-5">
             <Save className="size-4" />
             {pending ? "Salvando…" : "Salvar configuração"}
           </Button>

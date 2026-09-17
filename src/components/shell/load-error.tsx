@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
  */
 export function LoadError({ oQue = "os dados" }: { oQue?: string }) {
   return (
-    <Card role="alert" className="rounded-3xl border-destructive/30">
+    <Card role="alert" className="border-destructive/30">
       <CardContent className="flex items-start gap-3 py-5">
         <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
         <div>

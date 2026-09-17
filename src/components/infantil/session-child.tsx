@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { BellRing, QrCode, TriangleAlert } from "lucide-react";
@@ -191,12 +193,12 @@ export function SessionChildRow({
             <Button
               disabled={pending}
               onClick={entrar}
-              className="h-9 shrink-0 rounded-full px-4"
+              className="h-9 shrink-0 px-4"
             >
               {pending ? "…" : "Check-in novamente"}
             </Button>
           ) : (
-            <Badge className="shrink-0 rounded-full border-0 bg-emerald-100 text-emerald-800">
+            <Badge className="shrink-0 border-0 bg-emerald-100 text-emerald-800">
               Presente · {child.checkin.code}
             </Badge>
           )
@@ -204,7 +206,7 @@ export function SessionChildRow({
           <Button
             disabled={pending}
             onClick={entrar}
-            className="h-9 shrink-0 rounded-full px-4"
+            className="h-9 shrink-0 px-4"
           >
             Check-in
           </Button>
@@ -214,10 +216,10 @@ export function SessionChildRow({
       {canChooseClass && classOptions.length > 0 && (
         <label className="block space-y-1.5 text-xs font-medium">
           Turma neste check-in
-          <select
+          <Select
             value={selectedClassId}
             onChange={(event) => setSelectedClassId(event.target.value)}
-            className="lunor-control h-10 w-full rounded-xl border bg-background px-3 text-sm font-normal"
+            className="w-full font-normal"
             aria-label={`Turma de ${child.fullName}`}
           >
             <option value="">Automática pela idade</option>
@@ -226,7 +228,7 @@ export function SessionChildRow({
                 {item.name}
               </option>
             ))}
-          </select>
+          </Select>
           <span className="block font-normal text-muted-foreground">
             O LUNOR sugere pela idade, mas você pode trocar a turma para este check-in.
           </span>
@@ -285,7 +287,7 @@ export function SessionChildRow({
                 variant="outline"
                 disabled={pending}
                 onClick={chamar}
-                className="h-10 rounded-full"
+                className="h-10"
               >
                 <BellRing className="size-4" />
                 Chamar
@@ -294,7 +296,7 @@ export function SessionChildRow({
                 variant="outline"
                 disabled={pending}
                 onClick={() => setRetirando(true)}
-                className="h-10 rounded-full"
+                className="h-10"
               >
                 Registrar retirada
               </Button>
@@ -302,10 +304,10 @@ export function SessionChildRow({
           ) : (
             <div className="space-y-2 rounded-2xl bg-muted/40 p-3">
               <p className="text-xs font-medium">Quem está retirando?</p>
-              <select
+              <Select
                 value={guardianId}
                 onChange={(e) => setGuardianId(e.target.value)}
-                className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
+                className="w-full text-base md:text-sm"
                 aria-label="Responsável que está retirando"
               >
                 <option value="">Escolher…</option>
@@ -323,7 +325,7 @@ export function SessionChildRow({
                         {g.name} — NÃO autorizado
                       </option>
                     ))}
-              </select>
+              </Select>
 
               {autorizados.length === 0 && (
                 <p className="text-xs text-amber-700">
@@ -337,7 +339,6 @@ export function SessionChildRow({
                     value={justificativa}
                     onChange={(e) => setJustificativa(e.target.value)}
                     placeholder="Justificativa da liberação excepcional"
-                    className="h-11 rounded-xl"
                   />
                   <p className="text-xs text-amber-700">
                     Retirada fora da lista: exige justificativa e fica registrada com o seu nome.
@@ -349,7 +350,7 @@ export function SessionChildRow({
                 <Button
                   disabled={pending}
                   onClick={retirar}
-                  className="h-10 flex-1 rounded-full"
+                  className="h-10 flex-1"
                 >
                   {pending ? "…" : "Confirmar"}
                 </Button>
@@ -357,7 +358,7 @@ export function SessionChildRow({
                   variant="outline"
                   disabled={pending}
                   onClick={() => setRetirando(false)}
-                  className="h-10 rounded-full"
+                  className="h-10"
                 >
                   Cancelar
                 </Button>
@@ -373,7 +374,7 @@ export function SessionChildRow({
             type="button"
             variant="ghost"
             onClick={() => setMostrarQr((value) => !value)}
-            className="h-8 rounded-full px-3 text-xs"
+            className="h-8 px-3 text-xs"
           >
             <QrCode className="size-3.5" />
             {mostrarQr ? "Ocultar QR" : "Ver QR de retirada"}

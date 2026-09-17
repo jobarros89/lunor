@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -176,7 +178,6 @@ export function AssignmentManager({
     return suggestionsForRole(assignment.role_name, assignment.user_id);
   }
 
-  const selectCls = "h-11 w-full min-w-0 max-w-full rounded-xl border bg-background px-3 text-base md:text-sm";
   const selecionado = members.find((m) => m.user_id === userId);
   const newAssignmentSuggestions = roleName.trim().length >= 2
     ? suggestionsForRole(roleName)
@@ -223,7 +224,7 @@ export function AssignmentManager({
                     size="icon"
                     variant="ghost"
                     disabled={pending}
-                    className="size-11 rounded-full text-muted-foreground"
+                    className="size-11 text-muted-foreground"
                     aria-label={`Remover ${a.full_name}`}
                     onClick={() => act(() => removeAssignment({ churchSlug, eventId, assignmentId: a.id }))}
                   >
@@ -250,7 +251,6 @@ export function AssignmentManager({
                           <Button
                             size="sm"
                             disabled={pending}
-                            className="rounded-full"
                             onClick={() => act(
                               () => resolveSubstitution({
                                 churchSlug,
@@ -286,30 +286,29 @@ export function AssignmentManager({
                       {eq.name} ×
                     </button>
                   ))}
-                  <select
+                  <Select
                     value=""
                     disabled={pending}
                     onChange={(e) => e.target.value && act(() => linkEquipment({ churchSlug, churchId, eventId, assignmentId: a.id, equipmentId: e.target.value }))}
-                    className="lunor-control h-9 rounded-full border bg-background px-3 text-sm"
+                    className="h-9"
                     aria-label={`Vincular equipamento a ${a.full_name}`}
                   >
                     <option value="">+ equipamento</option>
                     {equipments.filter((eq) => !a.equipments.some((x) => x.id === eq.id)).map((eq) => <option key={eq.id} value={eq.id}>{eq.name}</option>)}
-                  </select>
+                  </Select>
                 </div>
               )}
 
               {a.status !== "substituido" && (
-                <select
+                <Select
                   value={a.status}
                   disabled={pending}
                   onChange={(e) => act(() => setAssignmentStatus({ churchSlug, eventId, assignmentId: a.id, status: e.target.value }))}
-                  className={["lunor-control", selectCls].filter(Boolean).join(" ")}
                   aria-label={`Status de ${a.full_name}`}
                 >
                   {!statusIsManual && <option value={a.status}>{ASSIGNMENT_STATUS_LABELS[a.status] ?? a.status}</option>}
                   {LEADER_STATUS_OPTIONS.map((value) => <option key={value} value={value}>{ASSIGNMENT_STATUS_LABELS[value]}</option>)}
-                </select>
+                </Select>
               )}
             </div>
           );
@@ -323,29 +322,28 @@ export function AssignmentManager({
           <p className="text-sm font-medium">Escalar pessoa</p>
         </div>
         <div className="grid min-w-0 max-w-full gap-2 sm:grid-cols-2">
-          <select value={userId} onChange={(e) => setUserId(e.target.value)} className={["lunor-control", selectCls].filter(Boolean).join(" ")} aria-label="Escolher pessoa">
+          <Select value={userId} onChange={(e) => setUserId(e.target.value)} aria-label="Escolher pessoa">
             <option value="">Escolher pessoa…</option>
             {members.map((m) => (
               <option key={m.user_id} value={m.user_id}>
                 {m.full_name}{m.indisponivel ? " · indisponível" : ""}{m.cargaMes > 0 ? ` · ${m.cargaMes}× no mês` : ""}
               </option>
             ))}
-          </select>
+          </Select>
           {servingAreas.length > 0 && (
-            <select
+            <Select
               value={departmentId}
               onChange={(e) => setDepartmentId(e.target.value)}
-              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
               aria-label="Onde vai servir?"
             >
               <option value="">Onde vai servir?</option>
               {servingAreas.map((area) => (
                 <option key={area.id} value={area.id}>{area.name}</option>
               ))}
-            </select>
+            </Select>
           )}
-          <Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Função (ex.: Guitarra)" className="h-11 w-full min-w-0 max-w-full rounded-xl" />
-          <Button disabled={pending} className="h-11 w-full min-w-0 max-w-full rounded-full px-5" onClick={escalar}>Escalar</Button>
+          <Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Função (ex.: Guitarra)" className="w-full min-w-0 max-w-full" />
+          <Button disabled={pending} className="w-full min-w-0 max-w-full px-5" onClick={escalar}>Escalar</Button>
         </div>
 
         {roleName.trim().length >= 2 && !userId && (
@@ -370,7 +368,6 @@ export function AssignmentManager({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="rounded-full"
                       onClick={() => setUserId(candidate.user_id)}
                     >
                       Selecionar

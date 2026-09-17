@@ -231,8 +231,8 @@ export async function MinistryEventSchedule({
 
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="rounded-full">{ministryName}</Badge>
-          {type?.name && <Badge variant="outline" className="rounded-full">{type.name}</Badge>}
+          <Badge variant="secondary" >{ministryName}</Badge>
+          {type?.name && <Badge variant="outline" >{type.name}</Badge>}
         </div>
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{event.title}</h1>
@@ -240,7 +240,7 @@ export async function MinistryEventSchedule({
         </div>
       </header>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardContent className="grid gap-4 py-5 sm:grid-cols-3">
           <div className="flex items-start gap-3">
             <CalendarDays className="mt-0.5 size-5 text-muted-foreground" />
@@ -306,7 +306,7 @@ export async function MinistryEventSchedule({
         />
       ))}
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Equipe de {ministryName} ({rows.length})</CardTitle>
           <CardDescription>Funções, confirmações e distribuição da equipe neste evento</CardDescription>

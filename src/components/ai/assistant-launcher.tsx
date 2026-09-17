@@ -77,7 +77,7 @@ export function AssistantLauncher({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-10 shrink-0 rounded-full px-3"
+                  className="h-10 shrink-0 px-3"
                   aria-label="Fechar Assistente LUNOR"
                 />
               }

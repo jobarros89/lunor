@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
@@ -65,11 +67,11 @@ export function QrPickupConfirm({
         <label htmlFor="pickup-guardian" className="text-xs font-medium">
           Quem está retirando?
         </label>
-        <select
+        <Select
           id="pickup-guardian"
           value={guardianId}
           onChange={(event) => setGuardianId(event.target.value)}
-          className="lunor-control mt-1 h-12 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
+          className="mt-1 w-full text-base md:text-sm"
         >
           <option value="">Escolher responsável…</option>
           {authorized.map((guardian) => (
@@ -85,7 +87,7 @@ export function QrPickupConfirm({
                   {guardian.name} — NÃO autorizado
                 </option>
               ))}
-        </select>
+        </Select>
       </div>
 
       {authorized.length === 0 && (
@@ -99,7 +101,6 @@ export function QrPickupConfirm({
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           placeholder="Justificativa da liberação excepcional"
-          className="h-11 rounded-xl"
         />
       )}
 
@@ -107,7 +108,7 @@ export function QrPickupConfirm({
         type="button"
         onClick={confirm}
         disabled={pending}
-        className="h-12 w-full rounded-full"
+        className="h-12 w-full"
       >
         <CheckCircle2 className="size-4" />
         {pending ? "Confirmando…" : "Confirmar retirada"}

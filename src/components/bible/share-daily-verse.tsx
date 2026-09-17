@@ -41,7 +41,7 @@ export function ShareDailyVerse({
   }
 
   return (
-    <Button type="button" variant="outline" className="h-11 rounded-full px-5" onClick={share}>
+    <Button type="button" variant="outline" className="px-5" onClick={share}>
       {copied ? <Check className="size-4" /> : <Share2 className="size-4" />}
       {copied ? "Link copiado" : "Compartilhar"}
     </Button>

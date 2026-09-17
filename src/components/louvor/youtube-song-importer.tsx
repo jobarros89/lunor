@@ -1,5 +1,7 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, RefreshCw, Search, Video } from "lucide-react";
@@ -131,7 +133,6 @@ export function YouTubeSongImporter({
     return (
       <Button
         type="button"
-        className="h-11 rounded-full"
         onClick={() => setOpen(true)}
       >
         <Video className="size-4" />
@@ -156,10 +157,10 @@ export function YouTubeSongImporter({
           minLength={2}
           maxLength={120}
           placeholder="Ex.: Bondade de Deus Isaias Saad"
-          className="h-11 rounded-xl"
+
           required
         />
-        <Button type="submit" disabled={searching} className="h-11 rounded-xl">
+        <Button type="submit" disabled={searching} >
           <Search className="size-4" />
           {searching ? "Pesquisando…" : "Pesquisar"}
         </Button>
@@ -299,8 +300,7 @@ export function YouTubeSongImporter({
             não será usado como fonte de letra ou cifra.
           </p>
           <label className="flex items-start gap-3 rounded-xl border bg-background p-3 text-sm">
-            <input
-              type="checkbox"
+            <Checkbox
               className="mt-1"
               checked={confirmed}
               onChange={(event) => setConfirmed(event.target.checked)}

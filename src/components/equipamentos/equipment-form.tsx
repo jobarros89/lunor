@@ -1,7 +1,8 @@
 "use client";
 
-import { cloneElement, useId, useRef, useState, useTransition } from "react";
-import type { ReactElement } from "react";
+import { Select } from "@/components/ui/select";
+
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -10,7 +11,9 @@ import { STATUS_OPTIONS } from "@/lib/equipamentos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/ui/field";
+import { FormSection } from "@/components/ui/form-section";
+import { Textarea } from "@/components/ui/textarea";
 
 type Category = { id: string; name: string };
 type Member = { user_id: string; full_name: string };
@@ -62,24 +65,6 @@ const EMPTY: EquipmentFormValues = {
   notes: "",
 };
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactElement<{ id?: string }>;
-}) {
-  const id = useId();
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-sm">
-        {label}
-      </Label>
-      {cloneElement(children, { id })}
-    </div>
-  );
-}
-
 export function EquipmentForm({
   churchSlug,
   churchId,
@@ -105,7 +90,7 @@ export function EquipmentForm({
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>(photoPreview ?? "");
   const [v, setV] = useState<EquipmentFormValues>(
-    initial ?? { ...EMPTY, ownerId: canChooseOwner ? null : currentUserId }
+    initial ?? { ...EMPTY, ownerId: canChooseOwner ? null : currentUserId },
   );
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -140,253 +125,243 @@ export function EquipmentForm({
     });
   }
 
-  const inputCls = "h-11 rounded-xl";
-  const selectCls = "h-11 w-full rounded-xl border bg-background px-3 text-sm";
-
   return (
-    <Card className="rounded-3xl">
-      <CardContent className="space-y-4 pt-6">
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted/40 transition-colors hover:bg-muted"
-            aria-label="Enviar foto"
-          >
-            {previewUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={previewUrl}
-                alt="Foto do equipamento"
-                className="size-full object-cover"
-              />
-            ) : (
-              <Camera className="size-7 text-muted-foreground" />
-            )}
-          </button>
-          <div className="text-sm text-muted-foreground">
-            {uploading
-              ? "Enviando foto…"
-              : previewUrl
-                ? "Toque para trocar a foto"
-                : "Toque para adicionar uma foto"}
+    <Card className="border-0 bg-transparent shadow-none">
+      <CardContent className="space-y-6 p-0" aria-busy={pending || uploading}>
+        <FormSection title="Identificação">
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-dashed bg-muted/40 transition-colors hover:bg-muted"
+              aria-label="Enviar foto"
+            >
+              {previewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={previewUrl}
+                  alt="Foto do equipamento"
+                  className="size-full object-cover"
+                />
+              ) : (
+                <Camera className="size-7 text-muted-foreground" />
+              )}
+            </button>
+            <div className="text-sm text-muted-foreground">
+              {uploading
+                ? "Enviando foto…"
+                : previewUrl
+                  ? "Toque para trocar a foto"
+                  : "Toque para adicionar uma foto"}
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadPhoto(file);
+              }}
+            />
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) uploadPhoto(file);
-            }}
-          />
-        </div>
-
-        <Field label="Nome *">
-          <Input
-            value={v.name}
-            onChange={(e) => setV({ ...v, name: e.target.value })}
-            placeholder="Ex.: Canon R8"
-            className={inputCls}
-          />
-        </Field>
-
-        <Field label="Propriedade">
-          {canChooseOwner ? (
-            <select
-              value={v.ownerId ?? ""}
-              onChange={(e) => setV({ ...v, ownerId: e.target.value || null })}
-              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
-            >
-              <option value="">Da igreja</option>
-              {members.map((m) => (
-                <option key={m.user_id} value={m.user_id}>
-                  Pessoal de {m.full_name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
-              Este é o seu equipamento pessoal (entra no inventário como seu).
-            </p>
-          )}
-        </Field>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Categoria">
-            <select
-              value={v.categoryId ?? ""}
-              onChange={(e) =>
-                setV({ ...v, categoryId: e.target.value || null })
-              }
-              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
-            >
-              <option value="">Sem categoria</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Subcategoria">
-            <Input
-              value={v.subcategory}
-              onChange={(e) => setV({ ...v, subcategory: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Marca">
-            <Input
-              value={v.brand}
-              onChange={(e) => setV({ ...v, brand: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Modelo">
-            <Input
-              value={v.model}
-              onChange={(e) => setV({ ...v, model: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Nº de série">
-            <Input
-              value={v.serialNumber}
-              onChange={(e) => setV({ ...v, serialNumber: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Nº patrimonial">
-            <Input
-              value={v.assetNumber}
-              onChange={(e) => setV({ ...v, assetNumber: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Valor (R$)">
-            <Input
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              value={v.valueReais ?? ""}
-              onChange={(e) =>
-                setV({
-                  ...v,
-                  valueReais:
-                    e.target.value === "" ? null : Number(e.target.value),
-                })
-              }
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Status">
-            <select
-              value={v.status}
-              onChange={(e) => setV({ ...v, status: e.target.value })}
-              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Fornecedor">
-            <Input
-              value={v.supplier}
-              onChange={(e) => setV({ ...v, supplier: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Nota fiscal (ref.)">
-            <Input
-              value={v.invoiceRef}
-              onChange={(e) => setV({ ...v, invoiceRef: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Garantia até">
-            <Input
-              type="date"
-              value={v.warrantyUntil}
-              onChange={(e) => setV({ ...v, warrantyUntil: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Data de compra">
-            <Input
-              type="date"
-              value={v.purchaseDate}
-              onChange={(e) => setV({ ...v, purchaseDate: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Vida útil (meses)">
-            <Input
-              type="number"
-              inputMode="numeric"
-              min="1"
-              value={v.lifespanMonths ?? ""}
-              onChange={(e) =>
-                setV({
-                  ...v,
-                  lifespanMonths:
-                    e.target.value === "" ? null : Number(e.target.value),
-                })
-              }
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Localização">
-            <Input
-              value={v.location}
-              onChange={(e) => setV({ ...v, location: e.target.value })}
-              placeholder="Ex.: Sala técnica"
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Responsável">
-            <select
-              value={v.responsibleId ?? ""}
-              onChange={(e) =>
-                setV({ ...v, responsibleId: e.target.value || null })
-              }
-              className={["lunor-control", selectCls].filter(Boolean).join(" ")}
-            >
-              <option value="">Sem responsável</option>
-              {members.map((m) => (
-                <option key={m.user_id} value={m.user_id}>
-                  {m.full_name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Manual (URL)">
-            <Input
-              value={v.manualUrl}
-              onChange={(e) => setV({ ...v, manualUrl: e.target.value })}
-              className={inputCls}
-            />
-          </Field>
-        </div>
-
-        <Field label="Observações">
-          <Input
-            value={v.notes}
-            onChange={(e) => setV({ ...v, notes: e.target.value })}
-            className={inputCls}
-          />
-        </Field>
-
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Nome" required>
+              <Input
+                value={v.name}
+                onChange={(e) => setV({ ...v, name: e.target.value })}
+                placeholder="Ex.: Canon R8"
+              />
+            </Field>
+            <Field label="Categoria">
+              <Select
+                value={v.categoryId ?? ""}
+                onChange={(e) =>
+                  setV({ ...v, categoryId: e.target.value || null })
+                }
+              >
+                <option value="">Sem categoria</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Subcategoria">
+              <Input
+                value={v.subcategory}
+                onChange={(e) => setV({ ...v, subcategory: e.target.value })}
+              />
+            </Field>
+            <Field label="Marca">
+              <Input
+                value={v.brand}
+                onChange={(e) => setV({ ...v, brand: e.target.value })}
+              />
+            </Field>
+            <Field label="Modelo">
+              <Input
+                value={v.model}
+                onChange={(e) => setV({ ...v, model: e.target.value })}
+              />
+            </Field>
+            <Field label="Nº de série">
+              <Input
+                value={v.serialNumber}
+                onChange={(e) => setV({ ...v, serialNumber: e.target.value })}
+              />
+            </Field>
+            <Field label="Nº patrimonial">
+              <Input
+                value={v.assetNumber}
+                onChange={(e) => setV({ ...v, assetNumber: e.target.value })}
+              />
+            </Field>
+          </div>
+        </FormSection>
+        <FormSection title="Propriedade e operação">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Propriedade">
+              {canChooseOwner ? (
+                <Select
+                  value={v.ownerId ?? ""}
+                  onChange={(e) =>
+                    setV({ ...v, ownerId: e.target.value || null })
+                  }
+                >
+                  <option value="">Da igreja</option>
+                  {members.map((m) => (
+                    <option key={m.user_id} value={m.user_id}>
+                      Pessoal de {m.full_name}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+                  Este é o seu equipamento pessoal (entra no inventário como
+                  seu).
+                </p>
+              )}
+            </Field>
+            <Field label="Status">
+              <Select
+                value={v.status}
+                onChange={(e) => setV({ ...v, status: e.target.value })}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Localização">
+              <Input
+                value={v.location}
+                onChange={(e) => setV({ ...v, location: e.target.value })}
+                placeholder="Ex.: Sala técnica"
+              />
+            </Field>
+            <Field label="Responsável">
+              <Select
+                value={v.responsibleId ?? ""}
+                onChange={(e) =>
+                  setV({ ...v, responsibleId: e.target.value || null })
+                }
+              >
+                <option value="">Sem responsável</option>
+                {members.map((m) => (
+                  <option key={m.user_id} value={m.user_id}>
+                    {m.full_name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+        </FormSection>
+        <FormSection title="Compra e vida útil">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Valor (R$)">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={v.valueReais ?? ""}
+                onChange={(e) =>
+                  setV({
+                    ...v,
+                    valueReais:
+                      e.target.value === "" ? null : Number(e.target.value),
+                  })
+                }
+              />
+            </Field>
+            <Field label="Fornecedor">
+              <Input
+                value={v.supplier}
+                onChange={(e) => setV({ ...v, supplier: e.target.value })}
+              />
+            </Field>
+            <Field label="Nota fiscal (ref.)">
+              <Input
+                value={v.invoiceRef}
+                onChange={(e) => setV({ ...v, invoiceRef: e.target.value })}
+              />
+            </Field>
+            <Field label="Data de compra">
+              <Input
+                type="date"
+                value={v.purchaseDate}
+                onChange={(e) => setV({ ...v, purchaseDate: e.target.value })}
+              />
+            </Field>
+            <Field label="Garantia até">
+              <Input
+                type="date"
+                value={v.warrantyUntil}
+                onChange={(e) => setV({ ...v, warrantyUntil: e.target.value })}
+              />
+            </Field>
+            <Field label="Vida útil (meses)">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min="1"
+                value={v.lifespanMonths ?? ""}
+                onChange={(e) =>
+                  setV({
+                    ...v,
+                    lifespanMonths:
+                      e.target.value === "" ? null : Number(e.target.value),
+                  })
+                }
+              />
+            </Field>
+          </div>
+        </FormSection>
+        <FormSection title="Documentação">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Manual (URL)">
+              <Input
+                value={v.manualUrl}
+                onChange={(e) => setV({ ...v, manualUrl: e.target.value })}
+              />
+            </Field>
+            <Field label="Observações">
+              <Textarea
+                value={v.notes}
+                onChange={(e) => setV({ ...v, notes: e.target.value })}
+              />
+            </Field>
+          </div>
+        </FormSection>
         <Button
           type="button"
           disabled={pending || uploading}
           onClick={submit}
-          className="h-12 w-full rounded-full text-base"
+          className="h-12 w-full text-base"
         >
           {pending
             ? "Salvando…"

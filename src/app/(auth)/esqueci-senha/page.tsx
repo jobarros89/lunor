@@ -33,7 +33,7 @@ export default function EsqueciSenhaPage() {
 
   if (enviado) {
     return (
-      <Card className="rounded-3xl shadow-sm">
+      <Card className="shadow-sm">
         <CardContent className="space-y-4 py-8 text-center">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
             <MailCheck className="size-6" />
@@ -46,7 +46,7 @@ export default function EsqueciSenhaPage() {
             criar uma nova senha. O link vale por pouco tempo.
           </p>
           <Link href="/login" className="block">
-            <Button variant="outline" className="h-12 w-full rounded-full">
+            <Button variant="outline" className="h-12 w-full">
               Voltar para o login
             </Button>
           </Link>
@@ -56,7 +56,7 @@ export default function EsqueciSenhaPage() {
   }
 
   return (
-    <Card className="rounded-3xl shadow-sm">
+    <Card className="shadow-sm">
       <CardHeader className="space-y-2 text-center">
         <CardTitle className="text-2xl font-semibold tracking-tight">
           Esqueceu a senha?
@@ -75,13 +75,13 @@ export default function EsqueciSenhaPage() {
               type="email"
               autoComplete="email"
               required
-              className="h-12 rounded-full"
+              className="h-12"
             />
           </div>
           <Button
             type="submit"
             disabled={pending}
-            className="h-12 w-full rounded-full text-base"
+            className="h-12 w-full text-base"
           >
             {pending ? "Enviando…" : "Enviar link"}
           </Button>

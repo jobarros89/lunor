@@ -62,7 +62,7 @@ export function EventScheduleForm({
   }
 
   return (
-    <Card className="rounded-3xl">
+    <Card>
       <CardContent className="space-y-5 pt-6">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Culto</p>
@@ -75,7 +75,6 @@ export function EventScheduleForm({
               type="datetime-local"
               value={startsAt}
               onChange={(event) => setStartsAt(event.target.value)}
-              className="h-11 rounded-xl"
             />
           </Field>
           <Field label="Fim">
@@ -83,7 +82,6 @@ export function EventScheduleForm({
               type="datetime-local"
               value={endsAt}
               onChange={(event) => setEndsAt(event.target.value)}
-              className="h-11 rounded-xl"
             />
           </Field>
         </div>
@@ -103,7 +101,7 @@ export function EventScheduleForm({
             type="button"
             disabled={pending}
             onClick={submit}
-            className="h-11 rounded-full px-5"
+            className="px-5"
           >
             {pending ? "Salvando…" : "Salvar data e horário"}
           </Button>

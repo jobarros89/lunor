@@ -1,5 +1,7 @@
 "use client";
 
+import { Textarea } from "@/components/ui/textarea";
+
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { submitEvaluation } from "@/lib/actions/avaliacoes";
@@ -82,7 +84,7 @@ export function EvaluationPanel({
         <Button
           size="sm"
           variant={existing ? "outline" : "default"}
-          className="h-9 rounded-full px-4"
+          className="h-9 px-4"
           onClick={() => setOpen(true)}
         >
           {existing ? "Revisar" : "Avaliar"}
@@ -117,26 +119,26 @@ export function EvaluationPanel({
           </div>
         </div>
       ))}
-      <textarea
+      <Textarea
         value={v.notes}
         onChange={(e) => setV((prev) => ({ ...prev, notes: e.target.value }))}
         placeholder="Observações (opcional)"
         rows={2}
-        className="lunor-control w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+        className="w-full p-3 text-base md:text-sm"
       />
       <div className="flex gap-2">
         <Button
           variant="outline"
           disabled={pending}
           onClick={() => setOpen(false)}
-          className="h-11 flex-1 rounded-full"
+          className="flex-1"
         >
           Cancelar
         </Button>
         <Button
           disabled={pending || !complete}
           onClick={submit}
-          className="h-11 flex-1 rounded-full"
+          className="flex-1"
         >
           {pending ? "Salvando…" : "Salvar avaliação"}
         </Button>

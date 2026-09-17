@@ -11,7 +11,7 @@ export function BrandLockup({ compact = false, className }: { compact?: boolean;
       </span>
       <span className={cn(
         "mt-2 uppercase leading-relaxed text-muted-foreground",
-        compact ? "text-[8px] tracking-[0.07em]" : "text-[10px] tracking-[0.08em]"
+        compact ? "text-[10px] tracking-[0.03em]" : "text-[10px] tracking-[0.08em]"
       )}>
         Presença · preparo · propósito
       </span>

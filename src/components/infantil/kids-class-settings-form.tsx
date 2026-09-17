@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useState, useTransition } from "react";
 import { Plus, Save, Trash2, UsersRound } from "lucide-react";
 import { toast } from "sonner";
@@ -184,20 +186,20 @@ export function KidsClassSettingsForm({
 
         <label className="min-w-52 space-y-2 text-sm font-medium">
           Campus
-          <select
+          <Select
             value={selectedCampusId}
             onChange={(event) => {
               setSelectedCampusId(event.target.value);
               clearNewClass();
             }}
-            className="lunor-control h-11 w-full rounded-xl border bg-background px-3 text-base font-normal md:text-sm"
+            className="w-full text-base font-normal md:text-sm"
           >
             {campuses.map((campus) => (
               <option key={campus.id} value={campus.id}>
                 {campus.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </div>
 
@@ -220,7 +222,6 @@ export function KidsClassSettingsForm({
                 value={item.name}
                 onChange={(event) => updateClass(item.id, { name: event.target.value })}
                 maxLength={50}
-                className="h-11 rounded-xl"
               />
             </label>
 
@@ -235,7 +236,7 @@ export function KidsClassSettingsForm({
                   onChange={(event) =>
                     updateClass(item.id, { minAgeMonths: Number(event.target.value) * 12 })
                   }
-                  className="h-11 rounded-xl pr-12"
+                  className="pr-12"
                 />
                 <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
                   anos
@@ -254,7 +255,7 @@ export function KidsClassSettingsForm({
                   onChange={(event) =>
                     updateClass(item.id, { maxAgeMonths: Number(event.target.value) * 12 + 11 })
                   }
-                  className="h-11 rounded-xl pr-12"
+                  className="pr-12"
                 />
                 <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
                   anos
@@ -267,7 +268,7 @@ export function KidsClassSettingsForm({
               variant="outline"
               disabled={pending}
               onClick={() => removeClass(item)}
-              className="h-11 rounded-full px-4 text-destructive hover:text-destructive"
+              className="px-4 text-destructive hover:text-destructive"
             >
               <Trash2 className="size-4" />
               Remover
@@ -298,7 +299,6 @@ export function KidsClassSettingsForm({
               onChange={(event) => setNewName(event.target.value)}
               placeholder="Ex.: Kids 1"
               maxLength={50}
-              className="h-11 rounded-xl"
             />
           </label>
           <label className="space-y-2 text-sm font-medium">
@@ -310,7 +310,6 @@ export function KidsClassSettingsForm({
               value={newMinAge}
               onChange={(event) => setNewMinAge(event.target.value)}
               placeholder="3"
-              className="h-11 rounded-xl"
             />
           </label>
           <label className="space-y-2 text-sm font-medium">
@@ -322,7 +321,6 @@ export function KidsClassSettingsForm({
               value={newMaxAge}
               onChange={(event) => setNewMaxAge(event.target.value)}
               placeholder="5"
-              className="h-11 rounded-xl"
             />
           </label>
           <Button
@@ -330,7 +328,7 @@ export function KidsClassSettingsForm({
             variant="outline"
             disabled={pending}
             onClick={addClass}
-            className="h-11 rounded-full px-5"
+            className="px-5"
           >
             <Plus className="size-4" />
             Adicionar turma
@@ -347,7 +345,7 @@ export function KidsClassSettingsForm({
             type="button"
             disabled={pending || currentClasses.some((item) => !item.name.trim())}
             onClick={save}
-            className="h-11 rounded-full px-5"
+            className="px-5"
           >
             <Save className="size-4" />
             {pending ? "Salvando…" : "Salvar turmas"}

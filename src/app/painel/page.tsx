@@ -115,7 +115,7 @@ export default async function PainelPage() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map((s) => (
-          <Card key={s.label} className="rounded-3xl">
+          <Card key={s.label} >
             <CardContent className="space-y-2 pt-5">
               <div className="flex size-9 items-center justify-center rounded-2xl bg-muted">
                 <s.icon className="size-4.5" />
@@ -127,7 +127,7 @@ export default async function PainelPage() {
         ))}
       </div>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">
             Igrejas cadastradas ({churchList.length})
@@ -164,7 +164,7 @@ export default async function PainelPage() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">
             Saúde do sistema
@@ -198,7 +198,7 @@ export default async function PainelPage() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Sustentação</CardTitle>
         </CardHeader>
@@ -215,7 +215,7 @@ export default async function PainelPage() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Atividade recente (logs)</CardTitle>
         </CardHeader>

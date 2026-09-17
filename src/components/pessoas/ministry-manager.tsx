@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { removeFromMinistry, setMinistryRole } from "@/lib/actions/pessoas";
@@ -60,7 +62,7 @@ export function MinistryManager({
             <p className="min-w-0 flex-1 truncate font-medium">{min.name}</p>
             {canManage ? (
               <div className="flex items-center gap-2">
-                <select
+                <Select
                   value={membership?.role ?? ""}
                   disabled={pending}
                   onChange={(e) =>
@@ -75,7 +77,7 @@ export function MinistryManager({
                       })
                     )
                   }
-                  className="lunor-control h-11 rounded-xl border bg-background px-3 text-base md:text-sm"
+                  className="text-base md:text-sm"
                   aria-label={`Papel em ${min.name}`}
                 >
                   <option value="">Fora do ministério</option>
@@ -84,13 +86,13 @@ export function MinistryManager({
                       {r.label}
                     </option>
                   ))}
-                </select>
+                </Select>
                 {membership && (
                   <Button
                     size="icon"
                     variant="ghost"
                     disabled={pending}
-                    className="size-9 rounded-full text-muted-foreground"
+                    className="size-9 text-muted-foreground"
                     aria-label={`Remover de ${min.name}`}
                     onClick={() =>
                       act(() =>

@@ -38,7 +38,7 @@ export function BillingPanel({ churches }: { churches: BillingChurch[] }) {
               <p className="flex flex-wrap items-center gap-2 truncate font-medium">
                 {c.name}
                 {c.avisouPagamento && (
-                  <Badge className="rounded-full border-0 bg-purple-100 text-purple-800">
+                  <Badge className="border-0 bg-purple-100 text-purple-800">
                     avisou que pagou
                   </Badge>
                 )}
@@ -60,7 +60,6 @@ export function BillingPanel({ churches }: { churches: BillingChurch[] }) {
                 size="sm"
                 variant="outline"
                 disabled={pending}
-                className="rounded-full"
                 onClick={() =>
                   startTransition(async () => {
                     const r = await confirmPayment(c.id, 1);
@@ -77,7 +76,6 @@ export function BillingPanel({ churches }: { churches: BillingChurch[] }) {
                   size="sm"
                   variant="ghost"
                   disabled={pending}
-                  className="rounded-full"
                   onClick={() =>
                     startTransition(async () => {
                       const r = await exemptChurch(c.id);

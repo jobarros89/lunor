@@ -28,7 +28,6 @@ export function ClaimPaymentButton({
     <Button
       variant="outline"
       disabled={pending}
-      className="h-11 rounded-full"
       onClick={() =>
         startTransition(async () => {
           const r = await claimPayment({ churchSlug, churchId, note: "" });

@@ -1,5 +1,8 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select } from "@/components/ui/select";
+
 import { useState, useTransition } from "react";
 import { updateDailyVerseSettings } from "@/lib/actions/daily-verse-settings";
 import { sendDailyVerseNowAction } from "@/lib/actions/send-daily-verse-now";
@@ -39,7 +42,6 @@ export type DailyVerseConfig = {
   daily_verse_theme?: Theme | LegacyTheme;
 };
 
-const selectCls = "h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm";
 
 function normalizeTheme(value: DailyVerseConfig["daily_verse_theme"]): Theme {
   return THEMES.some((item) => item.value === value) ? (value as Theme) : "auto";
@@ -106,7 +108,7 @@ export function DailyVerseSettings({
   }
 
   return (
-    <Card className="rounded-3xl">
+    <Card>
       <CardHeader>
         <CardTitle className="text-base">Versículo do dia</CardTitle>
         <CardDescription>
@@ -115,8 +117,7 @@ export function DailyVerseSettings({
       </CardHeader>
       <CardContent className="space-y-4">
         <label className="flex items-center gap-3 text-sm font-medium">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={enabled}
             onChange={(event) => setEnabled(event.target.checked)}
             className="size-4 rounded border"
@@ -130,18 +131,17 @@ export function DailyVerseSettings({
               <label htmlFor="verse-version" className="text-sm font-medium">
                 Tradução
               </label>
-              <select
+              <Select
                 id="verse-version"
                 value={version}
                 onChange={(event) => setVersion(event.target.value as Version)}
-                className={["lunor-control", selectCls].filter(Boolean).join(" ")}
               >
                 {VERSIONS.map((item) => (
                   <option key={item.value} value={item.value}>
                     {item.label}
                   </option>
                 ))}
-              </select>
+              </Select>
               {version === "blt" && (
                 <p className="text-xs text-muted-foreground">
                   Bíblia Livre (BLIVRE) · CC BY 3.0 BR.
@@ -153,18 +153,17 @@ export function DailyVerseSettings({
               <label htmlFor="verse-theme" className="text-sm font-medium">
                 Tema
               </label>
-              <select
+              <Select
                 id="verse-theme"
                 value={theme}
                 onChange={(event) => setTheme(event.target.value as Theme)}
-                className={["lunor-control", selectCls].filter(Boolean).join(" ")}
               >
                 {THEMES.map((item) => (
                   <option key={item.value} value={item.value}>
                     {item.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
         )}
