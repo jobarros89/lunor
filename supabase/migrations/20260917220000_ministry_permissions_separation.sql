@@ -334,7 +334,8 @@ create policy ministry_members_manage on public.ministry_members
     )
   );
 
--- Events: leaders are limited to their ministry and the event campus.
+-- Events: leaders are limited to their ministries and the event campus.
+-- Shared events may be managed by a leader of any ministry linked to the event.
 drop policy if exists events_manage on public.events;
 create policy events_manage on public.events
   for all using (
@@ -347,6 +348,15 @@ create policy events_manage on public.events
         campus_id
       )
     )
+    or exists (
+      select 1 from event_ministries linked
+      where linked.event_id = events.id
+        and public.has_ministry_permission(
+          linked.ministry_id,
+          array['gerente', 'lider']::public.ministry_role[],
+          events.campus_id
+        )
+    )
   ) with check (
     public.is_church_coord(church_id)
     or (
@@ -357,7 +367,65 @@ create policy events_manage on public.events
         campus_id
       )
     )
+    or exists (
+      select 1 from event_ministries linked
+      where linked.event_id = events.id
+        and public.has_ministry_permission(
+          linked.ministry_id,
+          array['gerente', 'lider']::public.ministry_role[],
+          events.campus_id
+        )
+    )
   );
+
+-- Compatibility for the Louvor workflow: its leader may publish the setlist of
+-- a legacy shared event without receiving permission to edit the event itself.
+drop policy if exists events_setlist_manage on public.events;
+create policy events_setlist_manage on public.events
+  for update using (public.is_louvor_leader(church_id))
+  with check (public.is_louvor_leader(church_id));
+
+create or replace function public.guard_scoped_event_update()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if public.is_church_coord(old.church_id)
+    or (
+      old.ministry_id is not null
+      and public.has_ministry_permission(
+        old.ministry_id,
+        array['gerente', 'lider']::public.ministry_role[],
+        old.campus_id
+      )
+    )
+    or exists (
+      select 1 from event_ministries linked
+      where linked.event_id = old.id
+        and public.has_ministry_permission(
+          linked.ministry_id,
+          array['gerente', 'lider']::public.ministry_role[],
+          old.campus_id
+        )
+    )
+  then
+    return new;
+  end if;
+
+  if public.is_louvor_leader(old.church_id)
+    and to_jsonb(new) - 'setlist_status' - 'setlist_published_at' - 'updated_at'
+      is not distinct from
+        to_jsonb(old) - 'setlist_status' - 'setlist_published_at' - 'updated_at'
+  then
+    return new;
+  end if;
+
+  raise exception 'event_update_not_allowed';
+end;
+$$;
+
+drop trigger if exists trg_guard_scoped_event_update on public.events;
+create trigger trg_guard_scoped_event_update
+  before update on public.events
+  for each row execute function public.guard_scoped_event_update();
 
 drop policy if exists assignments_select on public.assignments;
 create policy assignments_select on public.assignments
