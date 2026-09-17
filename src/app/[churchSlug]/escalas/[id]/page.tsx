@@ -31,6 +31,7 @@ import {
   ServiceOrderCard,
   type ServiceItem,
 } from "@/components/escalas/service-order-card";
+import { AddEventTeam, OpenGenericTeamScale } from "@/components/escalas/event-team-controls";
 import {
   EventSetlistSummary,
   type EventSetlistSummaryItem,
@@ -49,9 +50,15 @@ type EventAssignment = {
   leader: { full_name: string } | { full_name: string }[] | null;
 };
 
+type EventMinistryLink = {
+  ministry_id: string;
+  ministries: { id: string; name: string; module_key: "generic" | "worship" | "kids" } | { id: string; name: string; module_key: "generic" | "worship" | "kids" }[];
+};
+
 type TeamGroup = {
   ministryId: string;
   ministryName: string;
+  moduleKey: "generic" | "worship" | "kids";
   rows: EventAssignment[];
 };
 
@@ -74,7 +81,7 @@ export default async function EventoDetailPage({
 }) {
   const { churchSlug, id } = await params;
   const tenant = await getTenant(churchSlug);
-  const { active } = await getActiveMinistry(churchSlug);
+  const { active, options } = await getActiveMinistry(churchSlug);
   const canManageActive = active?.canManage ?? false;
   const activeMinistryId = active?.id ?? null;
 
@@ -83,6 +90,7 @@ export default async function EventoDetailPage({
     { data: event, error: eventError },
     { data: assignments, error: assignmentsError },
     { data: serviceItems, error: serviceItemsError },
+    { data: eventMinistries, error: eventMinistriesError },
     louvor,
     kids,
   ] = await Promise.all([
@@ -106,6 +114,11 @@ export default async function EventoDetailPage({
       .eq("church_id", tenant.church.id)
       .eq("event_id", id)
       .order("position"),
+    supabase
+      .from("event_ministries")
+      .select("ministry_id, ministries!inner(id, name, module_key)")
+      .eq("church_id", tenant.church.id)
+      .eq("event_id", id),
     getLouvorMinistry(tenant.church.id),
     getInfantilMinistry(tenant.church.id),
   ]);
@@ -268,6 +281,17 @@ export default async function EventoDetailPage({
   }
 
   const teamMap = new Map<string, TeamGroup>();
+  for (const link of (eventMinistries ?? []) as unknown as EventMinistryLink[]) {
+    const ministry = firstRelated(link.ministries);
+    if (!ministry) continue;
+    teamMap.set(link.ministry_id, {
+      ministryId: link.ministry_id,
+      ministryName: ministry.name,
+      moduleKey: ministry.module_key,
+      rows: [],
+    });
+  }
+  // Compatibility for assignments created before event_ministries existed.
   for (const assignment of allAssignments) {
     const ministry = firstRelated(assignment.ministries);
     if (!ministry) continue;
@@ -278,6 +302,12 @@ export default async function EventoDetailPage({
       teamMap.set(assignment.ministry_id, {
         ministryId: assignment.ministry_id,
         ministryName: ministry.name,
+        moduleKey:
+          assignment.ministry_id === louvor?.id
+            ? "worship"
+            : assignment.ministry_id === kids?.id
+              ? "kids"
+              : "generic",
         rows: [assignment],
       });
     }
@@ -285,6 +315,10 @@ export default async function EventoDetailPage({
   const teams = [...teamMap.values()].sort((a, b) =>
     a.ministryName.localeCompare(b.ministryName, "pt-BR")
   );
+  const linkedMinistryIds = new Set(teams.map((team) => team.ministryId));
+  const addableMinistries = options
+    .filter((option) => option.canManage && !linkedMinistryIds.has(option.id))
+    .map((option) => ({ id: option.id, name: option.name }));
 
   const totalConfirmados = allAssignments.filter((a) =>
     ["confirmado", "presente"].includes(a.status)
@@ -454,7 +488,15 @@ export default async function EventoDetailPage({
               Visão consolidada das equipes deste evento.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {addableMinistries.length > 0 && (
+              <AddEventTeam
+                churchSlug={churchSlug}
+                churchId={tenant.church.id}
+                eventId={id}
+                options={addableMinistries}
+              />
+            )}
             <Badge variant="secondary" >
               {teams.length} {teams.length === 1 ? "ministério" : "ministérios"}
             </Badge>
@@ -472,7 +514,7 @@ export default async function EventoDetailPage({
           </div>
         </div>
 
-        {assignmentsError ? (
+        {assignmentsError || eventMinistriesError ? (
           <LoadError oQue="os times do culto" />
         ) : teams.length > 0 ? (
           <div className="grid gap-3 lg:grid-cols-2">
@@ -485,11 +527,14 @@ export default async function EventoDetailPage({
                 ["convidado", "substituicao_solicitada", "falar_lider"].includes(row.status)
               ).length;
               const dedicatedHref =
-                team.ministryId === louvor?.id
+                team.moduleKey === "worship"
                   ? `/${churchSlug}/louvor/escalas/${id}`
-                  : team.ministryId === kids?.id
+                  : team.moduleKey === "kids"
                     ? `/${churchSlug}/infantil/escalas/${id}`
                     : null;
+              const canOpenGeneric = options.some(
+                (option) => option.id === team.ministryId && option.canManage
+              );
 
               return (
                 <Card key={team.ministryId} >
@@ -502,7 +547,7 @@ export default async function EventoDetailPage({
                           {pending > 0 ? ` · ${pending} pendências` : ""}
                         </CardDescription>
                       </div>
-                      {dedicatedHref && (
+                      {dedicatedHref ? (
                         <Link
                           href={dedicatedHref}
                           className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors hover:bg-accent"
@@ -510,7 +555,12 @@ export default async function EventoDetailPage({
                           Abrir escala
                           <ArrowUpRight className="size-3.5" />
                         </Link>
-                      )}
+                      ) : canOpenGeneric ? (
+                        <OpenGenericTeamScale
+                          churchSlug={churchSlug}
+                          ministryId={team.ministryId}
+                        />
+                      ) : null}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
@@ -536,7 +586,7 @@ export default async function EventoDetailPage({
                     ))}
                     {visibleRows.length === 0 && (
                       <p className="py-2 text-sm text-muted-foreground">
-                        Sua participação está destacada acima.
+                        {team.rows.length === 0 ? "Nenhuma pessoa escalada ainda." : "Sua participação está destacada acima."}
                       </p>
                     )}
                   </CardContent>

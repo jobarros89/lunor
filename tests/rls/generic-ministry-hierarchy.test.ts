@@ -33,6 +33,7 @@ describe("hierarquia genérica de ministérios", () => {
   let ministryId: string;
   let teamId: string;
   let functionId: string;
+  let eventId: string;
   const run = Date.now();
 
   beforeAll(async () => {
@@ -114,6 +115,7 @@ describe("hierarquia genérica de ministérios", () => {
       .select("id")
       .single();
     expect(event.error).toBeNull();
+    eventId = event.data!.id;
 
     const assignment = await owner
       .from("assignments")
@@ -122,7 +124,7 @@ describe("hierarquia genérica de ministérios", () => {
         ministry_id: ministryId,
         department_id: teamId,
         function_id: functionId,
-        event_id: event.data!.id,
+        event_id: eventId,
         user_id: user!.id,
         role_name: "valor substituído pelo trigger",
       })
@@ -135,4 +137,29 @@ describe("hierarquia genérica de ministérios", () => {
       function_id: functionId,
     });
   });
+
+  it("vincula o time ao evento sem permitir duplicidade ou vazamento", async () => {
+    const linked = await owner
+      .from("event_ministries")
+      .select("event_id, ministry_id")
+      .eq("event_id", eventId)
+      .eq("ministry_id", ministryId);
+    expect(linked.error).toBeNull();
+    expect(linked.data).toHaveLength(1);
+
+    const duplicate = await owner.from("event_ministries").insert({
+      church_id: churchId,
+      event_id: eventId,
+      ministry_id: ministryId,
+    });
+    expect(duplicate.error?.code).toBe("23505");
+
+    const outsiderView = await outsider
+      .from("event_ministries")
+      .select("event_id")
+      .eq("event_id", eventId);
+    expect(outsiderView.error).toBeNull();
+    expect(outsiderView.data).toHaveLength(0);
+  });
+
 });
