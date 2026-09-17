@@ -1,5 +1,8 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -82,22 +85,21 @@ function ItemForm({ item, pending, onCancel, onSubmit }: ItemFormProps) {
             defaultValue={item?.title ?? ""}
             maxLength={160}
             required
-            className="h-11 rounded-xl"
             placeholder="Ex.: Boas-vindas"
           />
         </Field>
         <Field label="Tipo" required>
-          <select
+          <Select
             name="type"
             defaultValue={item?.type ?? "OTHER"}
-            className="h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
+            className="w-full text-base md:text-sm"
           >
             {Object.entries(TYPE_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
       </div>
 
@@ -110,29 +112,27 @@ function ItemForm({ item, pending, onCancel, onSubmit }: ItemFormProps) {
           max={1440}
           step={1}
           required
-          className="h-11 rounded-xl"
         />
       </Field>
 
       <Field label="Notas">
-        <textarea
+        <Textarea
           name="notes"
           defaultValue={item?.notes ?? ""}
           rows={3}
-          className="w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+          className="w-full p-3 text-base md:text-sm"
           placeholder="Informações opcionais para a equipe"
         />
       </Field>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending} className="h-11 rounded-full">
+        <Button type="submit" disabled={pending} >
           {pending ? "Salvando…" : item ? "Salvar alterações" : "Adicionar item"}
         </Button>
         <Button
           type="button"
           variant="ghost"
           disabled={pending}
-          className="h-11 rounded-full"
           onClick={onCancel}
         >
           Cancelar
@@ -182,8 +182,8 @@ export function ServiceOrderCard({
   const scheduledItems = scheduleItems(items, startsAt);
 
   return (
-    <Card className="rounded-3xl">
-      <CardHeader className="flex-row items-center justify-between gap-3">
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Clock3 className="size-4" />
           Ordem do Culto
@@ -199,7 +199,7 @@ export function ServiceOrderCard({
           {canManage && !adding && (
             <Button
               variant="outline"
-              className="h-10 rounded-full"
+              className="h-10"
               disabled={pending}
               onClick={() => {
                 setEditingId(null);
@@ -253,7 +253,7 @@ export function ServiceOrderCard({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{item.title}</p>
-                    <Badge variant="secondary" className="rounded-full">
+                    <Badge variant="secondary" >
                       {TYPE_LABELS[item.type]}
                     </Badge>
                   </div>

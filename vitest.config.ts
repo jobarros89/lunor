@@ -10,7 +10,7 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "src") },
   },
   test: {
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.{ts,tsx}"],
     testTimeout: 20000,
     hookTimeout: 30000,
     // os testes compartilham o mesmo Supabase local — rodar em série evita flakes

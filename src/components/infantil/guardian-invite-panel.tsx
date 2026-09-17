@@ -138,7 +138,7 @@ export function GuardianInvitePanel({
                       (pending && pendingId === guardian.id) || email.trim().length === 0
                     }
                     onClick={() => createInvite(guardian)}
-                    className="h-10 rounded-full px-4"
+                    className="h-10 px-4"
                   >
                     <Send className="size-4" />
                     {pending && pendingId === guardian.id
@@ -177,7 +177,6 @@ export function GuardianInvitePanel({
                       type="button"
                       variant="outline"
                       onClick={() => copyInvite(inviteUrl)}
-                      className="rounded-full"
                     >
                       <Copy className="size-4" />
                       Copiar link
@@ -185,7 +184,6 @@ export function GuardianInvitePanel({
                     <Button
                       type="button"
                       onClick={() => shareInvite(guardian, inviteUrl)}
-                      className="rounded-full"
                     >
                       <Share2 className="size-4" />
                       Compartilhar

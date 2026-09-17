@@ -82,8 +82,8 @@ export function ChurchRoleToggle({
             className={cn(
               "flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-colors disabled:opacity-60",
               active
-                ? "border-[#6e5ce6] bg-[#6e5ce6]/10"
-                : "border-border bg-background hover:border-[#6e5ce6]/50 hover:bg-accent/30"
+                ? "border-brand bg-brand/10"
+                : "border-border bg-background hover:border-brand/50 hover:bg-accent/30"
             )}
           >
             <span>
@@ -93,7 +93,7 @@ export function ChurchRoleToggle({
               </span>
             </span>
             {active && (
-              <span className="shrink-0 rounded-full bg-[#6e5ce6] px-2.5 py-1 text-xs font-medium text-white">
+              <span className="shrink-0 rounded-full bg-brand px-2.5 py-1 text-xs font-medium text-brand-foreground">
                 Atual
               </span>
             )}

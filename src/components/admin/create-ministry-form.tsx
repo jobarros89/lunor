@@ -56,7 +56,7 @@ export function CreateMinistryForm({
             variant="outline"
             disabled={pending}
             onClick={() => createTeam(name)}
-            className="h-10 rounded-full px-4"
+            className="h-10 px-4"
           >
             + {name}
           </Button>
@@ -69,9 +69,9 @@ export function CreateMinistryForm({
           name="name"
           placeholder="Outra equipe…"
           required
-          className="h-12 rounded-full"
+          className="h-12"
         />
-        <Button type="submit" disabled={pending} className="h-12 rounded-full">
+        <Button type="submit" disabled={pending} className="h-12">
           {pending ? "Criando…" : "Criar equipe"}
         </Button>
       </form>

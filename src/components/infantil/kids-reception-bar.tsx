@@ -137,7 +137,7 @@ export function KidsReceptionBar({
                 type="button"
                 size="sm"
                 disabled={pending}
-                className="h-9 shrink-0 rounded-full px-4"
+                className="h-9 shrink-0 px-4"
                 onClick={() => openCampus(campus)}
               >
                 <DoorOpen className="size-4" />
@@ -172,7 +172,7 @@ export function KidsReceptionBar({
                 nativeButton={false}
                 variant="outline"
                 size="sm"
-                className="h-9 shrink-0 rounded-full px-3"
+                className="h-9 shrink-0 px-3"
                 render={<Link href={href} />}
               >
                 <ExternalLink className="size-4" />
@@ -186,7 +186,7 @@ export function KidsReceptionBar({
                 variant="ghost"
                 size="sm"
                 disabled={pending}
-                className="h-8 rounded-full px-2 text-xs text-destructive hover:text-destructive"
+                className="h-8 px-2 text-xs text-destructive hover:text-destructive"
                 onClick={() => closeReception(active)}
               >
                 <DoorClosed className="size-3.5" />
@@ -212,7 +212,7 @@ export function KidsReceptionBar({
                 nativeButton={false}
                 variant="outline"
                 size="sm"
-                className="h-9 rounded-full px-3"
+                className="h-9 px-3"
                 render={<Link href={href} />}
               >
                 <ExternalLink className="size-4" />
@@ -224,7 +224,7 @@ export function KidsReceptionBar({
                 size="sm"
                 disabled={pending}
                 onClick={() => closeReception(active)}
-                className="h-9 rounded-full px-3 text-destructive hover:text-destructive"
+                className="h-9 px-3 text-destructive hover:text-destructive"
               >
                 <DoorClosed className="size-4" />
                 Encerrar

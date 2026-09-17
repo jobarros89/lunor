@@ -2,9 +2,7 @@
 
 import { useEffect } from "react";
 import { reportError } from "@/lib/actions/observability";
-import { RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { ErrorState } from "@/components/shell/error-state";
 
 /**
  * Boundary de erro raiz — cobre as rotas de entrada (login, cadastro,
@@ -31,20 +29,7 @@ export default function Error({
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-muted/30 p-6">
-      <Card className="w-full max-w-sm rounded-3xl">
-        <CardContent className="space-y-4 py-8 text-center">
-          <h1 className="text-lg font-semibold tracking-tight">
-            Ops, algo não carregou
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Pode ter sido a conexão. Tente novamente — seus dados estão salvos.
-          </p>
-          <Button onClick={reset} className="h-12 w-full rounded-full text-base">
-            <RotateCcw className="size-4" />
-            Tentar de novo
-          </Button>
-        </CardContent>
-      </Card>
+      <ErrorState reset={reset} />
     </div>
   );
 }

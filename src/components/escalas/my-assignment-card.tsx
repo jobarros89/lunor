@@ -125,7 +125,7 @@ export function MyAssignmentCard({
   const releaseLabel = timeLabel(serviceWindow.releaseAt);
 
   return (
-    <Card className="rounded-3xl border-2 border-foreground/10">
+    <Card className="border-2 border-foreground/10">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <CardTitle className="text-base">Sua escala</CardTitle>
@@ -185,13 +185,13 @@ export function MyAssignmentCard({
 
         {canRespond && !responseMode && (
           <div className="grid gap-2 sm:grid-cols-3">
-            <Button disabled={pending} onClick={() => respond("confirmar")} className="h-11 rounded-full">
+            <Button disabled={pending} onClick={() => respond("confirmar")} >
               <Check className="size-4" /> Confirmo
             </Button>
-            <Button variant="outline" disabled={pending} onClick={() => setResponseMode("nao_posso")} className="h-11 rounded-full">
+            <Button variant="outline" disabled={pending} onClick={() => setResponseMode("nao_posso")} >
               <X className="size-4" /> Não posso
             </Button>
-            <Button variant="outline" disabled={pending} onClick={() => setResponseMode("falar_lider")} className="h-11 rounded-full">
+            <Button variant="outline" disabled={pending} onClick={() => setResponseMode("falar_lider")} >
               <MessageCircle className="size-4" /> Falar com líder
             </Button>
           </div>
@@ -205,10 +205,10 @@ export function MyAssignmentCard({
                 {responseMode === "nao_posso" ? "O motivo é opcional e ajuda na busca por uma substituição." : "A mensagem é opcional. O líder será notificado mesmo sem texto."}
               </p>
             </div>
-            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Mensagem opcional" maxLength={500} className="h-11 rounded-full" />
+            <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Mensagem opcional" maxLength={500}  />
             <div className="flex gap-2">
-              <Button variant="outline" disabled={pending} onClick={() => { setResponseMode(null); setNote(""); }} className="h-11 flex-1 rounded-full">Cancelar</Button>
-              <Button disabled={pending} onClick={() => respond(responseMode)} className="h-11 flex-1 rounded-full">{pending ? "Enviando…" : "Enviar"}</Button>
+              <Button variant="outline" disabled={pending} onClick={() => { setResponseMode(null); setNote(""); }} className="flex-1">Cancelar</Button>
+              <Button disabled={pending} onClick={() => respond(responseMode)} className="flex-1">{pending ? "Enviando…" : "Enviar"}</Button>
             </div>
           </div>
         )}

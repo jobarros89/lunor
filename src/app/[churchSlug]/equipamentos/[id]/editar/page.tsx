@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { notFound, redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
@@ -70,12 +71,10 @@ export default async function EditarEquipamentoPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Editar equipamento
-        </h1>
-        <p className="text-muted-foreground">{eq.name}</p>
-      </div>
+      <PageHeader
+        title={<>Editar equipamento</>}
+        description={<>{eq.name}</>}
+      />
       <EquipmentForm
         churchSlug={churchSlug}
         churchId={tenant.church.id}

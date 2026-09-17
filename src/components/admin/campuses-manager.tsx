@@ -72,13 +72,12 @@ export function CampusesManager({
           }}
           disabled={pending}
           placeholder="Ex.: Botafogo"
-          className="h-11 rounded-xl"
         />
         <Button
           type="button"
           onClick={add}
           disabled={pending || name.trim().length < 2}
-          className="h-11 rounded-full px-5"
+          className="px-5"
         >
           <MapPin className="size-4" />
           Adicionar campus
@@ -103,7 +102,6 @@ export function CampusesManager({
               size="sm"
               disabled={pending}
               onClick={() => toggle(campus)}
-              className="rounded-full"
             >
               <Power className="size-4" />
               {campus.active ? "Desativar" : "Reativar"}

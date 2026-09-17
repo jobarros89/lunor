@@ -77,7 +77,7 @@ export function KidsNoticeBanner({
       {notices.map((notice) => (
         <div
           key={notice.page_id}
-          className="flex items-center gap-3 border-l-4 border-[#6e5ce6] bg-black px-5 py-4 text-white"
+          className="flex items-center gap-3 border-l-4 border-brand bg-black px-5 py-4 text-white"
         >
           <Megaphone className="size-4 shrink-0" />
           <p className="min-w-0 flex-1 text-sm font-medium">
@@ -94,7 +94,7 @@ export function KidsNoticeBanner({
             variant="outline"
             disabled={pending && pendingId === notice.page_id}
             onClick={() => acknowledge(notice.page_id)}
-            className="h-9 shrink-0 rounded-full border-white/35 bg-white/10 px-4 text-white hover:bg-white hover:text-black"
+            className="h-9 shrink-0 border-white/35 bg-white/10 px-4 text-white hover:bg-white hover:text-black"
           >
             <Check className="size-4" />
             {pending && pendingId === notice.page_id ? "…" : "OK"}

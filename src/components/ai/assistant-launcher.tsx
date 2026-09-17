@@ -38,7 +38,7 @@ export function AssistantLauncher({
         render={
           <button
             type="button"
-            className="fixed right-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#6e5ce6] p-0 text-white shadow-[0_10px_24px_rgba(71,55,170,0.24)] transition hover:-translate-y-0.5 hover:bg-[#5f4fd1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6e5ce6] md:right-6 md:bottom-6 md:h-10 md:w-auto md:gap-2 md:px-3 md:text-sm md:font-medium md:shadow-[0_8px_20px_rgba(71,55,170,0.22)]"
+            className="fixed right-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-brand p-0 text-brand-foreground shadow-[0_10px_24px_rgba(71,55,170,0.24)] transition hover:-translate-y-0.5 hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand md:right-6 md:bottom-6 md:h-10 md:w-auto md:gap-2 md:px-3 md:text-sm md:font-medium md:shadow-[0_8px_20px_rgba(71,55,170,0.22)]"
             aria-label="Abrir Assistente LUNOR"
             title="Assistente LUNOR"
           />
@@ -58,7 +58,7 @@ export function AssistantLauncher({
       >
         <SheetHeader className="sticky top-0 z-20 shrink-0 border-b bg-popover/95 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur sm:px-5 sm:pt-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[#6e5ce6] text-white">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
               <Sparkles className="size-5" />
             </span>
 
@@ -77,7 +77,7 @@ export function AssistantLauncher({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-10 shrink-0 rounded-full px-3"
+                  className="h-10 shrink-0 px-3"
                   aria-label="Fechar Assistente LUNOR"
                 />
               }

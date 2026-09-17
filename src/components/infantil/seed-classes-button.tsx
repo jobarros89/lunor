@@ -16,7 +16,6 @@ export function SeedClassesButton({
   return (
     <Button
       disabled={pending}
-      className="h-11 rounded-full"
       onClick={() =>
         startTransition(async () => {
           const r = await seedClasses(churchSlug, ministryId);

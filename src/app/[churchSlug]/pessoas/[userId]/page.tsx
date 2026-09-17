@@ -144,15 +144,15 @@ export default async function PessoaDetailPage({
           <AvatarFallback className="text-lg">{initials}</AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="page-title ">
             {profile.full_name}
           </h1>
           <div className="mt-1 flex flex-wrap gap-1">
             {member.role === "admin" && (
-              <Badge className="rounded-full">Admin</Badge>
+              <Badge >Admin</Badge>
             )}
             {profile.profession && (
-              <Badge variant="secondary" className="rounded-full">
+              <Badge variant="secondary" >
                 {profile.profession}
               </Badge>
             )}
@@ -161,7 +161,7 @@ export default async function PessoaDetailPage({
       </div>
 
       {briefing?.summary && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Resumo do perfil</CardTitle>
           </CardHeader>
@@ -174,7 +174,7 @@ export default async function PessoaDetailPage({
       )}
 
       {(dias || periodos) && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Disponibilidade</CardTitle>
           </CardHeader>
@@ -188,7 +188,7 @@ export default async function PessoaDetailPage({
         </Card>
       )}
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Aptidões</CardTitle>
         </CardHeader>
@@ -204,7 +204,7 @@ export default async function PessoaDetailPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Interesses</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -215,7 +215,7 @@ export default async function PessoaDetailPage({
           {interesses.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {interesses.map((nome) => (
-                <Badge key={nome} variant="secondary" className="rounded-full">
+                <Badge key={nome} variant="secondary" >
                   {nome}
                 </Badge>
               ))}
@@ -229,7 +229,7 @@ export default async function PessoaDetailPage({
       </Card>
 
       {(isSelf || tenant.isLeader) && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Quando não posso servir</CardTitle>
             {isSelf && (
@@ -268,7 +268,7 @@ export default async function PessoaDetailPage({
         </Card>
       )}
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Ministérios</CardTitle>
         </CardHeader>
@@ -285,7 +285,7 @@ export default async function PessoaDetailPage({
       </Card>
 
       {tenant.role === "admin" && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Papel na igreja</CardTitle>
           </CardHeader>

@@ -82,13 +82,13 @@ export function RecurringEventProposalCard({
   }
 
   return (
-    <div className="rounded-2xl border border-[#6e5ce6]/25 bg-background p-4 shadow-sm">
+    <div className="rounded-2xl border border-brand/25 bg-background p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#6e5ce6]/12 text-[#6e5ce6]">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand/12 text-brand">
           <CalendarDays className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6e5ce6]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">
             Série de cultos
           </p>
           <p className="mt-1 font-semibold">{proposal.title}</p>
@@ -137,7 +137,7 @@ export function RecurringEventProposalCard({
           "mt-3 w-full rounded-full",
           confirmed
             ? "bg-emerald-600 text-white hover:bg-emerald-600"
-            : "bg-[#6e5ce6] text-white hover:bg-[#5f4fd1]"
+            : "bg-brand text-brand-foreground hover:bg-brand-strong"
         )}
       >
         {pending ? (

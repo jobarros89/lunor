@@ -125,12 +125,12 @@ export default async function ModoCultoPage({
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Modo Culto</p>
             <h1 className="truncate text-lg font-semibold">{event.title}</h1>
           </div>
-          <Badge variant="secondary" className="rounded-full">{present}/{team.length} chegaram</Badge>
+          <Badge variant="secondary" >{present}/{team.length} chegaram</Badge>
         </div>
       </header>
 
       <section className="grid gap-3 sm:grid-cols-3">
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="flex items-start gap-3 py-5">
             <Clock3 className="mt-0.5 size-5 text-muted-foreground" />
             <div>
@@ -140,7 +140,7 @@ export default async function ModoCultoPage({
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="flex items-start gap-3 py-5">
             <MapPin className="mt-0.5 size-5 text-muted-foreground" />
             <div>
@@ -149,7 +149,7 @@ export default async function ModoCultoPage({
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="flex items-start gap-3 py-5">
             <CheckCircle2 className="mt-0.5 size-5 text-muted-foreground" />
             <div>
@@ -166,7 +166,7 @@ export default async function ModoCultoPage({
           <Users className="size-5" />
           <h2 className="text-xl font-semibold">Equipe</h2>
         </div>
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="py-5">
             <CultModeTeam churchSlug={churchSlug} eventId={id} assignments={team} canManage={tenant.isLeader} />
           </CardContent>
@@ -178,7 +178,7 @@ export default async function ModoCultoPage({
           <Clock3 className="size-5" />
           <h2 className="text-xl font-semibold">Ordem do culto</h2>
         </div>
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="py-3">
             {scheduled.length > 0 ? (
               <div className="divide-y">
@@ -190,7 +190,7 @@ export default async function ModoCultoPage({
                       {item.notes && <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{item.notes}</p>}
                     </div>
                     <div className="text-right">
-                      <Badge variant="secondary" className="rounded-full">{TYPE_LABELS[item.type]}</Badge>
+                      <Badge variant="secondary" >{TYPE_LABELS[item.type]}</Badge>
                       <p className="mt-1 text-xs text-muted-foreground">{item.duration_minutes} min</p>
                     </div>
                   </div>
@@ -206,7 +206,7 @@ export default async function ModoCultoPage({
           <ListMusic className="size-5" />
           <h2 className="text-xl font-semibold">Repertório</h2>
         </div>
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Músicas do culto</CardTitle>
           </CardHeader>
@@ -224,7 +224,7 @@ export default async function ModoCultoPage({
                         <p className="truncate font-medium">{song.title}</p>
                         {song.artist && <p className="truncate text-sm text-muted-foreground">{song.artist}</p>}
                       </div>
-                      {key && <Badge variant="outline" className="rounded-full">Tom {key}</Badge>}
+                      {key && <Badge variant="outline" >Tom {key}</Badge>}
                     </div>
                   );
                 })}

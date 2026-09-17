@@ -67,7 +67,7 @@ export function MinistryEventPicker({
       </div>
 
       {events.length === 0 && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="space-y-4 py-8 text-center">
             <p className="text-sm text-muted-foreground">Nenhum culto futuro cadastrado.</p>
             <Link

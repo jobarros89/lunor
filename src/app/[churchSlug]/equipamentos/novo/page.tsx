@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { EquipmentForm } from "@/components/equipamentos/equipment-form";
@@ -29,16 +30,16 @@ export default async function NovoEquipamentoPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Novo equipamento
-        </h1>
-        <p className="text-muted-foreground">
-          {tenant.isManager
-            ? "Cadastre um item do patrimônio"
-            : "Cadastre um equipamento seu (pessoal)"}
-        </p>
-      </div>
+      <PageHeader
+        title={<>Novo equipamento</>}
+        description={
+          <>
+            {tenant.isManager
+              ? "Cadastre um item do patrimônio"
+              : "Cadastre um equipamento seu (pessoal)"}
+          </>
+        }
+      />
       <EquipmentForm
         churchSlug={churchSlug}
         churchId={tenant.church.id}

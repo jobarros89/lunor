@@ -48,7 +48,7 @@ export function SongDeleteButton({
       <Button
         type="button"
         variant="outline"
-        className="rounded-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
         disabled={pending}
         onClick={excluir}
       >

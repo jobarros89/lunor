@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -35,28 +36,30 @@ export default async function LouvorEscalasPage({
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Ministério de música
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Escalas do Louvor</h1>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Equipe, confirmações e pendências do Louvor separadas da visão geral do culto.
-          </p>
-        </div>
-
-        {canCreate && (
-          <Button
-            className="h-11 rounded-full px-5"
-            nativeButton={false}
-            render={<Link href={`/${churchSlug}/louvor/escalas/nova`} />}
-          >
-            <Plus className="size-4" />
-            Nova escala
-          </Button>
-        )}
-      </header>
+      <PageHeader
+        title={<>Escalas do Louvor</>}
+        eyebrow={<>Ministério de música</>}
+        description={
+          <>
+            Equipe, confirmações e pendências do Louvor separadas da visão geral
+            do culto.
+          </>
+        }
+        actions={
+          <>
+            {canCreate && (
+              <Button
+                className="px-5"
+                nativeButton={false}
+                render={<Link href={`/${churchSlug}/louvor/escalas/nova`} />}
+              >
+                <Plus className="size-4" />
+                Nova escala
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <MinistryScheduleList
         churchSlug={churchSlug}

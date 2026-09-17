@@ -82,7 +82,6 @@ export function TimeSignaturePicker({
           placeholder="Ex.: 5/4 ou 7/8"
           inputMode="text"
           autoComplete="off"
-          className="h-11 rounded-xl"
         />
       )}
     </div>

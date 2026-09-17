@@ -1,13 +1,25 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
-import { getInfantilMinistry, formatAge, suggestClass, type ChildClass } from "@/lib/infantil";
+import {
+  getInfantilMinistry,
+  formatAge,
+  suggestClass,
+  type ChildClass,
+} from "@/lib/infantil";
 import { eventContextLabel } from "@/lib/event-context";
 import { kidsPrintSettingsFromRow } from "@/lib/kids-print-settings";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Guardian, SessionChild } from "@/components/infantil/session-child";
+import type {
+  Guardian,
+  SessionChild,
+} from "@/components/infantil/session-child";
 import { ReceptionSearch } from "@/components/infantil/reception-search";
-import { KidsDeliveryOverview, type KidsDeliveryItem } from "@/components/infantil/kids-delivery-overview";
+import {
+  KidsDeliveryOverview,
+  type KidsDeliveryItem,
+} from "@/components/infantil/kids-delivery-overview";
 
 type DeliveryStatusRow = {
   page_id: string;
@@ -219,32 +231,37 @@ export default async function KidsReceptionPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Kids · Recepção aberta{reception.campus_name ? ` · ${reception.campus_name}` : ""}
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{reception.title}</h1>
-        <p className="text-muted-foreground">
-          {event
-            ? `Contexto: ${event.title}${receptionContext ? ` · ${receptionContext}` : ""}`
-            : `Recepção independente · ${receptionContext}`}
-        </p>
-      </div>
+      <PageHeader
+        title={<>{reception.title}</>}
+        eyebrow={
+          <>
+            Kids · Recepção aberta
+            {reception.campus_name ? ` · ${reception.campus_name}` : ""}
+          </>
+        }
+        description={
+          <>
+            {event
+              ? `Contexto: ${event.title}${receptionContext ? ` · ${receptionContext}` : ""}`
+              : `Recepção independente · ${receptionContext}`}
+          </>
+        }
+      />
 
       <div className="grid grid-cols-3 gap-3">
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="px-4 py-5">
             <p className="text-2xl font-semibold">{presentes}</p>
             <p className="text-xs text-muted-foreground">Presentes agora</p>
           </CardContent>
         </Card>
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="px-4 py-5">
             <p className="text-2xl font-semibold">{entradas}</p>
             <p className="text-xs text-muted-foreground">Check-ins</p>
           </CardContent>
         </Card>
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="px-4 py-5">
             <p className="text-2xl font-semibold">{saidas}</p>
             <p className="text-xs text-muted-foreground">Check-outs</p>
@@ -254,13 +271,17 @@ export default async function KidsReceptionPage({
 
       {presentes > 0 && (
         <p className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground">
-          Ainda há {presentes} {presentes === 1 ? "criança presente" : "crianças presentes"}. A recepção só poderá ser encerrada após as retiradas.
+          Ainda há {presentes}{" "}
+          {presentes === 1 ? "criança presente" : "crianças presentes"}. A
+          recepção só poderá ser encerrada após as retiradas.
         </p>
       )}
 
       {turmas.length === 0 && (
         <p className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground">
-          Nenhuma turma está configurada para {reception.campus_name ?? "este campus"}. Configure as faixas em Kids → Configurações antes de fazer check-in.
+          Nenhuma turma está configurada para{" "}
+          {reception.campus_name ?? "este campus"}. Configure as faixas em Kids
+          → Configurações antes de fazer check-in.
         </p>
       )}
 
@@ -282,7 +303,7 @@ export default async function KidsReceptionPage({
           printSettings={printSettings}
         />
       ) : (
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="py-6">
             <p className="text-sm text-muted-foreground">
               Nenhuma criança cadastrada. Cadastre na tela do Kids.
@@ -292,7 +313,8 @@ export default async function KidsReceptionPage({
       )}
 
       <p className="px-1 text-xs text-muted-foreground">
-        A criança só sai com responsável autorizado. Exceções exigem justificativa e ficam registradas.
+        A criança só sai com responsável autorizado. Exceções exigem
+        justificativa e ficam registradas.
       </p>
     </div>
   );

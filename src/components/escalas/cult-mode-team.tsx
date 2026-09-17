@@ -69,18 +69,18 @@ export function CultModeTeam({
                 {canManage && (
                   <div className="flex gap-2">
                     {row.status !== "presente" ? (
-                      <Button size="sm" disabled={pending} onClick={() => update(row.id, "presente")} className="h-10 rounded-full px-4">
+                      <Button size="sm" disabled={pending} onClick={() => update(row.id, "presente")} className="h-10 px-4">
                         <Check className="size-4" />
                         Chegou
                       </Button>
                     ) : (
-                      <Button size="sm" variant="outline" disabled={pending} onClick={() => update(row.id, "limpar")} className="h-10 rounded-full px-4">
+                      <Button size="sm" variant="outline" disabled={pending} onClick={() => update(row.id, "limpar")} className="h-10 px-4">
                         <RotateCcw className="size-4" />
                         Desfazer
                       </Button>
                     )}
                     {row.status !== "ausente" && row.status !== "presente" && (
-                      <Button size="sm" variant="ghost" disabled={pending} onClick={() => update(row.id, "ausente")} className="h-10 rounded-full px-3 text-muted-foreground">
+                      <Button size="sm" variant="ghost" disabled={pending} onClick={() => update(row.id, "ausente")} className="h-10 px-3 text-muted-foreground">
                         <UserX className="size-4" />
                         Ausente
                       </Button>

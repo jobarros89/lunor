@@ -210,14 +210,14 @@ function EventList({ events }: { events: LeaderScheduleEvent[] }) {
             <p className="mt-1 text-sm text-muted-foreground">{event.dateLabel} · {event.timeLabel}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-            <Badge variant="secondary" className="rounded-full">{event.assignmentCount} escalados</Badge>
+            <Badge variant="secondary" >{event.assignmentCount} escalados</Badge>
             {event.confirmedCount > 0 && (
-              <Badge className="rounded-full border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+              <Badge className="border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
                 {event.confirmedCount} confirmados
               </Badge>
             )}
             {event.pendingCount > 0 && (
-              <Badge className="rounded-full border-0 bg-amber-500/15 text-amber-700 dark:text-amber-400">
+              <Badge className="border-0 bg-amber-500/15 text-amber-700 dark:text-amber-400">
                 {event.pendingCount} pendências
               </Badge>
             )}
@@ -256,7 +256,7 @@ function PeopleList({
             <p className="mt-1 text-xs text-muted-foreground">{person.dateLabel} · {person.timeLabel}</p>
           </div>
           <div className="flex items-center gap-2 sm:justify-end">
-            <Badge variant="secondary" className="rounded-full">{person.statusLabel}</Badge>
+            <Badge variant="secondary" >{person.statusLabel}</Badge>
             <ChevronRight className="size-4 text-muted-foreground" />
           </div>
         </Link>

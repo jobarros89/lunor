@@ -1,5 +1,7 @@
 "use client";
 
+import { Textarea } from "@/components/ui/textarea";
+
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Plus } from "lucide-react";
@@ -66,7 +68,6 @@ export function SongForm(props: SongFormProps) {
     return (
       <Button
         variant="outline"
-        className="h-11 rounded-full"
         onClick={() => setAberto(true)}
       >
         <Plus className="size-4" />
@@ -84,7 +85,6 @@ export function SongForm(props: SongFormProps) {
           placeholder="Nome da música"
           required
           maxLength={160}
-          className="h-11 rounded-xl"
         />
       </Field>
 
@@ -94,7 +94,6 @@ export function SongForm(props: SongFormProps) {
           defaultValue={song?.artist ?? ""}
           placeholder="Artista (opcional)"
           maxLength={120}
-          className="h-11 rounded-xl"
         />
       </Field>
 
@@ -105,7 +104,6 @@ export function SongForm(props: SongFormProps) {
             defaultValue={song?.default_key ?? ""}
             maxLength={8}
             placeholder="Ex.: G"
-            className="h-11 rounded-xl"
           />
         </Field>
         <Field label="BPM">
@@ -116,7 +114,6 @@ export function SongForm(props: SongFormProps) {
             min={20}
             max={300}
             placeholder="20–300"
-            className="h-11 rounded-xl"
           />
         </Field>
         <Field label="Compasso">
@@ -135,36 +132,35 @@ export function SongForm(props: SongFormProps) {
           defaultValue={song?.link ?? ""}
           maxLength={500}
           placeholder="YouTube, cifra ou outra referência"
-          className="h-11 rounded-xl"
         />
       </Field>
 
       <Field label="Letra">
-        <textarea
+        <Textarea
           name="lyrics"
           defaultValue={song?.lyrics ?? ""}
           maxLength={20000}
           rows={isEdit ? 14 : 8}
           placeholder="Letra — é o que a equipe lê para ensaiar"
-          className="w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+          className="w-full p-3 text-base md:text-sm"
         />
       </Field>
 
       <Field label="Cifra">
-        <textarea
+        <Textarea
           name="chordChart"
           defaultValue={song?.chord_chart ?? ""}
           maxLength={20000}
           rows={isEdit ? 16 : 10}
           placeholder="[Verso]\nC\nGrande é o Senhor"
-          className="w-full rounded-xl border bg-background p-3 font-mono text-base md:text-sm"
+          className="w-full p-3 font-mono text-base md:text-sm"
         />
       </Field>
 
       {erro && <p className="text-sm text-destructive">{erro}</p>}
 
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending} className="h-11 rounded-full">
+        <Button type="submit" disabled={pending} >
           {pending
             ? "Salvando…"
             : isEdit
@@ -174,7 +170,6 @@ export function SongForm(props: SongFormProps) {
         <Button
           type="button"
           variant="ghost"
-          className="h-11 rounded-full"
           disabled={pending}
           onClick={() => (isEdit ? router.back() : setAberto(false))}
         >

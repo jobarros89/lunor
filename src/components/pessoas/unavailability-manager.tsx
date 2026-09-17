@@ -99,7 +99,7 @@ export function UnavailabilityManager({
             disabled={pending}
             onClick={() => remove(p.id)}
             aria-label="Remover período"
-            className="size-11 shrink-0 rounded-full text-muted-foreground"
+            className="size-11 shrink-0 text-muted-foreground"
           >
             <X className="size-4" />
           </Button>
@@ -115,7 +115,6 @@ export function UnavailabilityManager({
                 type="date"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
-                className="h-11 rounded-xl"
               />
             </label>
             <label className="space-y-1 text-sm">
@@ -124,7 +123,6 @@ export function UnavailabilityManager({
                 type="date"
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
-                className="h-11 rounded-xl"
               />
             </label>
           </div>
@@ -132,21 +130,20 @@ export function UnavailabilityManager({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Motivo (opcional) — ex.: viagem"
-            className="h-11 rounded-xl"
           />
           <div className="flex gap-2">
             <Button
               variant="outline"
               disabled={pending}
               onClick={() => setOpen(false)}
-              className="h-11 flex-1 rounded-full"
+              className="flex-1"
             >
               Cancelar
             </Button>
             <Button
               disabled={pending}
               onClick={add}
-              className="h-11 flex-1 rounded-full"
+              className="flex-1"
             >
               Salvar
             </Button>
@@ -157,7 +154,7 @@ export function UnavailabilityManager({
           variant="outline"
           disabled={pending}
           onClick={() => setOpen(true)}
-          className="h-11 w-full rounded-full"
+          className="w-full"
         >
           <Plus className="size-4" />
           Marcar indisponibilidade

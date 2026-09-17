@@ -63,7 +63,7 @@ export function PrintLabelButton({
       type="button"
       variant="outline"
       onClick={printLabel}
-      className="h-9 rounded-full px-3"
+      className="h-9 px-3"
     >
       <Printer className="size-4" />
       Etiqueta

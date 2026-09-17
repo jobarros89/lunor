@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
@@ -25,12 +26,10 @@ export default async function NovoChamadoPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Novo chamado</h1>
-        <p className="text-muted-foreground">
-          O equipamento entra em manutenção automaticamente
-        </p>
-      </div>
+      <PageHeader
+        title={<>Novo chamado</>}
+        description={<>O equipamento entra em manutenção automaticamente</>}
+      />
       <TicketForm
         churchSlug={churchSlug}
         churchId={tenant.church.id}

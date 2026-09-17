@@ -1,5 +1,8 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createTicket } from "@/lib/actions/manutencoes";
@@ -42,13 +45,13 @@ export function TicketForm({
   }
 
   return (
-    <Card className="rounded-3xl">
+    <Card>
       <CardContent className="space-y-4 pt-6">
         <Field label="Equipamento" required>
-          <select
+          <Select
             value={v.equipmentId}
             onChange={(e) => setV({ ...v, equipmentId: e.target.value })}
-            className="h-11 w-full rounded-xl border bg-background px-3 text-sm"
+            className="w-full"
           >
             <option value="">Escolher equipamento…</option>
             {equipments.map((eq) => (
@@ -56,7 +59,7 @@ export function TicketForm({
                 {eq.name}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
 
         <Field label="Problema" required>
@@ -64,16 +67,15 @@ export function TicketForm({
             value={v.title}
             onChange={(e) => setV({ ...v, title: e.target.value })}
             placeholder="Ex.: Canal 5 sem áudio"
-            className="h-11 rounded-xl"
           />
         </Field>
 
         <Field label="Detalhes">
-          <textarea
+          <Textarea
             value={v.description}
             onChange={(e) => setV({ ...v, description: e.target.value })}
             rows={3}
-            className="w-full rounded-xl border bg-background p-3 text-base md:text-sm"
+            className="w-full p-3 text-base md:text-sm"
             placeholder="Quando começou, o que já foi testado…"
           />
         </Field>
@@ -112,7 +114,7 @@ export function TicketForm({
           type="button"
           disabled={pending}
           onClick={submit}
-          className="h-12 w-full rounded-full text-base"
+          className="h-12 w-full text-base"
         >
           {pending ? "Abrindo…" : "Abrir chamado"}
         </Button>

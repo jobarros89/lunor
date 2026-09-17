@@ -105,7 +105,7 @@ export function SetlistCard({
   }
 
   return (
-    <Card className="rounded-3xl">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Music className="size-4" />
@@ -188,13 +188,13 @@ export function SetlistCard({
                         maxLength={8}
                         placeholder="Ex.: D"
                         aria-label={`Tom do culto para ${item.songs.title}`}
-                        className="h-10 w-28 rounded-xl"
+                        className="h-10 w-28"
                         autoFocus
                       />
                       <Button
                         type="submit"
                         size="icon"
-                        className="size-10 rounded-full"
+                        className="size-10"
                         disabled={pending}
                         aria-label="Salvar tom"
                       >
@@ -204,7 +204,7 @@ export function SetlistCard({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="size-10 rounded-full"
+                        className="size-10"
                         disabled={pending}
                         onClick={() => setEditandoTom(null)}
                         aria-label="Cancelar edição do tom"
@@ -342,7 +342,6 @@ export function SetlistCard({
           {itens.length > 0 && (
             <Button
               variant="outline"
-              className="h-11 rounded-full"
               onClick={copiarLista}
             >
               {copiado ? <Check className="size-4" /> : <Copy className="size-4" />}
@@ -351,7 +350,6 @@ export function SetlistCard({
           )}
           {podeEditar && !publicado && (
             <Button
-              className="h-11 rounded-full"
               disabled={pending || itens.length === 0}
               onClick={publicar}
             >
@@ -362,7 +360,6 @@ export function SetlistCard({
           {podeEditar && publicado && (
             <Button
               variant="outline"
-              className="h-11 rounded-full"
               disabled={pending}
               onClick={() => agir(() => unpublishSetlist(churchSlug, eventId))}
             >

@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ExternalLink, Music, Pencil, Video } from "lucide-react";
@@ -15,12 +16,7 @@ import {
   type ArrangementVersionOption,
   type RehearsalMaterial,
 } from "@/components/louvor/song-content-tabs";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function referenceHref(link: string): string | null {
   try {
@@ -124,7 +120,7 @@ export default async function MusicaDetalhePage({
       <Button
         variant="ghost"
         nativeButton={false}
-        className="-ml-3 rounded-full"
+        className="-ml-3"
         render={<Link href={`/${churchSlug}/louvor`} />}
       >
         <ArrowLeft className="size-4" />
@@ -133,15 +129,11 @@ export default async function MusicaDetalhePage({
 
       <header className="space-y-2">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm text-muted-foreground">Música</p>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {musica.title}
-            </h1>
-            <p className="mt-1 text-muted-foreground">
-              {musica.artist || "Artista não informado"}
-            </p>
-          </div>
+          <PageHeader
+            title={<>{musica.title}</>}
+            eyebrow={<>Música</>}
+            description={<>{musica.artist || "Artista não informado"}</>}
+          />
           <Badge variant={musica.active ? "default" : "secondary"}>
             {musica.active ? "Ativa" : "Arquivada"}
           </Badge>
@@ -152,7 +144,6 @@ export default async function MusicaDetalhePage({
         <div className="flex flex-wrap gap-2">
           <Button
             nativeButton={false}
-            className="rounded-full"
             render={<Link href={`/${churchSlug}/louvor/${songId}/editar`} />}
           >
             <Pencil className="size-4" />
@@ -183,7 +174,7 @@ export default async function MusicaDetalhePage({
         </div>
       )}
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Music className="size-4" />
@@ -192,19 +183,27 @@ export default async function MusicaDetalhePage({
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tom padrão</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Tom padrão
+            </p>
             <p className="mt-1 font-medium">{musica.default_key || "—"}</p>
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">BPM</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              BPM
+            </p>
             <p className="mt-1 font-medium">{musica.bpm ?? "—"}</p>
           </div>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Compasso</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Compasso
+            </p>
             <p className="mt-1 font-medium">{musica.time_signature || "—"}</p>
           </div>
           <div className="col-span-2 sm:col-span-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Última vez</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Última vez
+            </p>
             <p className="mt-1 font-medium">{rotuloUltimaVez(ultimaVez)}</p>
             {ultimaVez && (
               <p className="text-xs text-muted-foreground">
@@ -216,7 +215,7 @@ export default async function MusicaDetalhePage({
       </Card>
 
       {(youtubeReference || musica.link) && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">
               {youtubeReference ? "Referência no YouTube" : "Referência"}
@@ -227,7 +226,7 @@ export default async function MusicaDetalhePage({
               <Button
                 nativeButton={false}
                 variant="outline"
-                className="h-11 rounded-full px-5"
+                className="px-5"
                 render={
                   <a
                     href={referencia}
@@ -254,7 +253,9 @@ export default async function MusicaDetalhePage({
                 {displayedReference}
               </a>
             ) : displayedReference ? (
-              <p className="break-all text-xs text-muted-foreground">{displayedReference}</p>
+              <p className="break-all text-xs text-muted-foreground">
+                {displayedReference}
+              </p>
             ) : null}
           </CardContent>
         </Card>

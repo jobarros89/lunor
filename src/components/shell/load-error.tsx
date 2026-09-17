@@ -8,14 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
  */
 export function LoadError({ oQue = "os dados" }: { oQue?: string }) {
   return (
-    <Card className="rounded-3xl border-destructive/30">
+    <Card role="alert" className="border-destructive/30">
       <CardContent className="flex items-start gap-3 py-5">
         <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" />
         <div>
           <p className="font-medium">Não foi possível carregar {oQue}</p>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Pode ter sido a conexão. Atualize a página para tentar de novo —
-            nada foi perdido.
+            Pode ter sido a conexão. Atualize a página para tentar de novo.
           </p>
         </div>
       </CardContent>

@@ -30,7 +30,7 @@ export function CultModeBanner({
   return (
     <Link
       href={`/${churchSlug}/escalas/${eventId}/modo-culto`}
-      className="group flex items-center gap-4 rounded-3xl bg-[#6e5ce6] p-5 text-white shadow-lg transition-transform hover:-translate-y-0.5"
+      className="group flex items-center gap-4 rounded-3xl bg-brand p-5 text-brand-foreground shadow-lg transition-transform hover:-translate-y-0.5"
     >
       <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
         <MonitorPlay className="size-6" />

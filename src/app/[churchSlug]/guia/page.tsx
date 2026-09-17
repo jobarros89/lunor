@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import {
   Building2,
@@ -10,12 +11,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const ROLES = [
@@ -121,31 +117,29 @@ export default async function GuiaPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Guia de uso
-        </h1>
-        <p className="text-muted-foreground">
-          Como montar sua igreja do zero, passo a passo
-        </p>
-      </div>
+      <PageHeader
+        title={<>Guia de uso</>}
+        description={<>Como montar sua igreja do zero, passo a passo</>}
+      />
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">As funções do sistema</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {ROLES.map((r) => (
             <div key={r.name} className="flex gap-3">
-              <Badge className={`h-fit shrink-0 rounded-full border-0 ${r.color}`}>
+              <Badge
+                className={`h-fit shrink-0 rounded-full border-0 ${r.color}`}
+              >
                 {r.name}
               </Badge>
               <p className="text-sm text-muted-foreground">{r.desc}</p>
             </div>
           ))}
           <p className="pt-1 text-xs text-muted-foreground">
-            As funções de ministério (Gerente, Líder, Instrutor, Voluntário)
-            são definidas em cada pessoa, dentro da Equipe. Só o Administrador
+            As funções de ministério (Gerente, Líder, Instrutor, Voluntário) são
+            definidas em cada pessoa, dentro da Equipe. Só o Administrador
             promove ou remove outro Administrador.
           </p>
         </CardContent>
@@ -153,7 +147,7 @@ export default async function GuiaPage({
 
       <div className="space-y-3">
         {steps.map((s) => (
-          <Card key={s.title} className="rounded-3xl">
+          <Card key={s.title}>
             <CardContent className="space-y-3 py-5">
               <div className="flex items-start gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-muted">
@@ -163,15 +157,11 @@ export default async function GuiaPage({
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{s.title}</p>
                     {s.done && (
-                      <Badge className="rounded-full border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                      <Badge className="border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
                         Concluído
                       </Badge>
                     )}
-                    {s.role && (
-                      <Badge variant="secondary" className="rounded-full">
-                        {s.role}
-                      </Badge>
-                    )}
+                    {s.role && <Badge variant="secondary">{s.role}</Badge>}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{s.desc}</p>
                   {s.href && s.cta && (
@@ -190,7 +180,7 @@ export default async function GuiaPage({
       </div>
 
       {tenant.role === "admin" && (
-        <Card className="rounded-3xl bg-foreground text-background">
+        <Card className="bg-foreground text-background">
           <CardContent className="space-y-1 py-5">
             <p className="font-medium">Pronto para começar?</p>
             <p className="text-sm text-background/70">

@@ -1,10 +1,14 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { getInfantilMinistry } from "@/lib/infantil";
 import { createClient } from "@/lib/supabase/server";
-import { MinistryEventPicker, type MinistryEventPickerRow } from "@/components/escalas/ministry-event-picker";
+import {
+  MinistryEventPicker,
+  type MinistryEventPickerRow,
+} from "@/components/escalas/ministry-event-picker";
 
 export default async function NovaEscalaKidsPage({
   params,
@@ -52,15 +56,16 @@ export default async function NovaEscalaKidsPage({
         Escalas do Kids
       </Link>
 
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          LUNOR Kids
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Adicionar escala do Kids</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Escolha um culto existente. O horário do Kids será configurado dentro dele, sem criar um evento duplicado.
-        </p>
-      </div>
+      <PageHeader
+        title={<>Adicionar escala do Kids</>}
+        eyebrow={<>LUNOR Kids</>}
+        description={
+          <>
+            Escolha um culto existente. O horário do Kids será configurado
+            dentro dele, sem criar um evento duplicado.
+          </>
+        }
+      />
 
       <MinistryEventPicker
         churchSlug={churchSlug}

@@ -47,7 +47,6 @@ export function SongArchiveButton({
       <Button
         type="button"
         variant="outline"
-        className="rounded-full"
         disabled={pending}
         onClick={alterarStatus}
       >

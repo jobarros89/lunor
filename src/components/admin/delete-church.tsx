@@ -44,7 +44,7 @@ export function DeleteChurchZone({
           {!open ? (
             <Button
               variant="outline"
-              className="mt-3 h-10 rounded-full border-destructive/40 px-4 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="mt-3 h-10 border-destructive/40 px-4 text-destructive hover:bg-destructive/10 hover:text-destructive"
               onClick={() => setOpen(true)}
             >
               Apagar igreja…
@@ -59,12 +59,11 @@ export function DeleteChurchZone({
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder={churchName}
-                className="h-11 rounded-xl"
               />
               <div className="flex gap-2">
                 <Button
                   variant="ghost"
-                  className="h-10 flex-1 rounded-full"
+                  className="h-10 flex-1"
                   onClick={() => {
                     setOpen(false);
                     setConfirm("");
@@ -76,7 +75,7 @@ export function DeleteChurchZone({
                   variant="destructive"
                   disabled={!canDelete || pending}
                   onClick={onDelete}
-                  className="h-10 flex-1 rounded-full"
+                  className="h-10 flex-1"
                 >
                   {pending ? "Apagando…" : "Apagar definitivamente"}
                 </Button>

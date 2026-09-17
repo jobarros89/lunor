@@ -12,7 +12,7 @@ export function KidsDeliveryOverview({ items }: { items: KidsDeliveryItem[] }) {
   if (items.length === 0) return null;
 
   return (
-    <Card className="rounded-3xl">
+    <Card>
       <CardContent className="space-y-3 px-4 py-4">
         <div>
           <p className="text-sm font-medium">Leitura dos avisos</p>

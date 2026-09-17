@@ -304,11 +304,11 @@ export default async function EventoDetailPage({
     <div className="space-y-6">
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="rounded-full">
+          <Badge variant="secondary" >
             {type?.name ?? "Evento"}
           </Badge>
           {dept?.name && (
-            <Badge variant="outline" className="rounded-full">
+            <Badge variant="outline" >
               {dept.name}
             </Badge>
           )}
@@ -322,7 +322,7 @@ export default async function EventoDetailPage({
             Repertório {event.setlist_status === "publicado" ? "publicado" : "em rascunho"}
           </Badge>
         </div>
-        <h1 className="text-3xl font-semibold leading-tight tracking-tight">
+        <h1 className="page-title ">
           {event.title}
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
@@ -330,7 +330,7 @@ export default async function EventoDetailPage({
         </p>
       </header>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardContent className="grid gap-4 py-5 sm:grid-cols-3">
           <div className="flex items-start gap-3">
             <CalendarDays className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
@@ -455,17 +455,17 @@ export default async function EventoDetailPage({
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
-            <Badge variant="secondary" className="rounded-full">
+            <Badge variant="secondary" >
               {teams.length} {teams.length === 1 ? "ministério" : "ministérios"}
             </Badge>
-            <Badge variant="secondary" className="rounded-full">
+            <Badge variant="secondary" >
               {allAssignments.length} escalados
             </Badge>
-            <Badge className="rounded-full border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+            <Badge className="border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
               {totalConfirmados} confirmados
             </Badge>
             {totalPendencias > 0 && (
-              <Badge className="rounded-full border-0 bg-amber-500/15 text-amber-700 dark:text-amber-400">
+              <Badge className="border-0 bg-amber-500/15 text-amber-700 dark:text-amber-400">
                 {totalPendencias} pendências
               </Badge>
             )}
@@ -492,7 +492,7 @@ export default async function EventoDetailPage({
                     : null;
 
               return (
-                <Card key={team.ministryId} className="rounded-3xl">
+                <Card key={team.ministryId} >
                   <CardHeader className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -545,7 +545,7 @@ export default async function EventoDetailPage({
             })}
           </div>
         ) : (
-          <Card className="rounded-3xl">
+          <Card>
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
               Nenhum time escalado neste evento ainda.
             </CardContent>
@@ -563,7 +563,7 @@ export default async function EventoDetailPage({
               Este ministério ainda usa a área geral de Escalas para montar sua equipe.
             </p>
           </div>
-          <Card className="rounded-3xl">
+          <Card>
             <CardContent className="pt-6">
               <AssignmentManager
                 churchSlug={churchSlug}
@@ -585,7 +585,7 @@ export default async function EventoDetailPage({
             Informações do culto
           </h2>
           {event.description && (
-            <Card className="rounded-3xl">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base">Observações</CardTitle>
               </CardHeader>
@@ -597,7 +597,7 @@ export default async function EventoDetailPage({
             </Card>
           )}
           {event.script && (
-            <Card className="rounded-3xl">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base">Roteiro do culto</CardTitle>
               </CardHeader>

@@ -1,10 +1,15 @@
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionNav } from "@/components/ui/section-nav";
 import Link from "next/link";
 import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
 import { formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
-import type { AvailabilityPeriod, AvailabilityStatus } from "@/lib/actions/availability";
+import type {
+  AvailabilityPeriod,
+  AvailabilityStatus,
+} from "@/lib/actions/availability";
 import {
   AvailabilityPanel,
   type AvailabilityEvent,
@@ -25,61 +30,70 @@ export default async function DisponibilidadePage({
   searchParams,
 }: {
   params: Promise<{ churchSlug: string }>;
-  searchParams: Promise<{ ministry?: string; module?: "louvor" | "kids"; view?: "mine" | "team" }>;
+  searchParams: Promise<{
+    ministry?: string;
+    module?: "louvor" | "kids";
+    view?: "mine" | "team";
+  }>;
 }) {
   const [{ churchSlug }, query] = await Promise.all([params, searchParams]);
   const tenant = await getTenant(churchSlug);
   const { options } = await getActiveMinistry(churchSlug);
   const active = query.ministry
-    ? options.find((option) => option.id === query.ministry) ?? null
+    ? (options.find((option) => option.id === query.ministry) ?? null)
     : null;
   const supabase = await createClient();
   const since = new Date();
   since.setHours(0, 0, 0, 0);
   const initialMonth = `${since.getFullYear()}-${String(since.getMonth() + 1).padStart(2, "0")}-01`;
 
-  const [eventResult, requestResult, calendarResult, campusResult] = await Promise.all([
-    active
-      ? supabase
-          .from("events")
-          .select("id, title, starts_at, location, campus_id, service_period, campuses(name)")
-          .eq("church_id", tenant.church.id)
-          .or(`ministry_id.eq.${active.id},ministry_id.is.null`)
-          .gte("starts_at", since.toISOString())
-          .order("starts_at")
-          .limit(200)
-      : Promise.resolve({ data: [] }),
-    active
-      ? supabase
-          .from("availability_requests")
-          .select("id, title, respond_by, created_at")
-          .eq("church_id", tenant.church.id)
-          .eq("ministry_id", active.id)
-          .is("closed_at", null)
-          .order("created_at", { ascending: false })
-          .limit(20)
-      : Promise.resolve({ data: [] }),
-    active
-      ? supabase
-          .from("member_availability_calendar")
-          .select("availability_date, period, status, campus_id")
-          .eq("church_id", tenant.church.id)
-          .eq("ministry_id", active.id)
-          .eq("user_id", tenant.userId)
-          .gte("availability_date", initialMonth)
-          .order("availability_date")
-          .limit(500)
-      : Promise.resolve({ data: [] }),
-    supabase
-      .from("campuses")
-      .select("id, name")
-      .eq("church_id", tenant.church.id)
-      .eq("active", true)
-      .order("sort_order")
-      .order("name"),
-  ]);
+  const [eventResult, requestResult, calendarResult, campusResult] =
+    await Promise.all([
+      active
+        ? supabase
+            .from("events")
+            .select(
+              "id, title, starts_at, location, campus_id, service_period, campuses(name)",
+            )
+            .eq("church_id", tenant.church.id)
+            .or(`ministry_id.eq.${active.id},ministry_id.is.null`)
+            .gte("starts_at", since.toISOString())
+            .order("starts_at")
+            .limit(200)
+        : Promise.resolve({ data: [] }),
+      active
+        ? supabase
+            .from("availability_requests")
+            .select("id, title, respond_by, created_at")
+            .eq("church_id", tenant.church.id)
+            .eq("ministry_id", active.id)
+            .is("closed_at", null)
+            .order("created_at", { ascending: false })
+            .limit(20)
+        : Promise.resolve({ data: [] }),
+      active
+        ? supabase
+            .from("member_availability_calendar")
+            .select("availability_date, period, status, campus_id")
+            .eq("church_id", tenant.church.id)
+            .eq("ministry_id", active.id)
+            .eq("user_id", tenant.userId)
+            .gte("availability_date", initialMonth)
+            .order("availability_date")
+            .limit(500)
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from("campuses")
+        .select("id, name")
+        .eq("church_id", tenant.church.id)
+        .eq("active", true)
+        .order("sort_order")
+        .order("name"),
+    ]);
 
-  const calendarEntries: CalendarAvailabilityEntry[] = (calendarResult.data ?? []).map((row) => ({
+  const calendarEntries: CalendarAvailabilityEntry[] = (
+    calendarResult.data ?? []
+  ).map((row) => ({
     date: row.availability_date,
     period: row.period as AvailabilityPeriod,
     status: row.status as AvailabilityStatus,
@@ -91,7 +105,13 @@ export default async function DisponibilidadePage({
   const eventIds = eventRows.map((event) => event.id);
   const requestIds = requestRows.map((request) => request.id);
 
-  const [myResult, requestEventsResult, allResult, membersResult, assignmentsResult] = active
+  const [
+    myResult,
+    requestEventsResult,
+    allResult,
+    membersResult,
+    assignmentsResult,
+  ] = active
     ? await Promise.all([
         eventIds.length && requestIds.length
           ? supabase
@@ -103,7 +123,11 @@ export default async function DisponibilidadePage({
               .in("request_id", requestIds)
               .in("event_id", eventIds)
           : Promise.resolve({
-              data: [] as Array<{ request_id: string; event_id: string; status: string }>,
+              data: [] as Array<{
+                request_id: string;
+                event_id: string;
+                status: string;
+              }>,
             }),
         requestIds.length && eventIds.length
           ? supabase
@@ -113,7 +137,9 @@ export default async function DisponibilidadePage({
               .eq("ministry_id", active.id)
               .in("request_id", requestIds)
               .in("event_id", eventIds)
-          : Promise.resolve({ data: [] as Array<{ request_id: string; event_id: string }> }),
+          : Promise.resolve({
+              data: [] as Array<{ request_id: string; event_id: string }>,
+            }),
         active.canManage && eventIds.length && requestIds.length
           ? supabase
               .from("member_availability")
@@ -122,7 +148,13 @@ export default async function DisponibilidadePage({
               .eq("ministry_id", active.id)
               .in("request_id", requestIds)
               .in("event_id", eventIds)
-          : Promise.resolve({ data: [] as Array<{ event_id: string; user_id: string; status: string }> }),
+          : Promise.resolve({
+              data: [] as Array<{
+                event_id: string;
+                user_id: string;
+                status: string;
+              }>,
+            }),
         active.canManage
           ? supabase
               .from("ministry_members")
@@ -146,15 +178,29 @@ export default async function DisponibilidadePage({
               .eq("ministry_id", active.id)
               .in("event_id", eventIds)
           : Promise.resolve({
-              data: [] as Array<{ event_id: string; user_id: string; role_name: string }>,
+              data: [] as Array<{
+                event_id: string;
+                user_id: string;
+                role_name: string;
+              }>,
             }),
       ])
     : [
         {
-          data: [] as Array<{ request_id: string; event_id: string; status: string }>,
+          data: [] as Array<{
+            request_id: string;
+            event_id: string;
+            status: string;
+          }>,
         },
         { data: [] as Array<{ request_id: string; event_id: string }> },
-        { data: [] as Array<{ event_id: string; user_id: string; status: string }> },
+        {
+          data: [] as Array<{
+            event_id: string;
+            user_id: string;
+            status: string;
+          }>,
+        },
         {
           data: [] as Array<{
             user_id: string;
@@ -162,14 +208,20 @@ export default async function DisponibilidadePage({
             profiles: { full_name: string; avatar_url: string | null };
           }>,
         },
-        { data: [] as Array<{ event_id: string; user_id: string; role_name: string }> },
+        {
+          data: [] as Array<{
+            event_id: string;
+            user_id: string;
+            role_name: string;
+          }>,
+        },
       ];
 
   const myByRequestEvent = new Map(
     (myResult.data ?? []).map((row) => [
       `${row.request_id}:${row.event_id}`,
       row.status as AvailabilityStatus,
-    ])
+    ]),
   );
 
   const teamMembers: AvailabilityOverviewMember[] = (membersResult.data ?? [])
@@ -188,12 +240,15 @@ export default async function DisponibilidadePage({
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   const teamUserIds = teamMembers.map((member) => member.userId);
-  const finalEventDate = eventRows.at(-1)?.starts_at.slice(0, 10) ?? initialMonth;
+  const finalEventDate =
+    eventRows.at(-1)?.starts_at.slice(0, 10) ?? initialMonth;
   const teamCalendarResult =
     active?.canManage && teamUserIds.length > 0 && eventIds.length > 0
       ? await supabase
           .from("member_availability_calendar")
-          .select("user_id, ministry_id, campus_id, availability_date, period, status")
+          .select(
+            "user_id, ministry_id, campus_id, availability_date, period, status",
+          )
           .eq("church_id", tenant.church.id)
           .eq("ministry_id", active.id)
           .in("user_id", teamUserIds)
@@ -240,7 +295,7 @@ export default async function DisponibilidadePage({
 
   const events: AvailabilityEvent[] = eventRows.map((event) => {
     const campus = event.campuses as unknown as { name: string } | null;
-    const team = active?.canManage ? teamByEvent.get(event.id) ?? [] : null;
+    const team = active?.canManage ? (teamByEvent.get(event.id) ?? []) : null;
     return {
       id: event.id,
       title: event.title,
@@ -254,7 +309,7 @@ export default async function DisponibilidadePage({
       serviceRoles: Object.fromEntries(
         (assignmentsResult.data ?? [])
           .filter((assignment) => assignment.event_id === event.id)
-          .map((assignment) => [assignment.user_id, assignment.role_name])
+          .map((assignment) => [assignment.user_id, assignment.role_name]),
       ),
       context: eventContextLabel({
         campusName: campus?.name,
@@ -290,7 +345,7 @@ export default async function DisponibilidadePage({
         (eventIdsByRequest.get(request.id) ?? []).flatMap((eventId) => {
           const status = myByRequestEvent.get(`${request.id}:${eventId}`);
           return status ? [[eventId, status] as const] : [];
-        })
+        }),
       ),
     }))
     .filter((request) => request.eventIds.length > 0);
@@ -298,30 +353,40 @@ export default async function DisponibilidadePage({
   if (!active) {
     return (
       <div className="space-y-6">
-        <header>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Disponibilidade
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Escolha o ministério</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Cada equipe mantém sua própria disponibilidade. Escolha onde você vai informar ou consultar as respostas.
-          </p>
-        </header>
+        <PageHeader
+          title={<>Escolha o ministério</>}
+          eyebrow={<>Disponibilidade</>}
+          description={
+            <>
+              Cada equipe mantém sua própria disponibilidade. Escolha onde você
+              vai informar ou consultar as respostas.
+            </>
+          }
+        />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {options.map((option) => {
-            const isLouvor = option.slug === "louvor" || /louvor/i.test(option.name);
-            const isKids = ["kids", "infantil", "criancas", "crianças"].includes(option.slug.toLocaleLowerCase("pt-BR"))
-              || /(kids|infantil|crian[cç]as)/i.test(option.name);
+            const isLouvor =
+              option.slug === "louvor" || /louvor/i.test(option.name);
+            const isKids =
+              ["kids", "infantil", "criancas", "crianças"].includes(
+                option.slug.toLocaleLowerCase("pt-BR"),
+              ) || /(kids|infantil|crian[cç]as)/i.test(option.name);
             const href = isLouvor
               ? `/${churchSlug}/louvor/disponibilidade`
               : isKids
                 ? `/${churchSlug}/infantil/disponibilidade`
                 : `/${churchSlug}/disponibilidade?ministry=${option.id}`;
             return (
-              <Link key={option.id} href={href} className="rounded-2xl border bg-card p-4 transition-colors hover:bg-accent/40">
+              <Link
+                key={option.id}
+                href={href}
+                className="rounded-2xl border bg-card p-4 transition-colors hover:bg-accent/40"
+              >
                 <span className="font-medium">{option.name}</span>
                 <span className="mt-1 block text-sm text-muted-foreground">
-                  {option.canManage ? "Minha disponibilidade e visão da equipe" : "Minha disponibilidade"}
+                  {option.canManage
+                    ? "Minha disponibilidade e visão da equipe"
+                    : "Minha disponibilidade"}
                 </span>
               </Link>
             );
@@ -337,55 +402,63 @@ export default async function DisponibilidadePage({
   }
 
   const view = active.canManage && query.view !== "mine" ? "team" : "mine";
-  const availabilityPath = query.module === "louvor"
-    ? `/${churchSlug}/louvor/disponibilidade`
-    : query.module === "kids"
-      ? `/${churchSlug}/infantil/disponibilidade`
-      : `/${churchSlug}/disponibilidade?ministry=${active.id}`;
+  const availabilityPath =
+    query.module === "louvor"
+      ? `/${churchSlug}/louvor/disponibilidade`
+      : query.module === "kids"
+        ? `/${churchSlug}/infantil/disponibilidade`
+        : `/${churchSlug}/disponibilidade?ministry=${active.id}`;
   const viewHref = (nextView: "mine" | "team") =>
     `${availabilityPath}${availabilityPath.includes("?") ? "&" : "?"}view=${nextView}`;
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-{query.module && active
-            ? `${query.module === "kids" ? "Kids" : "Louvor"} · Disponibilidade`
-            : active?.canManage
-              ? "Visão da liderança"
-              : "Área pessoal"}
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-{query.module && active
-            ? `Disponibilidade do ${active.name}`
-            : active?.canManage
-              ? `Disponibilidade da equipe · ${active.name}`
-              : "Minha disponibilidade"}
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          {active?.canManage
-            ? "Consulte a disponibilidade mensal da equipe, solicite respostas para eventos e informe também a sua disponibilidade."
-            : "Informe sua disponibilidade mensal e responda separadamente aos eventos enviados pela liderança."}
-        </p>
-      </header>
+      <PageHeader
+        title={
+          <>
+            {query.module && active
+              ? `Disponibilidade do ${active.name}`
+              : active?.canManage
+                ? `Disponibilidade da equipe · ${active.name}`
+                : "Minha disponibilidade"}
+          </>
+        }
+        eyebrow={
+          <>
+            {query.module && active
+              ? `${query.module === "kids" ? "Kids" : "Louvor"} · Disponibilidade`
+              : active?.canManage
+                ? "Visão da liderança"
+                : "Área pessoal"}
+          </>
+        }
+        description={
+          <>
+            {active?.canManage
+              ? "Consulte a disponibilidade mensal da equipe, solicite respostas para eventos e informe também a sua disponibilidade."
+              : "Informe sua disponibilidade mensal e responda separadamente aos eventos enviados pela liderança."}
+          </>
+        }
+      />
 
       {active.canManage && (
-        <nav className="inline-flex rounded-full border p-1" aria-label="Visão da disponibilidade">
-          <Link
-            href={viewHref("mine")}
-            aria-current={view === "mine" ? "page" : undefined}
-            className={`flex min-h-10 items-center rounded-full px-4 text-sm font-medium transition-colors ${view === "mine" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            Minha disponibilidade
-          </Link>
-          <Link
-            href={viewHref("team")}
-            aria-current={view === "team" ? "page" : undefined}
-            className={`flex min-h-10 items-center rounded-full px-4 text-sm font-medium transition-colors ${view === "team" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            Equipe
-          </Link>
-        </nav>
+        <SectionNav
+          label="Visão da disponibilidade"
+          items={[
+            {
+              key: "mine",
+              label: "Minha disponibilidade",
+              href: viewHref("mine"),
+              active: view === "mine",
+            },
+            {
+              key: "team",
+              label: "Equipe",
+              href: viewHref("team"),
+              active: view === "team",
+            },
+          ]}
+        />
       )}
 
       {view === "mine" ? (

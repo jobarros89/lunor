@@ -1,9 +1,19 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, ArrowRight, HeartHandshake, RotateCcw, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  HeartHandshake,
+  RotateCcw,
+  Users,
+} from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { loadDistributionOverview } from "@/lib/distribution-server";
-import { relativeLastService, type DistributionPerson } from "@/lib/distribution";
+import {
+  relativeLastService,
+  type DistributionPerson,
+} from "@/lib/distribution";
 import {
   Card,
   CardContent,
@@ -31,70 +41,135 @@ export default async function DistribuicaoPage({
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Cuidado com a equipe</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Radar de carga</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Sinais para ajudar a revezar melhor, perceber quem está servindo demais e lembrar de quem pode estar ficando de fora. O radar não avalia pessoas — ele apoia conversas de cuidado.
-        </p>
-      </header>
+      <PageHeader
+        title={<>Radar de carga</>}
+        eyebrow={<>Cuidado com a equipe</>}
+        description={
+          <>
+            Sinais para ajudar a revezar melhor, perceber quem está servindo
+            demais e lembrar de quem pode estar ficando de fora. O radar não
+            avalia pessoas — ele apoia conversas de cuidado.
+          </>
+        }
+      />
 
       <section className="grid gap-3 sm:grid-cols-3">
-        <SummaryCard icon={<AlertTriangle className="size-5" />} value={attention.length} label="pedem atenção" description="Carga alta nas últimas semanas" />
-        <SummaryCard icon={<HeartHandshake className="size-5" />} value={balanced} label="em ritmo equilibrado" description="Sem sinais relevantes agora" />
-        <SummaryCard icon={<RotateCcw className="size-5" />} value={reconnect.length} label="para reconectar" description="Sem servir há 6+ semanas" />
+        <SummaryCard
+          icon={<AlertTriangle className="size-5" />}
+          value={attention.length}
+          label="pedem atenção"
+          description="Carga alta nas últimas semanas"
+        />
+        <SummaryCard
+          icon={<HeartHandshake className="size-5" />}
+          value={balanced}
+          label="em ritmo equilibrado"
+          description="Sem sinais relevantes agora"
+        />
+        <SummaryCard
+          icon={<RotateCcw className="size-5" />}
+          value={reconnect.length}
+          label="para reconectar"
+          description="Sem servir há 6+ semanas"
+        />
       </section>
 
       {attention.length > 0 && (
-        <Card className="rounded-3xl border-amber-500/25">
+        <Card className="border-amber-500/25">
           <CardHeader>
             <div className="flex items-center gap-2">
               <AlertTriangle className="size-5 text-amber-600 dark:text-amber-400" />
-              <CardTitle className="text-base">Pode estar servindo demais</CardTitle>
+              <CardTitle className="text-base">
+                Pode estar servindo demais
+              </CardTitle>
             </div>
-            <CardDescription>Considere revezar ou conversar antes de montar as próximas escalas.</CardDescription>
+            <CardDescription>
+              Considere revezar ou conversar antes de montar as próximas
+              escalas.
+            </CardDescription>
           </CardHeader>
           <CardContent className="divide-y">
-            {attention.map((person) => <PersonRow key={person.userId} person={person} churchSlug={churchSlug} />)}
+            {attention.map((person) => (
+              <PersonRow
+                key={person.userId}
+                person={person}
+                churchSlug={churchSlug}
+              />
+            ))}
           </CardContent>
         </Card>
       )}
 
       {reconnect.length > 0 && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Users className="size-5" />
-              <CardTitle className="text-base">Talvez seja hora de reconectar</CardTitle>
+              <CardTitle className="text-base">
+                Talvez seja hora de reconectar
+              </CardTitle>
             </div>
-            <CardDescription>Pessoas ativas que não serviram nas últimas seis semanas e também não têm escala futura nesta janela.</CardDescription>
+            <CardDescription>
+              Pessoas ativas que não serviram nas últimas seis semanas e também
+              não têm escala futura nesta janela.
+            </CardDescription>
           </CardHeader>
           <CardContent className="divide-y">
-            {reconnect.map((person) => <PersonRow key={person.userId} person={person} churchSlug={churchSlug} />)}
+            {reconnect.map((person) => (
+              <PersonRow
+                key={person.userId}
+                person={person}
+                churchSlug={churchSlug}
+              />
+            ))}
           </CardContent>
         </Card>
       )}
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Visão de toda a equipe</CardTitle>
-          <CardDescription>Últimos 30/60 dias, sequência de semanas e próximas escalas.</CardDescription>
+          <CardDescription>
+            Últimos 30/60 dias, sequência de semanas e próximas escalas.
+          </CardDescription>
         </CardHeader>
         <CardContent className="divide-y">
           {[...people]
-            .sort((a, b) => b.last30 - a.last30 || a.name.localeCompare(b.name, "pt-BR"))
-            .map((person) => <PersonRow key={person.userId} person={person} churchSlug={churchSlug} compact />)}
+            .sort(
+              (a, b) =>
+                b.last30 - a.last30 || a.name.localeCompare(b.name, "pt-BR"),
+            )
+            .map((person) => (
+              <PersonRow
+                key={person.userId}
+                person={person}
+                churchSlug={churchSlug}
+                compact
+              />
+            ))}
         </CardContent>
       </Card>
     </div>
   );
 }
 
-function SummaryCard({ icon, value, label, description }: { icon: React.ReactNode; value: number; label: string; description: string }) {
+function SummaryCard({
+  icon,
+  value,
+  label,
+  description,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  label: string;
+  description: string;
+}) {
   return (
-    <Card className="rounded-3xl">
+    <Card>
       <CardContent className="flex items-start gap-4 py-5">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">{icon}</span>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
+          {icon}
+        </span>
         <div>
           <p className="text-2xl font-semibold tabular-nums">{value}</p>
           <p className="text-sm font-medium">{label}</p>
@@ -105,7 +180,15 @@ function SummaryCard({ icon, value, label, description }: { icon: React.ReactNod
   );
 }
 
-function PersonRow({ person, churchSlug, compact = false }: { person: DistributionPerson; churchSlug: string; compact?: boolean }) {
+function PersonRow({
+  person,
+  churchSlug,
+  compact = false,
+}: {
+  person: DistributionPerson;
+  churchSlug: string;
+  compact?: boolean;
+}) {
   const initials = person.name.split(" ").filter(Boolean).map((word) => word[0]).slice(0, 2).join("").toUpperCase();
   const signalLabel = person.signal === "attention" ? "Atenção" : person.signal === "reconnect" ? "Reconectar" : "Equilibrado";
   const signalClass = person.signal === "attention"
@@ -117,21 +200,41 @@ function PersonRow({ person, churchSlug, compact = false }: { person: Distributi
   return (
     <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">{initials}</span>
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
+          {initials}
+        </span>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{person.name}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {relativeLastService(person.daysSinceLast)}
-            {person.nextEvent ? ` · Próxima: ${new Date(person.nextEvent.startsAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}` : " · Sem próxima escala"}
+            {person.nextEvent
+              ? ` · Próxima: ${new Date(person.nextEvent.startsAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`
+              : " · Sem próxima escala"}
           </p>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 pl-12 sm:justify-end sm:pl-0">
-        <span className="text-xs text-muted-foreground"><strong className="text-foreground">{person.last30}</strong> / 30d</span>
-        {!compact && <span className="text-xs text-muted-foreground"><strong className="text-foreground">{person.last60}</strong> / 60d</span>}
-        {person.consecutiveWeeks >= 2 && <span className="text-xs text-muted-foreground">{person.consecutiveWeeks} semanas seguidas</span>}
-        <Badge className={`rounded-full border-0 ${signalClass}`}>{signalLabel}</Badge>
-        <Link href={`/${churchSlug}/pessoas/${person.userId}`} className="flex size-9 items-center justify-center rounded-full hover:bg-muted" aria-label={`Abrir ${person.name}`}>
+        <span className="text-xs text-muted-foreground">
+          <strong className="text-foreground">{person.last30}</strong> / 30d
+        </span>
+        {!compact && (
+          <span className="text-xs text-muted-foreground">
+            <strong className="text-foreground">{person.last60}</strong> / 60d
+          </span>
+        )}
+        {person.consecutiveWeeks >= 2 && (
+          <span className="text-xs text-muted-foreground">
+            {person.consecutiveWeeks} semanas seguidas
+          </span>
+        )}
+        <Badge className={`rounded-full border-0 ${signalClass}`}>
+          {signalLabel}
+        </Badge>
+        <Link
+          href={`/${churchSlug}/pessoas/${person.userId}`}
+          className="flex size-9 items-center justify-center rounded-full hover:bg-muted"
+          aria-label={`Abrir ${person.name}`}
+        >
           <ArrowRight className="size-4" />
         </Link>
       </div>

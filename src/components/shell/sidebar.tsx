@@ -3,15 +3,38 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
-import { Baby, Calendar, Gauge, Home, Music2, PanelLeftClose, PanelLeftOpen, Settings, Sparkles, User, Users, Wrench } from "lucide-react";
+import {
+  Baby,
+  Calendar,
+  Gauge,
+  Home,
+  Music2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Settings,
+  Sparkles,
+  User,
+  Users,
+  Wrench,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { buildShellNavigation, type ActiveMinistryNavigation, type ShellNavItemId } from "@/lib/shell-navigation";
+import {
+  buildShellNavigation,
+  type ActiveMinistryNavigation,
+  type ShellNavItemId,
+} from "@/lib/shell-navigation";
 import { BrandLockup } from "@/components/brand-lockup";
-import { SIDEBAR_ATTRIBUTE, SIDEBAR_STORAGE_KEY } from "@/components/shell/sidebar-state";
+import {
+  SIDEBAR_ATTRIBUTE,
+  SIDEBAR_STORAGE_KEY,
+} from "@/components/shell/sidebar-state";
 
 const SIDEBAR_EVENT = "lunor:sidebar-state";
 
-const ICONS: Record<ShellNavItemId, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
+const ICONS: Record<
+  ShellNavItemId,
+  React.ComponentType<{ className?: string; strokeWidth?: number }>
+> = {
   home: Home,
   louvor: Music2,
   kids: Baby,
@@ -24,6 +47,15 @@ const ICONS: Record<ShellNavItemId, React.ComponentType<{ className?: string; st
   equipamentos: Wrench,
   admin: Settings,
 };
+
+const NAV_GROUPS: { label: string; ids: ShellNavItemId[] }[] = [
+  { label: "Seu dia", ids: ["home", "escalas", "assistente"] },
+  { label: "Ministérios", ids: ["louvor", "kids", "ministry"] },
+  {
+    label: "Organização",
+    ids: ["pessoas", "distribuicao", "equipamentos", "admin", "perfil"],
+  },
+];
 
 function getSidebarSnapshot() {
   return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
@@ -45,7 +77,17 @@ function subscribeSidebar(callback: () => void) {
   };
 }
 
-export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMinistryNavigation, hasLouvor = false, hasKids = false, escalasPending = 0, guardianOnly = false }: {
+export function Sidebar({
+  churchSlug,
+  churchName,
+  canAdmin,
+  isLeader,
+  activeMinistryNavigation,
+  hasLouvor = false,
+  hasKids = false,
+  escalasPending = 0,
+  guardianOnly = false,
+}: {
   churchSlug: string;
   churchName: string;
   canAdmin: boolean;
@@ -60,7 +102,7 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
   const collapsed = useSyncExternalStore(
     subscribeSidebar,
     getSidebarSnapshot,
-    getSidebarServerSnapshot
+    getSidebarServerSnapshot,
   );
 
   useEffect(() => {
@@ -86,12 +128,17 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-40 hidden min-h-0 flex-col overflow-hidden border-r border-black/10 bg-[#f8f8f5]/95 py-7 backdrop-blur-xl transition-[width,padding] duration-200 md:flex dark:border-white/10 dark:bg-[#111]/95",
-        collapsed ? "w-16 px-2" : "w-60 px-5"
+        "fixed inset-y-0 left-0 z-40 hidden min-h-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar/95 py-6 backdrop-blur-xl transition-[width,padding] duration-200 md:flex",
+        collapsed ? "w-16 px-2" : "w-60 px-5",
       )}
     >
       <div className={cn("mb-6 shrink-0", collapsed ? "px-0" : "px-2")}>
-        <div className={cn("flex items-start", collapsed ? "justify-center" : "justify-between gap-2")}>
+        <div
+          className={cn(
+            "flex items-start",
+            collapsed ? "justify-center" : "justify-between gap-2",
+          )}
+        >
           <Link
             href={`/${churchSlug}`}
             aria-label="Ir para o início"
@@ -99,7 +146,9 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
             className="inline-block min-w-0 transition-opacity hover:opacity-70"
           >
             {collapsed ? (
-              <span className="flex size-9 items-center justify-center text-sm font-semibold tracking-[0.18em]">L</span>
+              <span className="flex size-9 items-center justify-center text-sm font-semibold tracking-[0.18em]">
+                L
+              </span>
             ) : (
               <BrandLockup />
             )}
@@ -117,7 +166,9 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
           )}
         </div>
         {!collapsed && (
-          <p className="mt-2 truncate text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{churchName}</p>
+          <p className="mt-2 truncate text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            {churchName}
+          </p>
         )}
       </div>
 
@@ -125,39 +176,66 @@ export function Sidebar({ churchSlug, churchName, canAdmin, isLeader, activeMini
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]"
         aria-label="Navegação principal"
       >
-        <div className="flex flex-col gap-1 pb-2">
-          {nav.map(({ id, href, label }) => {
-            const Icon = ICONS[id];
-            const full = `/${churchSlug}${href}`;
-            const pathOnly = full.split("?")[0];
-            const active = href === "" ? pathname === pathOnly : pathname.startsWith(pathOnly);
+        <div className="space-y-5 pb-2">
+          {NAV_GROUPS.map((group) => {
+            const items = group.ids.flatMap((id) =>
+              nav.filter((item) => item.id === id),
+            );
+            if (!items.length) return null;
             return (
-              <Link
-                key={`${href}-${label}`}
-                href={full}
-                title={collapsed ? label : undefined}
-                aria-label={collapsed ? label : undefined}
-                className={cn(
-                  "group relative flex min-h-11 items-center border-l-2 py-2.5 text-sm transition-colors",
-                  collapsed ? "justify-center px-2" : "gap-3 px-3",
-                  active
-                    ? "border-[#d8ff00] bg-black text-white dark:bg-white dark:text-black"
-                    : "border-transparent text-muted-foreground hover:border-foreground/25 hover:text-foreground"
-                )}
+              <div
+                key={group.label}
+                className="space-y-1"
+                role="group"
+                aria-label={group.label}
               >
-                <Icon className="size-4 shrink-0" strokeWidth={1.7} />
-                {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
-                {id === "escalas" && escalasPending > 0 && (
-                  <span
-                    className={cn(
-                      "flex min-w-5 items-center justify-center bg-[#d8ff00] px-1.5 text-[10px] font-bold text-black",
-                      collapsed && "absolute right-0.5 top-0.5 min-w-4 px-1 text-[9px]"
-                    )}
-                  >
-                    {escalasPending > 9 ? "9+" : escalasPending}
-                  </span>
+                {!collapsed && (
+                  <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">
+                    {group.label}
+                  </p>
                 )}
-              </Link>
+                {items.map(({ id, href, label }) => {
+                  const Icon = ICONS[id];
+                  const full = `/${churchSlug}${href}`;
+                  const pathOnly = full.split("?")[0];
+                  const active =
+                    href === ""
+                      ? pathname === pathOnly
+                      : pathname.startsWith(pathOnly);
+                  return (
+                    <Link
+                      key={`${href}-${label}`}
+                      href={full}
+                      aria-current={active ? "page" : undefined}
+                      title={collapsed ? label : undefined}
+                      aria-label={collapsed ? label : undefined}
+                      className={cn(
+                        "group relative flex min-h-11 items-center rounded-lg py-2.5 text-sm transition-colors",
+                        collapsed ? "justify-center px-2" : "gap-3 px-3",
+                        active
+                          ? "bg-brand-soft font-semibold text-brand"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="size-4 shrink-0" strokeWidth={1.7} />
+                      {!collapsed && (
+                        <span className="min-w-0 flex-1 truncate">{label}</span>
+                      )}
+                      {id === "escalas" && escalasPending > 0 && (
+                        <span
+                          className={cn(
+                            "flex min-w-5 items-center justify-center rounded-md bg-brand px-1.5 text-[10px] font-bold text-brand-foreground",
+                            collapsed &&
+                              "absolute right-0.5 top-0.5 min-w-4 px-1 text-[9px]",
+                          )}
+                        >
+                          {escalasPending > 9 ? "9+" : escalasPending}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </div>

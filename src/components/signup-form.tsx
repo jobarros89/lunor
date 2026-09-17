@@ -1,5 +1,7 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
+
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Check, Eye, EyeOff } from "lucide-react";
@@ -14,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Alert } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 
 export function SignupForm({
@@ -66,20 +69,20 @@ export function SignupForm({
   }
 
   return (
-    <Card className="rounded-3xl shadow-sm">
+    <Card className="shadow-sm">
       <CardHeader className="space-y-2 text-center">
         {isFamilyAccess && (
-          <p className="mx-auto w-fit rounded-full bg-[#6e5ce6]/10 px-3 py-1 text-xs font-medium text-[#6e5ce6]">
+          <p className="mx-auto w-fit rounded-full bg-brand/10 px-3 py-1 text-xs font-medium text-brand">
             Convite familiar
           </p>
         )}
-        <CardTitle className="text-2xl font-semibold tracking-tight">
+        <CardTitle as="h1" className="text-2xl font-semibold tracking-tight">
           {copy.title}
         </CardTitle>
         <CardDescription>{copy.description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={onSubmit} className="space-y-4">
+        <form action={onSubmit} aria-busy={pending} className="space-y-4">
           <input type="hidden" name="intent" value={normalizedIntent} />
           <input type="hidden" name="familyToken" value="" />
           <div className="space-y-2">
@@ -91,7 +94,7 @@ export function SignupForm({
               required
               defaultValue={initialFullName}
               readOnly={isFamilyAccess && Boolean(initialFullName)}
-              className="h-12 rounded-full"
+              className="h-12"
             />
           </div>
           <div className="space-y-2">
@@ -104,7 +107,7 @@ export function SignupForm({
               required
               defaultValue={initialEmail}
               readOnly={isFamilyAccess && Boolean(initialEmail)}
-              className="h-12 rounded-full"
+              className="h-12"
             />
             {isFamilyAccess && initialEmail && (
               <p className="text-xs text-muted-foreground">
@@ -124,56 +127,76 @@ export function SignupForm({
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="h-12 rounded-full pr-12"
+                className="h-12 pr-12"
                 aria-describedby="password-requirement"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((current) => !current)}
-                className="absolute inset-y-0 right-1 flex w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6e5ce6]"
+                className="absolute inset-y-0 right-1 flex w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                aria-pressed={showPassword}
                 title={showPassword ? "Ocultar senha" : "Mostrar senha"}
               >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                {showPassword ? (
+                  <EyeOff className="size-4" />
+                ) : (
+                  <Eye className="size-4" />
+                )}
               </button>
             </div>
             <p
               id="password-requirement"
               className={`flex items-center gap-2 text-xs ${passwordReady ? "text-foreground" : "text-muted-foreground"}`}
             >
-              <span className={`flex size-4 items-center justify-center rounded-full border ${passwordReady ? "border-[#6e5ce6] bg-[#6e5ce6] text-white" : "border-foreground/25"}`}>
-                {passwordReady && <Check className="size-3" strokeWidth={2.5} />}
+              <span
+                className={`flex size-4 items-center justify-center rounded-full border ${passwordReady ? "border-brand bg-brand text-brand-foreground" : "border-foreground/25"}`}
+              >
+                {passwordReady && (
+                  <Check className="size-3" strokeWidth={2.5} />
+                )}
               </span>
               Pelo menos 8 caracteres
             </p>
           </div>
           <label className="flex items-start gap-3 text-sm leading-relaxed text-muted-foreground">
-            <input
-              type="checkbox"
+            <Checkbox
               name="legalAccepted"
               value="true"
               required
-              className="mt-1 size-4 shrink-0 accent-[#6e5ce6]"
+              className="mt-1 size-4 shrink-0 accent-brand"
             />
             <span>
               Li e aceito os{" "}
-              <Link href="/termos" target="_blank" className="font-medium text-foreground underline underline-offset-4">
+              <Link
+                href="/termos"
+                target="_blank"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
                 Termos de Uso
               </Link>{" "}
               e a{" "}
-              <Link href="/privacidade" target="_blank" className="font-medium text-foreground underline underline-offset-4">
+              <Link
+                href="/privacidade"
+                target="_blank"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
                 Política de Privacidade
               </Link>
               .
             </span>
           </label>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <Alert variant="error">{error}</Alert>}
           <Button
             type="submit"
             disabled={pending}
-            className="h-12 w-full rounded-full text-base"
+            className="h-12 w-full text-base"
           >
-            {pending ? "Criando…" : isFamilyAccess ? "Criar conta de responsável" : "Criar conta"}
+            {pending
+              ? "Criando…"
+              : isFamilyAccess
+                ? "Criar conta de responsável"
+                : "Criar conta"}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             Já tem conta?{" "}

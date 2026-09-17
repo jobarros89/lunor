@@ -5,14 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { signedMediaUrls } from "@/lib/media";
 import { LoadError } from "@/components/shell/load-error";
 import { formatBRL, STATUS_LABELS } from "@/lib/equipamentos";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { EquipmentDirectory } from "@/components/equipamentos/equipment-directory";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const STATUS_BADGE: Record<string, string> = {
   disponivel: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
@@ -76,27 +73,24 @@ export default async function EquipamentosPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Equipamentos
-          </h1>
-          <p className="text-muted-foreground">{items.length} itens ativos</p>
-        </div>
-        <Button
-          className="h-11 rounded-full px-5"
-          nativeButton={false}
-          render={<Link href={`/${churchSlug}/equipamentos/novo`} />}
-        >
-          <Plus className="size-4" />
-          Novo
-        </Button>
-      </div>
+      <PageHeader
+        title="Equipamentos"
+        description={`${items.length} itens ativos · patrimônio, situação e manutenção em um só lugar.`}
+        actions={
+          <Button
+            nativeButton={false}
+            render={<Link href={`/${churchSlug}/equipamentos/novo`} />}
+          >
+            <Plus className="size-4" />
+            Novo equipamento
+          </Button>
+        }
+      />
 
       {tenant.isManager && (
         <>
-          <div className="grid grid-cols-3 gap-3">
-            <Card className="rounded-3xl">
+          <div className="grid gap-3 min-[400px]:grid-cols-2 lg:grid-cols-3">
+            <Card>
               <CardContent className="pt-5">
                 <p className="text-xs text-muted-foreground">Valor total</p>
                 <p className="mt-1 text-lg font-semibold tracking-tight">
@@ -105,22 +99,18 @@ export default async function EquipamentosPage({
               </CardContent>
             </Card>
             <Link href={`/${churchSlug}/manutencoes`}>
-              <Card className="h-full rounded-3xl transition-colors hover:bg-accent/40">
+              <Card className="h-full transition-colors hover:bg-accent/40">
                 <CardContent className="pt-5">
-                  <p className="text-xs text-muted-foreground">
-                    Em manutenção
-                  </p>
+                  <p className="text-xs text-muted-foreground">Em manutenção</p>
                   <p className="mt-1 text-lg font-semibold tracking-tight">
                     {inMaintenance}
                   </p>
                 </CardContent>
               </Card>
             </Link>
-            <Card className="rounded-3xl">
+            <Card>
               <CardContent className="pt-5">
-                <p className="text-xs text-muted-foreground">
-                  Garantias (60d)
-                </p>
+                <p className="text-xs text-muted-foreground">Garantias (60d)</p>
                 <p className="mt-1 text-lg font-semibold tracking-tight">
                   {warrantyExpiring}
                 </p>
@@ -129,7 +119,7 @@ export default async function EquipamentosPage({
           </div>
 
           {byCategory.size > 0 && (
-            <Card className="rounded-3xl">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base">Valor por categoria</CardTitle>
               </CardHeader>
@@ -162,69 +152,47 @@ export default async function EquipamentosPage({
       )}
 
       <div className="space-y-3">
-        {items.map((e) => (
-          <Link key={e.id} href={`/${churchSlug}/equipamentos/${e.id}`} className="block">
-            <Card className="rounded-3xl transition-colors hover:bg-accent/40">
-              <CardContent className="flex items-center gap-4 py-4">
-                <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-muted">
-                  {e.photo_url && photoUrls.get(e.photo_url) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={photoUrls.get(e.photo_url)}
-                      alt={e.name}
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-lg font-semibold text-muted-foreground">
-                      {e.name[0]}
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{e.name}</p>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {[e.brand, e.model].filter(Boolean).join(" ") || "—"}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {e.owner_id
-                      ? `de ${(e.profiles as unknown as { full_name: string } | null)?.full_name ?? "voluntário"}`
-                      : "Da igreja"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <Badge
-                    className={`rounded-full border-0 ${STATUS_BADGE[e.status]}`}
-                  >
-                    {STATUS_LABELS[e.status]}
-                  </Badge>
-                  {tenant.isManager && e.value_cents !== null && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {formatBRL(e.value_cents)}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+        {items.length > 0 && (
+          <EquipmentDirectory
+            churchSlug={churchSlug}
+            items={items.map((item) => ({
+              id: item.id,
+              name: item.name,
+              details: [item.brand, item.model].filter(Boolean).join(" "),
+              owner: item.owner_id
+                ? `De ${(item.profiles as unknown as { full_name: string } | null)?.full_name ?? "voluntário"}`
+                : "Da igreja",
+              status: item.status,
+              statusLabel: STATUS_LABELS[item.status],
+              statusClassName: STATUS_BADGE[item.status],
+              photoUrl: item.photo_url
+                ? (photoUrls.get(item.photo_url) ?? null)
+                : null,
+              valueLabel:
+                tenant.isManager && item.value_cents !== null
+                  ? formatBRL(item.value_cents)
+                  : null,
+            }))}
+          />
+        )}
         {equipError ? (
           <LoadError oQue="os equipamentos" />
         ) : (
           items.length === 0 && (
-            <Card className="rounded-3xl">
-              <CardContent className="space-y-3 py-10 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Nenhum equipamento cadastrado ainda.
-                </p>
-                {tenant.isManager && (
-                  <Link href={`/${churchSlug}/equipamentos/novo`}>
-                    <Button className="h-11 rounded-full px-5">
-                      Cadastrar o primeiro
-                    </Button>
-                  </Link>
-                )}
-              </CardContent>
-            </Card>
+            <EmptyState
+              title="Seu inventário começa aqui"
+              description="Os equipamentos cadastrados aparecerão com sua situação, localização e informações de manutenção."
+              action={
+                tenant.isManager ? (
+                  <Button
+                    nativeButton={false}
+                    render={<Link href={`/${churchSlug}/equipamentos/novo`} />}
+                  >
+                    Cadastrar o primeiro
+                  </Button>
+                ) : undefined
+              }
+            />
           )
         )}
       </div>

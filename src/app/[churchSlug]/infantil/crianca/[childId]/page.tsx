@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
@@ -84,21 +85,22 @@ export default async function KidsChildPage({
         <Button
           nativeButton={false}
           variant="ghost"
-          className="-ml-3 h-9 rounded-full"
+          className="-ml-3 h-9"
           render={<Link href={`/${churchSlug}/infantil`} />}
         >
           <ArrowLeft className="size-4" />
           Voltar ao Kids
         </Button>
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Kids · Cadastro
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{child.full_name}</h1>
-          <p className="text-muted-foreground">
-            Edite os dados operacionais da criança. Toda alteração fica registrada.
-          </p>
-        </div>
+        <PageHeader
+          title={<>{child.full_name}</>}
+          eyebrow={<>Kids · Cadastro</>}
+          description={
+            <>
+              Edite os dados operacionais da criança. Toda alteração fica
+              registrada.
+            </>
+          }
+        />
       </div>
 
       <ChildEditPanel

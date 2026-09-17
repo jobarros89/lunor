@@ -139,7 +139,7 @@ export function PushToggle({
           variant="outline"
           disabled={busy}
           onClick={disable}
-          className="h-11 w-full rounded-full sm:w-auto"
+          className="w-full sm:w-auto"
         >
           {busy ? "Desativando…" : "Desativar notificações"}
         </Button>
@@ -161,7 +161,7 @@ export function PushToggle({
       <Button
         disabled={busy}
         onClick={enable}
-        className="h-12 w-full rounded-full text-base sm:w-auto sm:px-6"
+        className="h-12 w-full text-base sm:w-auto sm:px-6"
       >
         <BellRing className="size-4" />
         {busy ? "Solicitando permissão…" : "Permitir notificações"}

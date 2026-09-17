@@ -1,5 +1,9 @@
 "use client";
 
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { useMemo, useState, useTransition } from "react";
 import { Globe2, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -150,7 +154,7 @@ export function ChordImporter({
 
   if (!open) {
     return (
-      <Button className="rounded-full" variant="outline" onClick={() => setOpen(true)}>
+      <Button  variant="outline" onClick={() => setOpen(true)}>
         <Upload className="size-4" />
         Importar letra e cifra
       </Button>
@@ -158,7 +162,7 @@ export function ChordImporter({
   }
 
   return (
-    <Card className="w-full rounded-3xl">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="text-base">
           Importar letra e cifra · {parsed ? "Revisão e confirmação" : "Escolher fonte"}
@@ -213,7 +217,7 @@ export function ChordImporter({
 
             <div className="space-y-2">
               <Label htmlFor="chord-content">Cole letra + cifra</Label>
-              <textarea
+              <Textarea
                 id="chord-content"
                 value={content}
                 onChange={(e) => {
@@ -223,7 +227,7 @@ export function ChordImporter({
                   setUrlRawContent(null);
                 }}
                 rows={12}
-                className="w-full rounded-2xl border bg-transparent p-3 font-mono text-sm"
+                className="w-full bg-transparent p-3 font-mono"
                 placeholder={"Tom: C\n\nIntrodução:\nC  G  Am  F\n\nVerso:\nC             G\nGrande é o Senhor…"}
               />
               <p className={content.length > MAX_LENGTH ? "text-sm text-destructive" : "text-xs text-muted-foreground"}>
@@ -311,15 +315,15 @@ export function ChordImporter({
 
             <div className="space-y-2">
               <Label htmlFor="arrangement">Salvar em</Label>
-              <select
+              <Select
                 id="arrangement"
-                className="h-10 w-full rounded-xl border bg-background px-3 text-sm"
+                className="w-full"
                 value={arrangementId}
                 onChange={(e) => setArrangementId(e.target.value)}
               >
                 <option value="new">Criar novo arranjo</option>
                 {arrangements.map((a) => <option key={a.id} value={a.id}>Nova versão de: {a.name}</option>)}
-              </select>
+              </Select>
             </div>
 
             {arrangementId === "new" && (
@@ -332,14 +336,14 @@ export function ChordImporter({
             <div className="space-y-2 rounded-2xl border p-4 text-sm">
               <p className="font-medium">O que atualizar na música</p>
               <label className="flex items-start gap-3">
-                <input className="mt-1" type="checkbox" checked={syncLyrics} onChange={(e) => setSyncLyrics(e.target.checked)} disabled={!extractedLyrics} />
+                <Checkbox className="mt-1"  checked={syncLyrics} onChange={(e) => setSyncLyrics(e.target.checked)} disabled={!extractedLyrics} />
                 <span>
                   Preencher a letra com a letra detectada
                   {hasLyrics && <span className="block text-xs text-amber-700 dark:text-amber-300">Já existe uma letra cadastrada. Marque somente se quiser substituí-la.</span>}
                 </span>
               </label>
               <label className="flex items-start gap-3">
-                <input className="mt-1" type="checkbox" checked={syncChordChart} onChange={(e) => setSyncChordChart(e.target.checked)} />
+                <Checkbox className="mt-1"  checked={syncChordChart} onChange={(e) => setSyncChordChart(e.target.checked)} />
                 <span>
                   Usar esta cifra como cifra principal
                   {hasChordChart && <span className="block text-xs text-amber-700 dark:text-amber-300">Já existe uma cifra cadastrada. Marque somente se quiser substituí-la.</span>}
@@ -348,7 +352,7 @@ export function ChordImporter({
             </div>
 
             <label className="flex items-start gap-3 rounded-2xl border p-4 text-sm">
-              <input className="mt-1" type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
+              <Checkbox className="mt-1"  checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
               <span>Revisei a letra, a cifra e o tom detectados e confirmo esta importação.</span>
             </label>
 

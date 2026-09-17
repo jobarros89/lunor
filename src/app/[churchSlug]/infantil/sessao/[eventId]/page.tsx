@@ -1,15 +1,27 @@
+import { PageHeader } from "@/components/ui/page-header";
 import { notFound, redirect } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
 import { createClient } from "@/lib/supabase/server";
-import { getInfantilMinistry, formatAge, suggestClass, type ChildClass } from "@/lib/infantil";
+import {
+  getInfantilMinistry,
+  formatAge,
+  suggestClass,
+  type ChildClass,
+} from "@/lib/infantil";
 import { formatEventDate, formatEventTime } from "@/lib/escalas";
 import { eventContextLabel } from "@/lib/event-context";
 import { kidsPrintSettingsFromRow } from "@/lib/kids-print-settings";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Guardian, SessionChild } from "@/components/infantil/session-child";
+import type {
+  Guardian,
+  SessionChild,
+} from "@/components/infantil/session-child";
 import { ReceptionSearch } from "@/components/infantil/reception-search";
 import { EndSessionButton } from "@/components/infantil/end-session-button";
-import { KidsDeliveryOverview, type KidsDeliveryItem } from "@/components/infantil/kids-delivery-overview";
+import {
+  KidsDeliveryOverview,
+  type KidsDeliveryItem,
+} from "@/components/infantil/kids-delivery-overview";
 
 type DeliveryStatusRow = {
   page_id: string;
@@ -189,43 +201,51 @@ export default async function SessaoInfantilPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Kids · Recepção · {formatEventDate(event.starts_at)} · {formatEventTime(event.starts_at)}
-          {eventContext ? ` · ${eventContext}` : ""}
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{event.title}</h1>
-        <p className="text-muted-foreground">
-          Busque a família e faça entrada, retirada ou chamada em poucos toques.
-        </p>
-      </div>
+      <PageHeader
+        title={<>{event.title}</>}
+        eyebrow={
+          <>
+            Kids · Recepção · {formatEventDate(event.starts_at)} ·{" "}
+            {formatEventTime(event.starts_at)}
+            {eventContext ? ` · ${eventContext}` : ""}
+          </>
+        }
+        description={
+          <>
+            Busque a família e faça entrada, retirada ou chamada em poucos
+            toques.
+          </>
+        }
+      />
 
       {!event.campus_id && (
         <p className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground">
-          Este culto não possui campus definido. Defina o campus do evento antes de operar o Kids.
+          Este culto não possui campus definido. Defina o campus do evento antes
+          de operar o Kids.
         </p>
       )}
 
       {event.campus_id && turmas.length === 0 && (
         <p className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-muted-foreground">
-          Nenhuma turma está configurada para {campus?.name ?? "este campus"}. Configure em Kids → Configurações.
+          Nenhuma turma está configurada para {campus?.name ?? "este campus"}.
+          Configure em Kids → Configurações.
         </p>
       )}
 
       <div className="grid grid-cols-3 gap-3">
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="px-4 py-5">
             <p className="text-2xl font-semibold">{presentes}</p>
             <p className="text-xs text-muted-foreground">Presentes agora</p>
           </CardContent>
         </Card>
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="px-4 py-5">
             <p className="text-2xl font-semibold">{entradas}</p>
             <p className="text-xs text-muted-foreground">Check-ins</p>
           </CardContent>
         </Card>
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="px-4 py-5">
             <p className="text-2xl font-semibold">{saidas}</p>
             <p className="text-xs text-muted-foreground">Check-outs</p>
@@ -258,7 +278,7 @@ export default async function SessaoInfantilPage({
           printSettings={printSettings}
         />
       ) : (
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="py-6">
             <p className="text-sm text-muted-foreground">
               Nenhuma criança cadastrada. Cadastre na tela do Kids.
@@ -268,7 +288,8 @@ export default async function SessaoInfantilPage({
       )}
 
       <p className="px-1 text-xs text-muted-foreground">
-        A criança só sai com responsável autorizado. Exceções exigem justificativa e ficam registradas.
+        A criança só sai com responsável autorizado. Exceções exigem
+        justificativa e ficam registradas.
       </p>
     </div>
   );

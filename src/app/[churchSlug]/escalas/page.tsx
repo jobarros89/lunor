@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { ChevronDown, Plus } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
@@ -14,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { LoadError } from "@/components/shell/load-error";
 import { Card, CardContent } from "@/components/ui/card";
 import { FutureEventLink } from "@/components/escalas/event-delete-control";
-import { cn } from "@/lib/utils";
+import { SectionNav } from "@/components/ui/section-nav";
 
 type RelatedName = { name: string } | { name: string }[] | null;
 type MyAssignment = {
@@ -35,7 +36,7 @@ type ServiceWindow = {
 };
 
 function firstRelated(value: RelatedName) {
-  return Array.isArray(value) ? value[0] ?? null : value;
+  return Array.isArray(value) ? (value[0] ?? null) : value;
 }
 
 function pairKey(eventId: string, ministryId: string) {
@@ -127,71 +128,79 @@ export default async function EscalasPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Escalas</h1>
-          <p className="text-muted-foreground">Próximos eventos</p>
-        </div>
-        {tenant.isLeader && (
-          <Button
-            className="h-11 rounded-full px-5"
-            nativeButton={false}
-            render={<Link href={`/${churchSlug}/escalas/novo`} />}
-          >
-            <Plus className="size-4" />
-            Novo
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title={<>Escalas</>}
+        description={<>Próximos eventos</>}
+        actions={
+          <>
+            {tenant.isLeader && (
+              <Button
+                className="px-5"
+                nativeButton={false}
+                render={<Link href={`/${churchSlug}/escalas/novo`} />}
+              >
+                <Plus className="size-4" />
+                Novo
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      <div className="flex gap-2">
-        <Link
-          href={`/${churchSlug}/escalas?filtro=minhas`}
-          aria-current={verMinhas ? "page" : undefined}
-          className={cn(
-            "flex min-h-11 items-center rounded-full border px-4 text-sm font-medium transition-colors",
-            verMinhas
-              ? "border-foreground bg-foreground text-background"
-              : "border-border bg-background hover:border-foreground/40"
-          )}
-        >
-          Minhas ({meus.length})
-        </Link>
-        <Link
-          href={`/${churchSlug}/escalas?filtro=todas`}
-          aria-current={!verMinhas ? "page" : undefined}
-          className={cn(
-            "flex min-h-11 items-center rounded-full border px-4 text-sm font-medium transition-colors",
-            !verMinhas
-              ? "border-foreground bg-foreground text-background"
-              : "border-border bg-background hover:border-foreground/40"
-          )}
-        >
-          Todas ({todos.length})
-        </Link>
-      </div>
+      <SectionNav
+        label="Filtrar escalas"
+        items={[
+          {
+            key: "mine",
+            label: `Minhas (${meus.length})`,
+            href: `/${churchSlug}/escalas?filtro=minhas`,
+            active: verMinhas,
+          },
+          {
+            key: "all",
+            label: `Todas (${todos.length})`,
+            href: `/${churchSlug}/escalas?filtro=todas`,
+            active: !verMinhas,
+          },
+        ]}
+      />
 
       <div className="space-y-3">
         {groupedEvents.map(([monthKey, group]) => {
           const startsWithinThirtyDays = group.events.some(
-            (event) => new Date(event.starts_at).getTime() <= thirtyDaysFromNow.getTime()
+            (event) =>
+              new Date(event.starts_at).getTime() <=
+              thirtyDaysFromNow.getTime(),
           );
           return (
-            <details key={monthKey} open={startsWithinThirtyDays} className="group overflow-hidden rounded-3xl border bg-card/40">
+            <details
+              key={monthKey}
+              open={startsWithinThirtyDays}
+              className="group overflow-hidden rounded-3xl border bg-card/40"
+            >
               <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
                 <span>
-                  <span className="block font-semibold capitalize">{group.label}</span>
+                  <span className="block font-semibold capitalize">
+                    {group.label}
+                  </span>
                   <span className="block text-xs text-muted-foreground">
-                    {group.events.length} {group.events.length === 1 ? "evento" : "eventos"}
+                    {group.events.length}{" "}
+                    {group.events.length === 1 ? "evento" : "eventos"}
                   </span>
                 </span>
                 <ChevronDown className="size-5 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
               <div className="divide-y border-t">
                 {group.events.map((e) => {
-                  const type = e.event_types as unknown as { name: string } | null;
-                  const dept = e.departments as unknown as { name: string } | null;
-                  const campus = e.campuses as unknown as { name: string } | null;
+                  const type = e.event_types as unknown as {
+                    name: string;
+                  } | null;
+                  const dept = e.departments as unknown as {
+                    name: string;
+                  } | null;
+                  const campus = e.campuses as unknown as {
+                    name: string;
+                  } | null;
                   const context = eventContextLabel({
                     campusName: campus?.name,
                     servicePeriod: e.service_period,
@@ -199,24 +208,50 @@ export default async function EscalasPage({
                   });
                   const mine = myByEvent.get(e.id);
                   const serviceStarts = (mine ?? []).map((assignment) => {
-                    const window = windowByPair.get(pairKey(e.id, assignment.ministry_id));
-                    return assignment.arrival_time ?? window?.arrival_at ?? e.starts_at;
+                    const window = windowByPair.get(
+                      pairKey(e.id, assignment.ministry_id),
+                    );
+                    return (
+                      assignment.arrival_time ??
+                      window?.arrival_at ??
+                      e.starts_at
+                    );
                   });
                   const serviceReleases = (mine ?? [])
                     .map((assignment) => {
-                      const window = windowByPair.get(pairKey(e.id, assignment.ministry_id));
-                      return assignment.release_time ?? window?.release_at ?? null;
+                      const window = windowByPair.get(
+                        pairKey(e.id, assignment.ministry_id),
+                      );
+                      return (
+                        assignment.release_time ?? window?.release_at ?? null
+                      );
                     })
                     .filter((value): value is string => Boolean(value));
-                  const serviceStart = serviceStarts.length > 0
-                    ? new Date(Math.min(...serviceStarts.map((value) => new Date(value).getTime()))).toISOString()
-                    : e.starts_at;
-                  const serviceRelease = serviceReleases.length > 0
-                    ? new Date(Math.max(...serviceReleases.map((value) => new Date(value).getTime()))).toISOString()
-                    : null;
-                  const hasDifferentServiceTime = Boolean(mine) && serviceStart !== e.starts_at;
+                  const serviceStart =
+                    serviceStarts.length > 0
+                      ? new Date(
+                          Math.min(
+                            ...serviceStarts.map((value) =>
+                              new Date(value).getTime(),
+                            ),
+                          ),
+                        ).toISOString()
+                      : e.starts_at;
+                  const serviceRelease =
+                    serviceReleases.length > 0
+                      ? new Date(
+                          Math.max(
+                            ...serviceReleases.map((value) =>
+                              new Date(value).getTime(),
+                            ),
+                          ),
+                        ).toISOString()
+                      : null;
+                  const hasDifferentServiceTime =
+                    Boolean(mine) && serviceStart !== e.starts_at;
                   const canDelete =
-                    canDeleteEvents && new Date(e.starts_at).getTime() > now.getTime();
+                    canDeleteEvents &&
+                    new Date(e.starts_at).getTime() > now.getTime();
                   return (
                     <FutureEventLink
                       key={e.id}
@@ -231,39 +266,57 @@ export default async function EscalasPage({
                     >
                       <div className="grid min-h-[78px] gap-3 px-4 py-3 transition-colors hover:bg-accent/40 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center">
                         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          <span className="block">{formatEventDate(serviceStart)}</span>
+                          <span className="block">
+                            {formatEventDate(serviceStart)}
+                          </span>
                           <span className="mt-0.5 block text-foreground">
-                            {formatEventTime(serviceStart)}{mine ? " chegada" : ""}
+                            {formatEventTime(serviceStart)}
+                            {mine ? " chegada" : ""}
                           </span>
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate font-semibold tracking-tight">{e.title}</p>
-                          <p className="truncate text-sm text-muted-foreground">
+                          <p className="break-words font-semibold tracking-tight">
+                            {e.title}
+                          </p>
+                          <p className="break-words text-sm text-muted-foreground">
                             {[
-                              hasDifferentServiceTime ? `Culto ${formatEventTime(e.starts_at)}` : null,
+                              hasDifferentServiceTime
+                                ? `Culto ${formatEventTime(e.starts_at)}`
+                                : null,
                               type?.name,
                               context,
                               dept?.name,
-                              serviceRelease ? `Saída ${formatEventTime(serviceRelease)}` : null,
-                            ].filter(Boolean).join(" · ") || "—"}
+                              serviceRelease
+                                ? `Saída ${formatEventTime(serviceRelease)}`
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ") || "—"}
                           </p>
                         </div>
                         {mine && (
                           <div className="flex flex-wrap items-center gap-1.5 sm:max-w-[24rem] sm:justify-end">
                             {mine.map((assignment, index) => {
                               const serviceArea =
-                                firstRelated(assignment.assignment_department)?.name ??
-                                firstRelated(assignment.assignment_ministry)?.name ??
+                                firstRelated(assignment.assignment_department)
+                                  ?.name ??
+                                firstRelated(assignment.assignment_ministry)
+                                  ?.name ??
                                 "Equipe";
                               return (
-                                <span key={`${assignment.event_id}-${assignment.role_name}-${index}`} className="inline-flex items-center gap-2">
-                                  <Badge variant="secondary" className="rounded-full">
+                                <span
+                                  key={`${assignment.event_id}-${assignment.role_name}-${index}`}
+                                  className="inline-flex flex-wrap items-center gap-2"
+                                >
+                                  <Badge variant="secondary">
                                     {serviceArea} · {assignment.role_name}
                                   </Badge>
                                   <Badge
                                     className={`rounded-full border-0 ${ASSIGNMENT_STATUS_BADGE[assignment.status] ?? ""}`}
                                   >
-                                    {ASSIGNMENT_STATUS_LABELS[assignment.status] ?? assignment.status}
+                                    {ASSIGNMENT_STATUS_LABELS[
+                                      assignment.status
+                                    ] ?? assignment.status}
                                   </Badge>
                                 </span>
                               );
@@ -282,7 +335,7 @@ export default async function EscalasPage({
           <LoadError oQue="as escalas" />
         ) : (
           visiveis.length === 0 && (
-            <Card className="rounded-3xl">
+            <Card>
               <CardContent className="space-y-3 py-10 text-center text-sm text-muted-foreground">
                 {verMinhas ? (
                   <>

@@ -246,17 +246,17 @@ export async function MinistryScheduleList({
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                    <Badge variant="secondary" className="rounded-full">{eventAssignments.length} escalados</Badge>
-                    {eventConfirmed > 0 && <Badge className="rounded-full border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">{eventConfirmed} confirmados</Badge>}
-                    {eventWaiting > 0 && <Badge className="rounded-full border-0 bg-amber-500/15 text-amber-700 dark:text-amber-400">{eventWaiting} aguardando</Badge>}
-                    {eventAttention > 0 && <Badge className="rounded-full border-0 bg-purple-500/15 text-purple-700 dark:text-purple-400">{eventAttention} atenção</Badge>}
+                    <Badge variant="secondary" >{eventAssignments.length} escalados</Badge>
+                    {eventConfirmed > 0 && <Badge className="border-0 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">{eventConfirmed} confirmados</Badge>}
+                    {eventWaiting > 0 && <Badge className="border-0 bg-amber-500/15 text-amber-700 dark:text-amber-400">{eventWaiting} aguardando</Badge>}
+                    {eventAttention > 0 && <Badge className="border-0 bg-purple-500/15 text-purple-700 dark:text-purple-400">{eventAttention} atenção</Badge>}
                     <ChevronRight className="size-5 text-muted-foreground" />
                   </div>
                 </Link>
               );
             })}
             {eventRows.length === 0 && (
-              <Card className="my-4 rounded-3xl">
+              <Card className="my-4">
                 <CardContent className="py-10 text-center text-sm text-muted-foreground">
                   Nenhum culto ou evento nos próximos 60 dias.
                 </CardContent>

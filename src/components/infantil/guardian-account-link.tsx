@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Link2, Send, Unlink } from "lucide-react";
@@ -128,11 +130,11 @@ export function GuardianAccountLink({
     <div className="space-y-4">
       {unlinked.length > 0 ? (
         <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-          <select
+          <Select
             value={guardianId}
             onChange={(event) => setGuardianId(event.target.value)}
             disabled={pending}
-            className="h-11 rounded-xl border bg-background px-3 text-sm"
+            className=""
             aria-label="Responsável"
           >
             <option value="">Selecione o responsável</option>
@@ -141,13 +143,13 @@ export function GuardianAccountLink({
                 {guardian.fullName}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={userId}
             onChange={(event) => setUserId(event.target.value)}
             disabled={pending}
-            className="h-11 rounded-xl border bg-background px-3 text-sm"
+            className=""
             aria-label="Conta LUNOR"
           >
             <option value="">Selecione a conta LUNOR</option>
@@ -156,13 +158,13 @@ export function GuardianAccountLink({
                 {account.fullName}
               </option>
             ))}
-          </select>
+          </Select>
 
           <Button
             type="button"
             disabled={pending || !guardianId || !userId}
             onClick={link}
-            className="h-11 rounded-full px-5"
+            className="px-5"
           >
             <Link2 className="size-4" />
             Vincular
@@ -198,7 +200,7 @@ export function GuardianAccountLink({
                   disabled={pending}
                   placeholder="E-mail do responsável"
                   autoComplete="off"
-                  className="h-11 rounded-xl bg-background"
+                  className="bg-background"
                   aria-label={`E-mail de ${guardian.fullName}`}
                 />
                 <Button
@@ -206,7 +208,7 @@ export function GuardianAccountLink({
                   variant="outline"
                   disabled={pending || !(inviteEmails[guardian.id] ?? "").trim()}
                   onClick={() => createInvite(guardian)}
-                  className="h-11 rounded-full px-4"
+                  className="px-4"
                 >
                   <Send className="size-4" />
                   Gerar convite
@@ -224,7 +226,7 @@ export function GuardianAccountLink({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="size-10 rounded-full"
+                    className="size-10"
                     onClick={() => navigator.clipboard.writeText(inviteUrls[guardian.id])}
                     aria-label="Copiar convite"
                   >
@@ -256,7 +258,6 @@ export function GuardianAccountLink({
                 size="sm"
                 disabled={pending}
                 onClick={() => unlink(guardian)}
-                className="rounded-full"
               >
                 <Unlink className="size-4" />
                 Desvincular

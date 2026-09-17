@@ -1,5 +1,7 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CheckCircle2, ChevronDown, Clock3, Pencil, Send, X } from "lucide-react";
@@ -148,7 +150,7 @@ function RequestResponseCard({
   }
 
   return (
-    <Card className="rounded-3xl">
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
@@ -209,7 +211,7 @@ function RequestResponseCard({
               })}
             </div>
 
-            <Button type="button" variant="outline" onClick={edit} className="h-10 rounded-full px-4">
+            <Button type="button" variant="outline" onClick={edit} className="h-10 px-4">
               <Pencil className="size-3.5" /> Editar resposta
             </Button>
           </>
@@ -248,7 +250,7 @@ function RequestResponseCard({
 
             <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
               {initiallyComplete && (
-                <Button type="button" variant="ghost" disabled={pending} onClick={cancel} className="rounded-full">
+                <Button type="button" variant="ghost" disabled={pending} onClick={cancel} >
                   Cancelar
                 </Button>
               )}
@@ -262,7 +264,7 @@ function RequestResponseCard({
                   type="button"
                   disabled={pending || !allAnswered}
                   onClick={submit}
-                  className="h-11 w-full rounded-full px-5 sm:w-auto"
+                  className="w-full px-5 sm:w-auto"
                 >
                   <Send className="size-4" />
                   {pending ? "Enviando…" : "Salvar e enviar"}
@@ -553,7 +555,6 @@ export function AvailabilityPanel({
                     current.includes(month) ? current : [...current, month]
                   );
                 }}
-                className="h-11 rounded-xl"
                 aria-label="Mês e ano da disponibilidade da equipe"
               />
             </label>
@@ -622,7 +623,7 @@ export function AvailabilityPanel({
               ) : null}
             </div>
           ) : (
-            <Card className="rounded-3xl">
+            <Card>
               <CardContent className="py-8 text-center text-sm text-muted-foreground">
                 Nenhum evento futuro criado para este ministério.
               </CardContent>
@@ -683,7 +684,6 @@ export function AvailabilityPanel({
                   setSelected([]);
                   setRequestOpen(false);
                 }}
-                className="h-11 rounded-xl"
                 aria-label="Mês e ano dos cultos para solicitar disponibilidade"
               />
             </label>
@@ -718,14 +718,12 @@ export function AvailabilityPanel({
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
                     placeholder={`Ex.: Disponibilidade de ${requestMonthLabel} · ${ministryName}`}
-                    className="h-11 rounded-xl"
                     aria-label="Título da solicitação"
                   />
                   <Input
                     type="datetime-local"
                     value={deadline}
                     onChange={(event) => setDeadline(event.target.value)}
-                    className="h-11 rounded-xl"
                     aria-label="Prazo para resposta"
                   />
                 </div>
@@ -739,8 +737,7 @@ export function AvailabilityPanel({
                         selected.includes(event.id) && "border-foreground bg-muted/50"
                       )}
                     >
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selected.includes(event.id)}
                         onChange={() => toggleEvent(event.id)}
                         className="mt-1 size-4"
@@ -766,7 +763,7 @@ export function AvailabilityPanel({
                   type="button"
                   disabled={pending || selected.length === 0}
                   onClick={requestAvailability}
-                  className="h-11 w-full rounded-full sm:w-auto sm:px-6"
+                  className="w-full sm:w-auto sm:px-6"
                 >
                   <Send className="size-4" />
                   {pending ? "Enviando…" : `Enviar solicitação${selected.length > 0 ? ` · ${selected.length}` : ""}`}

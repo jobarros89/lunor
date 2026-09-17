@@ -56,7 +56,7 @@ export default async function ChamadoDetailPage({
             {TICKET_STATUS_LABELS[t.status]}
           </Badge>
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
+        <h1 className="page-title ">{t.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           <Link
             href={`/${churchSlug}/equipamentos/${equipment.id}`}
@@ -71,7 +71,7 @@ export default async function ChamadoDetailPage({
       </div>
 
       {t.description && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Detalhes</CardTitle>
           </CardHeader>
@@ -83,7 +83,7 @@ export default async function ChamadoDetailPage({
         </Card>
       )}
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Resolução</CardTitle>
         </CardHeader>

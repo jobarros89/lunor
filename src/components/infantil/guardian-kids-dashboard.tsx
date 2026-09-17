@@ -85,7 +85,7 @@ export function GuardianKidsDashboard({
         </p>
       </header>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <ShieldCheck className="size-4" /> Operação atual
@@ -100,15 +100,15 @@ export function GuardianKidsDashboard({
         {familyChildren.map((child) => {
           const present = child.checkin && !child.checkin.checkedOut;
           return (
-            <Card key={child.id} className="rounded-3xl">
-              <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+            <Card key={child.id} >
+              <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Baby className="size-4" /> {child.fullName}
                   </CardTitle>
                   <CardDescription>{child.age}</CardDescription>
                 </div>
-                <Badge variant="secondary" className="rounded-full">
+                <Badge variant="secondary" >
                   {present ? `Presente · ${child.checkin!.code}` : "Com a família"}
                 </Badge>
               </CardHeader>
@@ -126,7 +126,7 @@ export function GuardianKidsDashboard({
                       variant="outline"
                       disabled={pending}
                       onClick={() => checkOut(child)}
-                      className="h-11 w-full rounded-full"
+                      className="w-full"
                     >
                       <LogOut className="size-4" /> Confirmar check-out
                     </Button>
@@ -136,7 +136,7 @@ export function GuardianKidsDashboard({
                     type="button"
                     disabled={pending}
                     onClick={() => checkIn(child)}
-                    className="h-11 w-full rounded-full"
+                    className="w-full"
                   >
                     <LogIn className="size-4" /> Fazer check-in
                   </Button>
@@ -156,7 +156,7 @@ export function GuardianKidsDashboard({
       </div>
 
       {familyChildren.length === 0 && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             Nenhuma criança está vinculada a esta conta. Peça à recepção do Kids para enviar um novo convite.
           </CardContent>

@@ -33,7 +33,7 @@ export default async function FamilyAccessPage({
         <Card className="border-white/10 bg-[#111113] text-[#f4f3ef] shadow-none sm:rounded-2xl">
           <CardHeader className="space-y-4 text-center">
             <BrandLockup className="items-center [&_span]:text-[#f4f3ef] [&_span:last-child]:text-zinc-400" />
-            <p className="mx-auto w-fit rounded-full bg-[#6e5ce6]/15 px-3 py-1 text-xs font-medium text-[#b9afff]">
+            <p className="mx-auto w-fit rounded-full bg-brand/15 px-3 py-1 text-xs font-medium text-[#b9afff]">
               LUNOR Kids · Responsável
             </p>
             <div className="space-y-2">
@@ -102,7 +102,7 @@ export default async function FamilyAccessPage({
                   href="/login?familia=1"
                   className={cn(
                     buttonVariants(),
-                    "h-12 w-full rounded-full bg-[#6e5ce6] text-base font-semibold text-white hover:bg-[#5f4fd1]"
+                    "h-12 w-full rounded-full bg-brand text-base font-semibold text-brand-foreground hover:bg-brand-strong"
                   )}
                 >
                   Entrar como responsável
@@ -124,7 +124,7 @@ export default async function FamilyAccessPage({
                 href="/login?familia=1"
                 className={cn(
                   buttonVariants(),
-                  "h-12 w-full rounded-full bg-[#6e5ce6] text-base font-semibold text-white hover:bg-[#5f4fd1]"
+                  "h-12 w-full rounded-full bg-brand text-base font-semibold text-brand-foreground hover:bg-brand-strong"
                 )}
               >
                 Entrar para continuar

@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useRef, useTransition } from "react";
 import { toast } from "sonner";
 import { X } from "lucide-react";
@@ -56,11 +58,11 @@ export function DepartmentsManager({
     <div className="space-y-4">
       {ministries.length > 0 ? (
         <form action={add} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-          <select
+          <Select
             name="ministryId"
             required
             defaultValue=""
-            className="h-11 rounded-xl border bg-background px-3 text-sm"
+            className=""
           >
             <option value="" disabled>
               Selecione o ministério
@@ -70,15 +72,14 @@ export function DepartmentsManager({
                 {m.name}
               </option>
             ))}
-          </select>
+          </Select>
           <Input
             ref={inputRef}
             name="name"
             placeholder="Ex.: Vocal, Banda, Berçário…"
             required
-            className="h-11 rounded-xl"
           />
-          <Button type="submit" disabled={pending} className="h-11 rounded-full px-5">
+          <Button type="submit" disabled={pending} className="px-5">
             Adicionar
           </Button>
         </form>
@@ -106,7 +107,7 @@ export function DepartmentsManager({
               size="icon"
               variant="ghost"
               disabled={pending}
-              className="size-9 rounded-full text-muted-foreground"
+              className="size-9 text-muted-foreground"
               aria-label={`Remover ${d.name}`}
               onClick={() => remove(d.id)}
             >

@@ -70,7 +70,7 @@ export default async function DailyVersePage({
   if (error || !context) {
     return (
       <div className="mx-auto max-w-2xl py-6 sm:py-10">
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="py-10 text-center">
             <BookOpen className="mx-auto size-6 text-muted-foreground" />
             <h1 className="mt-4 text-xl font-semibold">Versículo do dia</h1>
@@ -86,7 +86,7 @@ export default async function DailyVersePage({
   if (!context.enabled) {
     return (
       <div className="mx-auto max-w-2xl py-6 sm:py-10">
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="py-10 text-center">
             <BookOpen className="mx-auto size-6 text-muted-foreground" />
             <h1 className="mt-4 text-xl font-semibold">Versículo do dia</h1>
@@ -123,7 +123,7 @@ export default async function DailyVersePage({
   if (!verse) {
     return (
       <div className="mx-auto max-w-2xl py-6 sm:py-10">
-        <Card className="rounded-3xl">
+        <Card>
           <CardContent className="py-10 text-center">
             <BookOpen className="mx-auto size-6 text-muted-foreground" />
             <h1 className="mt-4 text-xl font-semibold">Versículo do dia</h1>

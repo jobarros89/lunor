@@ -80,7 +80,6 @@ export function AddToSetlist({
         value={busca}
         onChange={(e) => setBusca(e.target.value)}
         placeholder="Buscar no acervo…"
-        className="h-11 rounded-full"
       />
       {erro && <p className="text-sm text-destructive">{erro}</p>}
       <div className="space-y-1">
@@ -118,7 +117,7 @@ export function AddToSetlist({
                     onChange={(e) => setTom(e.target.value)}
                     maxLength={8}
                     placeholder="Sem tom"
-                    className="mt-1 h-10 rounded-xl text-foreground"
+                    className="mt-1 h-10 text-foreground"
                   />
                 </label>
                 <Button

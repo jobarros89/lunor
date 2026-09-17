@@ -1,5 +1,8 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Pencil, Plus, ShieldCheck, Star, Trash2, X } from "lucide-react";
@@ -144,7 +147,7 @@ export function ChildGuardianManager({
   }
 
   return (
-    <Card className="rounded-3xl">
+    <Card>
       <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <CardTitle className="text-base">Responsáveis e retirada</CardTitle>
@@ -155,7 +158,6 @@ export function ChildGuardianManager({
         <Button
           type="button"
           variant={adding ? "outline" : "default"}
-          className="rounded-full"
           disabled={pending}
           onClick={() => (adding ? resetAdd() : setAdding(true))}
         >
@@ -190,11 +192,11 @@ export function ChildGuardianManager({
 
             {mode === "existing" ? (
               options.length > 0 ? (
-                <select
+                <Select
                   value={existingId}
                   onChange={(event) => setExistingId(event.target.value)}
                   disabled={pending}
-                  className="h-11 w-full rounded-xl border bg-background px-3 text-base md:text-sm"
+                  className="w-full text-base md:text-sm"
                   aria-label="Responsável já cadastrado"
                 >
                   <option value="">Escolha uma pessoa…</option>
@@ -203,7 +205,7 @@ export function ChildGuardianManager({
                       {guardian.fullName}{guardian.phone ? ` · ${guardian.phone}` : ""}
                     </option>
                   ))}
-                </select>
+                </Select>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   Todos os responsáveis já cadastrados estão vinculados. Cadastre uma nova pessoa.
@@ -215,7 +217,6 @@ export function ChildGuardianManager({
                   value={newName}
                   onChange={(event) => setNewName(event.target.value)}
                   placeholder="Nome do responsável"
-                  className="h-11 rounded-xl"
                   disabled={pending}
                 />
                 <Input
@@ -225,7 +226,6 @@ export function ChildGuardianManager({
                   type="email"
                   inputMode="email"
                   autoComplete="email"
-                  className="h-11 rounded-xl"
                   disabled={pending}
                 />
                 <Input
@@ -233,7 +233,7 @@ export function ChildGuardianManager({
                   onChange={(event) => setNewPhone(event.target.value)}
                   placeholder="Telefone"
                   inputMode="tel"
-                  className="h-11 rounded-xl sm:col-span-2"
+                  className="sm:col-span-2"
                   disabled={pending}
                 />
               </div>
@@ -244,12 +244,10 @@ export function ChildGuardianManager({
                 value={newRelationship}
                 onChange={(event) => setNewRelationship(event.target.value)}
                 placeholder="Parentesco ou vínculo (ex.: Avô)"
-                className="h-11 rounded-xl"
                 disabled={pending}
               />
               <label className="flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={newCanPickup}
                   onChange={(event) => setNewCanPickup(event.target.checked)}
                   disabled={pending}
@@ -262,7 +260,6 @@ export function ChildGuardianManager({
             <div className="flex justify-end">
               <Button
                 type="button"
-                className="rounded-full"
                 disabled={pending}
                 onClick={addGuardian}
               >
@@ -382,12 +379,11 @@ export function ChildGuardianManager({
                       value={editRelationship}
                       onChange={(event) => setEditRelationship(event.target.value)}
                       placeholder="Parentesco ou vínculo"
-                      className="h-10 rounded-xl"
+                      className="h-10"
                       disabled={pending}
                     />
                     <label className="flex min-h-10 items-center gap-2 rounded-xl border px-3 text-sm">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={editCanPickup}
                         onChange={(event) => setEditCanPickup(event.target.checked)}
                         disabled={pending}

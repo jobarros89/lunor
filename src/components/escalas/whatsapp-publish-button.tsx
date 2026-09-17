@@ -68,7 +68,7 @@ export function WhatsAppPublishButton({
   }
 
   return (
-    <Button type="button" disabled={pending} onClick={publish} className="rounded-full">
+    <Button type="button" disabled={pending} onClick={publish} >
       <MessageCircle className="size-4" />
       {pending ? "Publicando…" : "Publicar no WhatsApp"}
     </Button>

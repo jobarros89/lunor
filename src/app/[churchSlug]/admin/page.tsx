@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronRight, Download } from "lucide-react";
@@ -110,15 +111,13 @@ export default async function AdminPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Administração
-        </h1>
-        <p className="text-muted-foreground">{tenant.church.name}</p>
-      </div>
+      <PageHeader
+        title={<>Administração</>}
+        description={<>{tenant.church.name}</>}
+      />
 
       {isAdmin && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Nome da igreja</CardTitle>
             <CardDescription>
@@ -135,11 +134,13 @@ export default async function AdminPage({
         </Card>
       )}
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Campi</CardTitle>
           <CardDescription>
-            Cadastre todos os locais fixos da igreja. Eventos, escalas e Kids passam a carregar esse contexto sem assumir que a igreja tem apenas um campus.
+            Cadastre todos os locais fixos da igreja. Eventos, escalas e Kids
+            passam a carregar esse contexto sem assumir que a igreja tem apenas
+            um campus.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -152,11 +153,12 @@ export default async function AdminPage({
       </Card>
 
       {isAdmin && inviteCode && (
-        <Card className="rounded-3xl">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Convite da equipe</CardTitle>
             <CardDescription>
-              Compartilhe o link. O código de segurança fica protegido dentro dele.
+              Compartilhe o link. O código de segurança fica protegido dentro
+              dele.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -168,7 +170,7 @@ export default async function AdminPage({
       )}
 
       <Link href={`/${churchSlug}/assinatura`} className="block">
-        <Card className="rounded-3xl transition-colors hover:bg-accent/40">
+        <Card className="transition-colors hover:bg-accent/40">
           <CardContent className="flex items-center justify-between gap-3 py-4">
             <div>
               <p className="font-medium">Assinatura</p>
@@ -181,7 +183,7 @@ export default async function AdminPage({
         </Card>
       </Link>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Quem quer crescer</CardTitle>
           <CardDescription>
@@ -215,7 +217,7 @@ export default async function AdminPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Dados da igreja</CardTitle>
           <CardDescription>
@@ -228,7 +230,6 @@ export default async function AdminPage({
           <Button
             variant="outline"
             nativeButton={false}
-            className="h-11 rounded-full"
             render={<a href={`/${churchSlug}/exportar/igreja`} download />}
           >
             <Download className="size-4" />
@@ -237,11 +238,13 @@ export default async function AdminPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Onde vai servir?</CardTitle>
           <CardDescription>
-            Subdivisões opcionais de cada ministério, como Vocal, Banda ou Berçário. Só aparecem na escala quando o ministério selecionado tiver opções cadastradas.
+            Subdivisões opcionais de cada ministério, como Vocal, Banda ou
+            Berçário. Só aparecem na escala quando o ministério selecionado
+            tiver opções cadastradas.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -254,11 +257,12 @@ export default async function AdminPage({
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Equipes</CardTitle>
           <CardDescription>
-            Crie os times que servem na igreja. Administradores e gestores têm acesso a todas as equipes automaticamente.
+            Crie os times que servem na igreja. Administradores e gestores têm
+            acesso a todas as equipes automaticamente.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -290,24 +294,21 @@ export default async function AdminPage({
       <DailyVerseSettings
         churchId={tenant.church.id}
         currentConfig={{
-          daily_verse_enabled: notificationSettings.daily_verse_enabled === true,
+          daily_verse_enabled:
+            notificationSettings.daily_verse_enabled === true,
           daily_verse_version:
             (notificationSettings.daily_verse_version as
-              | "blt"
-              | "nvi"
-              | "acf"
-              | "ra"
-              | undefined) ?? "blt",
-          daily_verse_theme:
-            (notificationSettings.daily_verse_theme as string | undefined) as
-              | "auto"
-              | "servir"
-              | "encorajamento"
-              | "descanso"
-              | "gratidao"
-              | "perseveranca"
-              | "unidade"
-              | undefined,
+              "blt" | "nvi" | "acf" | "ra" | undefined) ?? "blt",
+          daily_verse_theme: notificationSettings.daily_verse_theme as
+            string | undefined as
+            | "auto"
+            | "servir"
+            | "encorajamento"
+            | "descanso"
+            | "gratidao"
+            | "perseveranca"
+            | "unidade"
+            | undefined,
         }}
       />
 
