@@ -210,6 +210,8 @@
   :where(button, a, summary) { touch-action: manipulation; }
   :where(textarea) { resize: vertical; }
   :where(img, video) { max-width: 100%; }
+  label:has(> [data-slot="checkbox"]) { min-height: 2.75rem; cursor: pointer; }
+  [data-slot="select"][aria-invalid="true"], [data-slot="textarea"][aria-invalid="true"] { border-color: var(--destructive); }
 }
 
 @media (pointer: coarse) {
@@ -220,4 +222,3 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
-

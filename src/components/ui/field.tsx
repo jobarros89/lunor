@@ -1,7 +1,7 @@
 "use client";
 
 import { cloneElement, useId } from "react";
-import type { ReactElement } from "react";
+import type { AriaAttributes, ReactElement, ReactNode } from "react";
 
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -17,20 +17,28 @@ export function Field({
   children,
   className,
   required,
+  description,
+  error,
 }: {
   label: string;
-  children: ReactElement<{ id?: string }>;
+  children: ReactElement<AriaAttributes & { id?: string }>;
   className?: string;
   required?: boolean;
+  description?: ReactNode;
+  error?: string;
 }) {
-  const id = useId();
+  const generatedId = useId();
+  const id = children.props.id ?? generatedId;
+  const describedBy = [children.props["aria-describedby"], description && `${id}-description`, error && `${id}-error`].filter(Boolean).join(" ") || undefined;
   return (
     <div className={cn("space-y-1.5", className)}>
       <Label htmlFor={id} className="text-sm">
         {label}
-        {required && <span className="text-destructive"> *</span>}
+        {required && <span className="text-destructive" aria-hidden="true"> *</span>}
       </Label>
-      {cloneElement(children, { id })}
+      {cloneElement(children, { id, "aria-describedby": describedBy, "aria-invalid": error ? true : children.props["aria-invalid"], "aria-required": required || children.props["aria-required"] })}
+      {description && <p id={`${id}-description`} className="text-xs leading-relaxed text-muted-foreground">{description}</p>}
+      {error && <p id={`${id}-error`} role="alert" className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }
