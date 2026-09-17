@@ -1,8 +1,5 @@
 "use client";
 
-import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -21,11 +18,18 @@ import {
   removeServiceItem,
   updateServiceItem,
 } from "@/lib/actions/service-items";
+import {
+  scheduleServiceOrder,
+  serviceOrderClockToOffset,
+  serviceOrderOffsetToClock,
+} from "@/lib/service-order";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export type ServiceItem = {
   id: string;
@@ -34,6 +38,21 @@ export type ServiceItem = {
   notes: string | null;
   duration_minutes: number;
   position: number;
+  scheduled_offset_minutes: number | null;
+  ministry_id: string | null;
+  responsible_assignment_id: string | null;
+};
+
+export type ServiceOrderTeamOption = {
+  id: string;
+  name: string;
+};
+
+export type ServiceOrderResponsibleOption = {
+  id: string;
+  name: string;
+  roleName: string;
+  ministryId: string | null;
 };
 
 const TYPE_LABELS: Record<ServiceItem["type"], string> = {
@@ -43,35 +62,47 @@ const TYPE_LABELS: Record<ServiceItem["type"], string> = {
   OTHER: "Outro",
 };
 
-function scheduleItems(items: ServiceItem[], startsAt: string) {
-  let elapsedMinutes = 0;
-  return items.map((item) => {
-    const scheduledAt = new Date(
-      new Date(startsAt).getTime() + elapsedMinutes * 60_000
-    ).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    elapsedMinutes += item.duration_minutes;
-    return { item, scheduledAt };
-  });
-}
-
 type ItemFormProps = {
   item?: ServiceItem;
+  startsAt: string;
+  teams: ServiceOrderTeamOption[];
+  responsibles: ServiceOrderResponsibleOption[];
   pending: boolean;
   onCancel: () => void;
   onSubmit: (values: {
     type: ServiceItem["type"];
     title: string;
     durationMinutes: number;
+    scheduledOffsetMinutes: number | null;
+    ministryId: string | null;
+    responsibleAssignmentId: string | null;
     notes: string;
   }) => void;
 };
 
-function ItemForm({ item, pending, onCancel, onSubmit }: ItemFormProps) {
+function ItemForm({
+  item,
+  startsAt,
+  teams,
+  responsibles,
+  pending,
+  onCancel,
+  onSubmit,
+}: ItemFormProps) {
   function submit(form: FormData) {
+    const scheduledTime = String(form.get("scheduledTime") ?? "");
+    const ministryId = String(form.get("ministryId") ?? "");
+    const responsibleAssignmentId = String(form.get("responsibleAssignmentId") ?? "");
+
     onSubmit({
       type: String(form.get("type")) as ServiceItem["type"],
       title: String(form.get("title") ?? ""),
       durationMinutes: Number(form.get("durationMinutes")),
+      scheduledOffsetMinutes: scheduledTime
+        ? serviceOrderClockToOffset(startsAt, scheduledTime)
+        : null,
+      ministryId: ministryId || null,
+      responsibleAssignmentId: responsibleAssignmentId || null,
       notes: String(form.get("notes") ?? ""),
     });
   }
@@ -103,19 +134,67 @@ function ItemForm({ item, pending, onCancel, onSubmit }: ItemFormProps) {
         </Field>
       </div>
 
-      <Field label="Duração em minutos" required>
-        <Input
-          name="durationMinutes"
-          type="number"
-          defaultValue={item?.duration_minutes ?? 0}
-          min={0}
-          max={1440}
-          step={1}
-          required
-        />
-      </Field>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Horário">
+          <Input
+            name="scheduledTime"
+            type="time"
+            defaultValue={
+              item?.scheduled_offset_minutes !== null &&
+              item?.scheduled_offset_minutes !== undefined
+                ? serviceOrderOffsetToClock(startsAt, item.scheduled_offset_minutes)
+                : ""
+            }
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Vazio = calculado automaticamente pela ordem e duração.
+          </p>
+        </Field>
+        <Field label="Duração em minutos" required>
+          <Input
+            name="durationMinutes"
+            type="number"
+            defaultValue={item?.duration_minutes ?? 0}
+            min={0}
+            max={1440}
+            step={1}
+            required
+          />
+        </Field>
+      </div>
 
-      <Field label="Notas">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Time">
+          <Select
+            name="ministryId"
+            defaultValue={item?.ministry_id ?? ""}
+            className="w-full text-base md:text-sm"
+          >
+            <option value="">Sem time específico</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Responsável">
+          <Select
+            name="responsibleAssignmentId"
+            defaultValue={item?.responsible_assignment_id ?? ""}
+            className="w-full text-base md:text-sm"
+          >
+            <option value="">Sem responsável específico</option>
+            {responsibles.map((responsible) => (
+              <option key={responsible.id} value={responsible.id}>
+                {responsible.roleName} — {responsible.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
+
+      <Field label="Observação">
         <Textarea
           name="notes"
           defaultValue={item?.notes ?? ""}
@@ -126,15 +205,10 @@ function ItemForm({ item, pending, onCancel, onSubmit }: ItemFormProps) {
       </Field>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={pending} >
+        <Button type="submit" disabled={pending}>
           {pending ? "Salvando…" : item ? "Salvar alterações" : "Adicionar item"}
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={pending}
-          onClick={onCancel}
-        >
+        <Button type="button" variant="ghost" disabled={pending} onClick={onCancel}>
           Cancelar
         </Button>
       </div>
@@ -148,6 +222,8 @@ export function ServiceOrderCard({
   eventId,
   startsAt,
   items,
+  teams,
+  responsibles,
   canManage,
 }: {
   churchSlug: string;
@@ -155,6 +231,8 @@ export function ServiceOrderCard({
   eventId: string;
   startsAt: string;
   items: ServiceItem[];
+  teams: ServiceOrderTeamOption[];
+  responsibles: ServiceOrderResponsibleOption[];
   canManage: boolean;
 }) {
   const router = useRouter();
@@ -179,7 +257,11 @@ export function ServiceOrderCard({
     });
   }
 
-  const scheduledItems = scheduleItems(items, startsAt);
+  const scheduledItems = scheduleServiceOrder(items, startsAt);
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const responsiblesById = new Map(
+    responsibles.map((responsible) => [responsible.id, responsible])
+  );
 
   return (
     <Card>
@@ -219,12 +301,20 @@ export function ServiceOrderCard({
           </p>
         )}
 
-        {scheduledItems.map(({ item, scheduledAt }, index) => {
+        {scheduledItems.map(({ scheduledAt, ...item }, index) => {
+          const team = item.ministry_id ? teamsById.get(item.ministry_id) : null;
+          const responsible = item.responsible_assignment_id
+            ? responsiblesById.get(item.responsible_assignment_id)
+            : null;
+
           if (editingId === item.id) {
             return (
               <ItemForm
                 key={item.id}
                 item={item}
+                startsAt={startsAt}
+                teams={teams}
+                responsibles={responsibles}
                 pending={pending}
                 onCancel={() => setEditingId(null)}
                 onSubmit={(values) =>
@@ -253,13 +343,17 @@ export function ServiceOrderCard({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{item.title}</p>
-                    <Badge variant="secondary" >
-                      {TYPE_LABELS[item.type]}
-                    </Badge>
+                    <Badge variant="secondary">{TYPE_LABELS[item.type]}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {item.duration_minutes} min
+                    {team ? ` · ${team.name}` : ""}
                   </p>
+                  {responsible && (
+                    <p className="mt-1 text-sm font-medium">
+                      {responsible.roleName} · {responsible.name}
+                    </p>
+                  )}
                   {item.notes && (
                     <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
                       {item.notes}
@@ -345,6 +439,9 @@ export function ServiceOrderCard({
 
         {adding && (
           <ItemForm
+            startsAt={startsAt}
+            teams={teams}
+            responsibles={responsibles}
             pending={pending}
             onCancel={() => setAdding(false)}
             onSubmit={(values) =>
