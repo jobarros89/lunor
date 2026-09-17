@@ -8,6 +8,7 @@ export type MinistryOption = {
   name: string;
   slug: string;
   module_key: "generic" | "worship" | "kids";
+  permissionCampusIds: string[] | null;
   /** pode gerir a escala deste setor (coord da igreja, ou gerente/líder do setor) */
   canManage: boolean;
 };
@@ -37,7 +38,7 @@ export const getActiveMinistry = cache(
         .select("id, name, slug, module_key")
         .eq("church_id", tenant.church.id)
         .order("name");
-      options = (data ?? []).map((m) => ({ ...m, canManage: true }));
+      options = (data ?? []).map((m) => ({ ...m, permissionCampusIds: null, canManage: true }));
     } else {
       options = tenant.ministryMemberships
         .map((membership) => ({
@@ -45,7 +46,8 @@ export const getActiveMinistry = cache(
           name: membership.name,
           slug: membership.slug,
           module_key: membership.module_key,
-          canManage: membership.role === "gerente" || membership.role === "lider",
+          permissionCampusIds: membership.permissionCampusIds,
+          canManage: membership.permissionRole === "gerente" || membership.permissionRole === "lider",
         }))
         .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
     }
