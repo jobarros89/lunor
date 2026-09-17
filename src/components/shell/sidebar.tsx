@@ -1,20 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 import {
-  Baby,
   Calendar,
+  CalendarDays,
   Gauge,
   Home,
-  Music2,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
   Sparkles,
   User,
   Users,
+  UsersRound,
   Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -36,9 +36,8 @@ const ICONS: Record<
   React.ComponentType<{ className?: string; strokeWidth?: number }>
 > = {
   home: Home,
-  louvor: Music2,
-  kids: Baby,
-  ministry: Users,
+  agenda: CalendarDays,
+  times: UsersRound,
   escalas: Calendar,
   assistente: Sparkles,
   perfil: User,
@@ -49,11 +48,11 @@ const ICONS: Record<
 };
 
 const NAV_GROUPS: { label: string; ids: ShellNavItemId[] }[] = [
-  { label: "Seu dia", ids: ["home", "escalas", "assistente"] },
-  { label: "Ministérios", ids: ["louvor", "kids", "ministry"] },
+  { label: "Seu dia", ids: ["home", "agenda", "escalas"] },
+  { label: "Seus times", ids: ["times"] },
   {
     label: "Organização",
-    ids: ["pessoas", "distribuicao", "equipamentos", "admin", "perfil"],
+    ids: ["assistente", "pessoas", "distribuicao", "equipamentos", "admin", "perfil"],
   },
 ];
 
@@ -99,6 +98,7 @@ export function Sidebar({
   guardianOnly?: boolean;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const collapsed = useSyncExternalStore(
     subscribeSidebar,
     getSidebarSnapshot,
@@ -196,12 +196,18 @@ export function Sidebar({
                 )}
                 {items.map(({ id, href, label }) => {
                   const Icon = ICONS[id];
+                  const [path, query] = href.split("?");
                   const full = `/${churchSlug}${href}`;
-                  const pathOnly = full.split("?")[0];
+                  const pathOnly = `/${churchSlug}${path}`;
+                  const expectedFilter = query
+                    ? new URLSearchParams(query).get("filtro")
+                    : null;
                   const active =
                     href === ""
                       ? pathname === pathOnly
-                      : pathname.startsWith(pathOnly);
+                      : pathname.startsWith(pathOnly) &&
+                        (path !== "/escalas" ||
+                          searchParams.get("filtro") === expectedFilter);
                   return (
                     <Link
                       key={`${href}-${label}`}
