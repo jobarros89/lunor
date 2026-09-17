@@ -20,7 +20,8 @@ import { SectionNav } from "@/components/ui/section-nav";
 type RelatedName = { name: string } | { name: string }[] | null;
 type MyAssignment = {
   event_id: string;
-  ministry_id: string;
+  ministry_id: string | null;
+  assignment_scope: "team" | "event";
   role_name: string;
   status: string;
   arrival_time: string | null;
@@ -77,7 +78,7 @@ export default async function EscalasPage({
       .limit(200),
     supabase
       .from("assignments")
-      .select("event_id, ministry_id, role_name, status, arrival_time, release_time, assignment_ministry:ministries(name), assignment_department:departments(name)")
+      .select("event_id, ministry_id, assignment_scope, role_name, status, arrival_time, release_time, assignment_ministry:ministries(name), assignment_department:departments(name)")
       .eq("church_id", tenant.church.id)
       .eq("user_id", tenant.userId),
     supabase
@@ -109,7 +110,9 @@ export default async function EscalasPage({
     visiveis.reduce<Record<string, { label: string; events: typeof visiveis }>>((groups, event) => {
       const assignments = myByEvent.get(event.id) ?? [];
       const effectiveDates = assignments.map((assignment) => {
-        const window = windowByPair.get(pairKey(event.id, assignment.ministry_id));
+        const window = assignment.ministry_id
+          ? windowByPair.get(pairKey(event.id, assignment.ministry_id))
+          : undefined;
         return new Date(assignment.arrival_time ?? window?.arrival_at ?? event.starts_at);
       });
       const date = effectiveDates.length > 0
@@ -213,9 +216,9 @@ export default async function EscalasPage({
                   });
                   const mine = myByEvent.get(e.id);
                   const serviceStarts = (mine ?? []).map((assignment) => {
-                    const window = windowByPair.get(
-                      pairKey(e.id, assignment.ministry_id),
-                    );
+                    const window = assignment.ministry_id
+                      ? windowByPair.get(pairKey(e.id, assignment.ministry_id))
+                      : undefined;
                     return (
                       assignment.arrival_time ??
                       window?.arrival_at ??
@@ -224,9 +227,9 @@ export default async function EscalasPage({
                   });
                   const serviceReleases = (mine ?? [])
                     .map((assignment) => {
-                      const window = windowByPair.get(
-                        pairKey(e.id, assignment.ministry_id),
-                      );
+                      const window = assignment.ministry_id
+                        ? windowByPair.get(pairKey(e.id, assignment.ministry_id))
+                        : undefined;
                       return (
                         assignment.release_time ?? window?.release_at ?? null
                       );
@@ -307,7 +310,9 @@ export default async function EscalasPage({
                                   ?.name ??
                                 firstRelated(assignment.assignment_ministry)
                                   ?.name ??
-                                "Equipe";
+                                (assignment.assignment_scope === "event"
+                                  ? "Evento"
+                                  : "Equipe");
                               return (
                                 <span
                                   key={`${assignment.event_id}-${assignment.role_name}-${index}`}
