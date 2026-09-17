@@ -251,14 +251,14 @@ $$;
 -- Church-wide helpers no longer promote a ministry permission to the whole
 -- church. Scoped operations must use has_ministry_permission/can_manage_ministry_event.
 create or replace function public.is_church_manager(p_church uuid)
-returns boolean language sql stable security definer set search_path = public as $
+returns boolean language sql stable security definer set search_path = public as $$
   select public.is_church_coord(p_church);
-$;
+$$;
 
 create or replace function public.is_church_leader(p_church uuid)
-returns boolean language sql stable security definer set search_path = public as $
+returns boolean language sql stable security definer set search_path = public as $$
   select public.is_church_coord(p_church);
-$;
+$$;
 
 alter table public.ministry_admin_permissions enable row level security;
 alter table public.ministry_member_campuses enable row level security;
