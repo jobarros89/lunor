@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, Megaphone } from "lucide-react";
+import { ArrowRight, Baby, CalendarDays, Megaphone, Music2, UsersRound } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
@@ -36,7 +36,8 @@ type AssignmentEvent = {
 };
 type HomeAssignment = {
   id: string;
-  ministry_id: string;
+  ministry_id: string | null;
+  assignment_scope: "team" | "event";
   role_name: string;
   status: string;
   arrival_time: string | null;
@@ -132,7 +133,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   if (tenant.guardianOnly) redirect(`/${churchSlug}/infantil`);
 
   const supabase = await createClient();
-  const { active: activeMinistry } = await getActiveMinistry(churchSlug);
+  const { active: activeMinistry, options: accessibleTeams } = await getActiveMinistry(churchSlug);
   const operationalSummaryPromise: Promise<OperationalSummary | null> = activeMinistry?.canManage ? loadOperationalSummary({ churchId: tenant.church.id, ministryId: activeMinistry.id, ministryName: activeMinistry.name }) : Promise.resolve(null);
   const distributionPromise: Promise<DistributionOverview | null> = activeMinistry?.canManage ? loadDistributionOverview({ churchId: tenant.church.id, ministryId: activeMinistry.id }) : Promise.resolve(null);
 
@@ -150,28 +151,32 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const nowIso = new Date().toISOString();
   // eslint-disable-next-line react-hooks/purity -- server component, Date.now() é seguro aqui
   const nowMs = Date.now();
-  const [{ data: myEscalas }, { data: nextChurchEvent }, { data: serviceWindows }, { data: anuncios }] = await Promise.all([
-    supabase.from("assignments").select("id, ministry_id, role_name, status, arrival_time, release_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, ends_at, location, service_period, campuses(name))").eq("church_id", tenant.church.id).eq("user_id", tenant.userId).neq("status", "substituido").gte("events.starts_at", nowIso).limit(20),
-    supabase.from("events").select("id, title, starts_at, ends_at, location, service_period, campuses(name)").eq("church_id", tenant.church.id).gte("starts_at", nowIso).order("starts_at").limit(1).maybeSingle(),
+  const [{ data: myEscalas }, { data: nextChurchEvents }, { data: serviceWindows }, { data: anuncios }] = await Promise.all([
+    supabase.from("assignments").select("id, ministry_id, assignment_scope, role_name, status, arrival_time, release_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, ends_at, location, service_period, campuses(name))").eq("church_id", tenant.church.id).eq("user_id", tenant.userId).neq("status", "substituido").gte("events.starts_at", nowIso).limit(20),
+    supabase.from("events").select("id, title, starts_at, ends_at, location, service_period, campuses(name)").eq("church_id", tenant.church.id).gte("starts_at", nowIso).order("starts_at").limit(5),
     supabase.from("event_ministry_windows").select("event_id, ministry_id, arrival_at, release_at, events!inner(starts_at)").eq("church_id", tenant.church.id).gte("events.starts_at", nowIso),
     supabase.rpc("anuncios_infantil", { p_church: tenant.church.id }),
   ]);
   // PostgREST não garante a ordem da tabela raiz quando o ORDER BY aponta para uma relação embutida.
   // Ordenamos explicitamente pelo início do evento para que a Home funcione igual para qualquer usuário/ministério.
   const escalas = ((myEscalas ?? []) as unknown as HomeAssignment[]).sort((a, b) => assignmentStartMs(a) - assignmentStartMs(b));
+  const upcomingEvents = (nextChurchEvents ?? []) as unknown as AssignmentEvent[];
+  const nextChurchEvent = upcomingEvents[0] ?? null;
   const windowByPair = new Map<string, ServiceWindowRow>();
   for (const window of (serviceWindows ?? []) as unknown as ServiceWindowRow[]) windowByPair.set(pairKey(window.event_id, window.ministry_id), window);
 
   function serviceWindowFor(assignment: HomeAssignment) {
     const event = firstRelated(assignment.events);
     if (!event) return null;
-    const teamWindow = windowByPair.get(pairKey(event.id, assignment.ministry_id));
+    const teamWindow = assignment.ministry_id
+      ? windowByPair.get(pairKey(event.id, assignment.ministry_id))
+      : undefined;
     return resolveServiceWindow({ eventStart: event.starts_at, eventEnd: event.ends_at, teamArrival: teamWindow?.arrival_at, teamRelease: teamWindow?.release_at, assignmentArrival: assignment.arrival_time, assignmentRelease: assignment.release_time });
   }
 
   const nextConfirmedAssignment = escalas.find((assignment) => assignment.status === "confirmado");
   const nextAssignedEvent = firstRelated(nextConfirmedAssignment?.events);
-  const nextEvent = nextAssignedEvent ?? (nextChurchEvent as unknown as AssignmentEvent | null);
+  const nextEvent = nextChurchEvent ?? nextAssignedEvent;
   const nextEventAssignments = nextEvent ? escalas.filter((assignment) => firstRelated(assignment.events)?.id === nextEvent.id) : [];
   const confirmedEventAssignments = nextEventAssignments.filter((assignment) => assignment.status === "confirmado");
   const heroAssignment = confirmedEventAssignments[0];
@@ -185,12 +190,10 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   const weekday = nextDate ? new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(nextDate) : "Próximo encontro";
   const arrival = timeLabel(heroServiceWindow?.arrivalAt);
   const release = timeLabel(heroServiceWindow?.releaseAt);
-  const confirmedHeroIds = new Set(confirmedEventAssignments.map((assignment) => assignment.id));
-  const agendaAssignments = heroAssignment ? escalas.filter((assignment) => !confirmedHeroIds.has(assignment.id)) : escalas;
 
   const CULT_MODE_WINDOW_MS = 3 * 60 * 60 * 1000;
   const imminentEvent = (() => {
-    const candidate = (nextChurchEvent as unknown as AssignmentEvent | null) ?? nextEvent;
+    const candidate = nextChurchEvent ?? nextEvent;
     if (!candidate) return null;
     const startMs = new Date(candidate.starts_at).getTime();
     const endMs = candidate.ends_at ? new Date(candidate.ends_at).getTime() : startMs + 2 * 60 * 60 * 1000;
@@ -206,7 +209,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
       {tenant.isLeader && imminentEvent && <CultModeBanner churchSlug={churchSlug} eventId={imminentEvent.id} eventTitle={imminentEvent.title} startsAt={imminentEvent.starts_at} nowMs={nowMs} />}
 
       <NextServiceCard
-        eyebrow={heroAssignment ? "Meu próximo serviço" : "Próximo culto"}
+        eyebrow="Próximo evento"
         title={nextEvent?.title ?? "Prepare com propósito."}
         day={day}
         month={month}
@@ -220,10 +223,142 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         {heroAssignment?.status === "convidado" && nextEvent && <div className="mt-4"><QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={nextEvent.id} assignmentId={heroAssignment.id} /></div>}
       </NextServiceCard>
 
-      <section className="space-y-4" aria-labelledby="home-agenda-title"><SectionHeader id="home-agenda-title" title="Sua agenda" description="Confira os próximos serviços e responda aos convites." actions={<Link href={`/${churchSlug}/escalas`} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand">Ver todas as escalas<ArrowRight className="size-4" aria-hidden="true" /></Link>} /><div className="divide-y rounded-xl border bg-card px-4 sm:px-5">
-        {agendaAssignments.map((a, index) => { const ev = firstRelated(a.events); if (!ev) return null; const pendente = a.status === "convidado"; const context = homeEventContext(ev); const window = serviceWindowFor(a); const effectiveArrival = timeLabel(window?.arrivalAt); const effectiveRelease = timeLabel(window?.releaseAt); return <div key={a.id} className="home-agenda-row grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-3 py-5 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto]"><span className="font-editorial text-3xl text-muted-foreground">{String(index + 1).padStart(2, "0")}</span><Link href={`/${churchSlug}/escalas/${ev.id}`} className="min-w-0 hover:text-brand"><p className="break-words font-medium">{ev.title}</p><p className="mt-1 text-xs text-muted-foreground">{formatEventDate(ev.starts_at)} · {effectiveArrival ? `chegada ${effectiveArrival}` : formatEventTime(ev.starts_at)} · culto {formatEventTime(ev.starts_at)}{effectiveRelease ? ` · saída ${effectiveRelease}` : ""}{context ? ` · ${context}` : ""} · {assignmentServiceLabel(a)}</p></Link>{pendente ? <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={ev.id} assignmentId={a.id} /> : <Badge className={`shrink-0 rounded-none border-0 ${ASSIGNMENT_STATUS_BADGE[a.status] ?? ""}`}>{ASSIGNMENT_STATUS_LABELS[a.status] ?? a.status}</Badge>}</div>; })}
-        {agendaAssignments.length === 0 && <EmptyState className="my-4 border-0 py-6" title={heroAssignment ? "Sua agenda está em dia" : "Aguardando seu próximo convite"} description={heroAssignment ? "Nenhuma outra escala agendada por enquanto." : "Seus convites para servir aparecerão aqui. Você também pode consultar os cultos e escalas."} />}
-      </div></section>
+      <section className="space-y-4" aria-labelledby="home-participation-title">
+        <SectionHeader
+          id="home-participation-title"
+          title="Sua participação"
+          description="Funções e confirmações no próximo evento."
+        />
+        <div className="divide-y rounded-2xl border bg-card px-4 sm:px-5">
+          {nextEventAssignments.map((assignment) => {
+            const event = firstRelated(assignment.events);
+            const ministry = firstRelated(assignment.ministries)?.name ?? "Evento";
+            if (!event) return null;
+            return (
+              <div key={assignment.id} className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <Link href={`/${churchSlug}/escalas/${event.id}`} className="min-w-0">
+                  <p className="font-semibold">{ministry} <span className="text-muted-foreground">—</span> {assignmentServiceLabel(assignment)}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{event.title} · {formatEventDate(event.starts_at)}</p>
+                </Link>
+                {assignment.status === "convidado" ? (
+                  <QuickConfirm churchSlug={churchSlug} churchId={tenant.church.id} eventId={event.id} assignmentId={assignment.id} />
+                ) : (
+                  <Badge className={`w-fit border-0 ${ASSIGNMENT_STATUS_BADGE[assignment.status] ?? ""}`}>
+                    {ASSIGNMENT_STATUS_LABELS[assignment.status] ?? assignment.status}
+                  </Badge>
+                )}
+              </div>
+            );
+          })}
+          {nextEventAssignments.length === 0 && (
+            <EmptyState
+              className="my-3 border-0 py-6"
+              title="Você não participa deste evento"
+              description="Quando houver uma escala para você, sua função e confirmação aparecerão aqui."
+            />
+          )}
+        </div>
+      </section>
+
+      <section className="space-y-4" aria-labelledby="home-teams-title">
+        <SectionHeader
+          id="home-teams-title"
+          title="Seus times"
+          description="Áreas que você pode acessar nesta igreja."
+          actions={
+            <Link href={`/${churchSlug}/times`} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand">
+              Ver todos
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          }
+        />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {accessibleTeams.map((team) => {
+            const href =
+              team.module_key === "worship"
+                ? `/${churchSlug}/louvor`
+                : team.module_key === "kids"
+                  ? `/${churchSlug}/infantil`
+                  : `/${churchSlug}/disponibilidade?ministry=${team.id}`;
+            const Icon =
+              team.module_key === "worship"
+                ? Music2
+                : team.module_key === "kids"
+                  ? Baby
+                  : UsersRound;
+            return (
+              <Link
+                key={team.id}
+                href={href}
+                className="group flex min-h-20 items-center gap-4 rounded-2xl border bg-card px-4 py-3 transition-colors hover:bg-accent/40"
+              >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                  <Icon className="size-5" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{team.name}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {team.canManage ? "Gestão e participação" : "Participação"}
+                  </span>
+                </span>
+                <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              </Link>
+            );
+          })}
+          {accessibleTeams.length === 0 && (
+            <EmptyState
+              className="sm:col-span-2 lg:col-span-3"
+              title="Nenhum time disponível"
+              description="Seus times aparecerão aqui quando seu vínculo for ativado."
+            />
+          )}
+        </div>
+      </section>
+
+      <section className="space-y-4" aria-labelledby="home-upcoming-title">
+        <SectionHeader
+          id="home-upcoming-title"
+          title="Próximos eventos"
+          description="Agenda geral da igreja."
+          actions={
+            <Link href={`/${churchSlug}/escalas?filtro=todas`} className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-brand">
+              Abrir agenda
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          }
+        />
+        <div className="divide-y rounded-2xl border bg-card px-4 sm:px-5">
+          {upcomingEvents.map((event) => {
+            const context = homeEventContext(event);
+            const myRoles = escalas.filter((assignment) => firstRelated(assignment.events)?.id === event.id);
+            return (
+              <Link
+                key={event.id}
+                href={`/${churchSlug}/escalas/${event.id}`}
+                className="grid min-h-20 grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 py-4 transition-colors hover:text-brand"
+              >
+                <span className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                  <CalendarDays className="size-5" aria-hidden="true" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{event.title}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {formatEventDate(event.starts_at)} · {formatEventTime(event.starts_at)}{context ? ` · ${context}` : ""}
+                  </span>
+                </span>
+                {myRoles.length > 0 && <Badge variant="secondary">{myRoles.length === 1 ? "Você participa" : `${myRoles.length} participações`}</Badge>}
+              </Link>
+            );
+          })}
+          {upcomingEvents.length === 0 && (
+            <EmptyState
+              className="my-3 border-0 py-6"
+              title="Nenhum evento futuro"
+              description="Os próximos eventos da igreja aparecerão aqui."
+            />
+          )}
+        </div>
+      </section>
 
       {activeMinistry?.canManage && <AssistantHomeInput churchSlug={churchSlug} ministryId={activeMinistry.id} ministryName={activeMinistry.name} />}
       {onboardingChecklist && <OnboardingChecklistCard churchId={tenant.church.id} checklist={onboardingChecklist} />}

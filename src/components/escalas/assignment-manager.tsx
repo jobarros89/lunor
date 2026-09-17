@@ -131,6 +131,8 @@ export function AssignmentManager({
 
   function escalar() {
     if (!userId) return toast.error("Escolha a pessoa");
+    if (members.find((member) => member.user_id === userId)?.indisponivel)
+      return toast.error("Esta pessoa informou indisponibilidade para este culto e campus");
     if (servingAreas.length > 0 && !departmentId)
       return toast.error("Escolha onde a pessoa vai servir");
     const availableFunctions = teamFunctions.filter((item) => item.department_id === departmentId);

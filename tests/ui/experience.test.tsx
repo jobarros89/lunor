@@ -152,13 +152,11 @@ describe("Navegação e estados compartilhados", () => {
     );
     expect(hrefs).toEqual([
       "/demo",
-      "/demo/louvor",
-      "/demo/escalas",
+      "/demo/escalas?filtro=todas",
+      "/demo/times",
+      "/demo/escalas?filtro=minhas",
       "/demo/mais",
     ]);
-    expect(
-      host.querySelector('[aria-current="page"]')?.getAttribute("href"),
-    ).toBe("/demo/louvor");
   });
   it("mantém o menu familiar separado, mesmo com outros módulos habilitados", async () => {
     await render(
@@ -166,7 +164,7 @@ describe("Navegação e estados compartilhados", () => {
     );
     expect(
       [...host.querySelectorAll("a")].map((node) => node.getAttribute("href")),
-    ).toEqual(["/demo/infantil", "/demo/perfil"]);
+    ).toEqual(["/demo/infantil", "/demo/mais"]);
   });
   it("agrupa a navegação sem duplicar links nem exibir administração sem permissão", async () => {
     await render(
@@ -187,12 +185,12 @@ describe("Navegação e estados compartilhados", () => {
     expect(hrefs).not.toContain("/demo/admin");
     expect(hrefs).not.toContain("/demo/infantil");
     expect(
-      host.querySelector('[role="group"][aria-label="Ministérios"]'),
+      host.querySelector('[role="group"][aria-label="Seus times"]'),
     ).not.toBeNull();
     await click(
       host.querySelector('button[aria-label="Recolher menu lateral"]'),
     );
-    expect(host.querySelector('a[aria-label="Louvor"]')).not.toBeNull();
+    expect(host.querySelector('a[aria-label="Times"]')).not.toBeNull();
     await click(
       host.querySelector('button[aria-label="Expandir menu lateral"]'),
     );

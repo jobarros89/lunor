@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Baby, Calendar, Home, Menu, Music2, User } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Baby, CalendarDays, Home, Menu, UsersRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav({
   churchSlug,
-  hasLouvor = false,
-  hasKids = false,
   escalasPending = 0,
   guardianOnly = false,
 }: {
@@ -20,25 +18,17 @@ export function BottomNav({
   isLeader?: boolean;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const items = guardianOnly
     ? [
         { href: "/infantil", label: "Meus filhos", icon: Baby, badge: 0 },
-        { href: "/perfil", label: "Perfil", icon: User, badge: 0 },
+        { href: "/mais", label: "Mais", icon: Menu, badge: 0 },
       ]
     : [
         { href: "", label: "Início", icon: Home, badge: 0 },
-        ...(hasLouvor
-          ? [{ href: "/louvor", label: "Louvor", icon: Music2, badge: 0 }]
-          : []),
-        ...(hasKids
-          ? [{ href: "/infantil", label: "Kids", icon: Baby, badge: 0 }]
-          : []),
-        {
-          href: "/escalas",
-          label: "Escalas",
-          icon: Calendar,
-          badge: escalasPending,
-        },
+        { href: "/escalas?filtro=todas", label: "Agenda", icon: CalendarDays, badge: 0 },
+        { href: "/times", label: "Times", icon: UsersRound, badge: 0 },
+        { href: "/escalas?filtro=minhas", label: "Escalas", icon: CalendarDays, badge: escalasPending },
         { href: "/mais", label: "Mais", icon: Menu, badge: 0 },
       ];
 
@@ -49,13 +39,18 @@ export function BottomNav({
     >
       <div className="mx-auto grid h-16 w-full grid-flow-col auto-cols-fr items-center gap-1 px-2">
         {items.map(({ href, label, icon: Icon, badge }) => {
-          const full = `/${churchSlug}${href}`;
+          const [path, query] = href.split("?");
+          const fullPath = `/${churchSlug}${path}`;
+          const expectedFilter = query ? new URLSearchParams(query).get("filtro") : null;
           const active =
-            href === "" ? pathname === full : pathname.startsWith(full);
+            path === ""
+              ? pathname === fullPath
+              : pathname.startsWith(fullPath) &&
+                (path !== "/escalas" || searchParams.get("filtro") === expectedFilter);
           return (
             <Link
-              key={`${href}-${label}`}
-              href={full}
+              key={label}
+              href={`/${churchSlug}${href}`}
               aria-label={badge > 0 ? `${label} (${badge} pendente)` : label}
               aria-current={active ? "page" : undefined}
               title={label}

@@ -2,17 +2,17 @@ import { PageHeader } from "@/components/ui/page-header";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  Baby,
   BookOpen,
   Calendar,
+  CalendarDays,
   ChevronRight,
   Gauge,
   Home,
-  Music2,
   Settings,
   Sparkles,
   User,
   Users,
+  UsersRound,
   Wrench,
 } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
@@ -38,9 +38,8 @@ const ICONS: Record<
   React.ComponentType<{ className?: string }>
 > = {
   home: Home,
-  louvor: Music2,
-  kids: Baby,
-  ministry: Users,
+  agenda: CalendarDays,
+  times: UsersRound,
   escalas: Calendar,
   assistente: Sparkles,
   perfil: User,
@@ -79,7 +78,8 @@ export default async function MaisPage({
     canAdmin: tenant.isCoord,
   });
   const visibleNav = nav.filter(
-    (item) => !(["louvor", "kids", "assistente"] as ShellNavItemId[]).includes(item.id)
+    (item) =>
+      !(["home", "agenda", "times", "escalas", "assistente"] as ShellNavItemId[]).includes(item.id)
   );
   const vapidPublicKey = serverEnv("NEXT_PUBLIC_VAPID_PUBLIC_KEY");
 
@@ -156,9 +156,7 @@ export default async function MaisPage({
                   ? "Perfil e seus dados"
                   : item.id === "escalas"
                     ? "Cultos, convites e suas próximas escalas"
-                    : item.id === "ministry"
-                      ? "Disponibilidade e visão do ministério ativo"
-                      : item.id === "distribuicao"
+                    : item.id === "distribuicao"
                         ? "Radar de carga: quem está sobrecarregado ou esquecido nas escalas"
                         : item.id === "equipamentos"
                           ? "Inventário, patrimônio e chamados de manutenção"

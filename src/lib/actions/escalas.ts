@@ -135,6 +135,65 @@ export async function addAssignment(raw: unknown): Promise<ActionResult> {
   return { ok: true, data: undefined };
 }
 
+const eventResponsibilitySchema = z.object({
+  churchSlug: z.string().min(2),
+  churchId: z.string().uuid(),
+  eventId: z.string().uuid(),
+  userId: z.string().uuid(),
+  roleName: z.string().min(2, "Informe a responsabilidade").max(80),
+});
+
+export async function addEventResponsibility(raw: unknown): Promise<ActionResult> {
+  const parsed = eventResponsibilitySchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+  const d = parsed.data;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Não autenticado" };
+
+  const { error } = await supabase.from("assignments").insert({
+    church_id: d.churchId,
+    event_id: d.eventId,
+    user_id: d.userId,
+    role_name: d.roleName.trim(),
+    assignment_scope: "event",
+    ministry_id: null,
+    department_id: null,
+    function_id: null,
+    leader_id: user.id,
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      error:
+        error.code === "23505"
+          ? "Essa pessoa já possui esta responsabilidade no evento"
+          : "Sem permissão para adicionar a responsabilidade",
+    };
+  }
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("title")
+    .eq("id", d.eventId)
+    .single();
+  await notifyUsers([d.userId], {
+    title: "Nova responsabilidade no evento",
+    body: `${d.roleName.trim()} · ${event?.title ?? "Evento"}`,
+    url: `/${d.churchSlug}/escalas/${d.eventId}`,
+    tag: `event-role-${d.eventId}`,
+  });
+
+  revalidatePath(`/${d.churchSlug}/escalas/${d.eventId}`);
+  revalidatePath(`/${d.churchSlug}`);
+  return { ok: true, data: undefined };
+}
+
 const servingContextSchema = z.object({
   churchId: z.string().uuid(),
   ministryId: z.string().uuid(),
@@ -368,5 +427,44 @@ export async function requestSubstitution(raw: unknown): Promise<ActionResult> {
   });
 
   revalidatePath(`/${d.churchSlug}/escalas/${assignmentContext.event_id}`);
+  return { ok: true, data: undefined };
+}
+
+
+const eventMinistrySchema = z.object({
+  churchSlug: z.string().min(2),
+  churchId: z.string().uuid(),
+  eventId: z.string().uuid(),
+  ministryId: z.string().uuid(),
+});
+
+export async function addEventMinistry(raw: unknown): Promise<ActionResult> {
+  const parsed = eventMinistrySchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Dados inválidos" };
+  const d = parsed.data;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Não autenticado" };
+
+  const { error } = await supabase.from("event_ministries").insert({
+    church_id: d.churchId,
+    event_id: d.eventId,
+    ministry_id: d.ministryId,
+    created_by: user.id,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error:
+        error.code === "23505"
+          ? "Esta área já está vinculada ao evento"
+          : "Sem permissão para adicionar esta área",
+    };
+  }
+
+  revalidatePath(`/${d.churchSlug}/escalas/${d.eventId}`);
   return { ok: true, data: undefined };
 }
