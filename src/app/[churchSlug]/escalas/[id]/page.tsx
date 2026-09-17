@@ -224,7 +224,7 @@ export default async function EventoDetailPage({
   for (const assignment of teamAssignments) {
     const ministry = firstRelated(assignment.ministries);
     if (!ministry) continue;
-    const current = teamMap.get(assignment.ministry_id);
+    const current = assignment.ministry_id ? teamMap.get(assignment.ministry_id) : undefined;
     if (current) {
       current.rows.push(assignment);
     } else if (assignment.ministry_id) {
