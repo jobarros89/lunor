@@ -460,8 +460,8 @@ export async function addEventMinistry(raw: unknown): Promise<ActionResult> {
       ok: false,
       error:
         error.code === "23505"
-          ? "Este time já está vinculado ao evento"
-          : "Sem permissão para adicionar este time",
+          ? "Esta área já está vinculada ao evento"
+          : "Sem permissão para adicionar esta área",
     };
   }
 
