@@ -36,7 +36,8 @@ type AssignmentEvent = {
 };
 type HomeAssignment = {
   id: string;
-  ministry_id: string;
+  ministry_id: string | null;
+  assignment_scope: "team" | "event";
   role_name: string;
   status: string;
   arrival_time: string | null;
@@ -151,7 +152,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   // eslint-disable-next-line react-hooks/purity -- server component, Date.now() é seguro aqui
   const nowMs = Date.now();
   const [{ data: myEscalas }, { data: nextChurchEvents }, { data: serviceWindows }, { data: anuncios }] = await Promise.all([
-    supabase.from("assignments").select("id, ministry_id, role_name, status, arrival_time, release_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, ends_at, location, service_period, campuses(name))").eq("church_id", tenant.church.id).eq("user_id", tenant.userId).neq("status", "substituido").gte("events.starts_at", nowIso).limit(20),
+    supabase.from("assignments").select("id, ministry_id, assignment_scope, role_name, status, arrival_time, release_time, items_to_bring, ministries(name), departments(name), events!inner(id, title, starts_at, ends_at, location, service_period, campuses(name))").eq("church_id", tenant.church.id).eq("user_id", tenant.userId).neq("status", "substituido").gte("events.starts_at", nowIso).limit(20),
     supabase.from("events").select("id, title, starts_at, ends_at, location, service_period, campuses(name)").eq("church_id", tenant.church.id).gte("starts_at", nowIso).order("starts_at").limit(5),
     supabase.from("event_ministry_windows").select("event_id, ministry_id, arrival_at, release_at, events!inner(starts_at)").eq("church_id", tenant.church.id).gte("events.starts_at", nowIso),
     supabase.rpc("anuncios_infantil", { p_church: tenant.church.id }),
@@ -167,7 +168,9 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
   function serviceWindowFor(assignment: HomeAssignment) {
     const event = firstRelated(assignment.events);
     if (!event) return null;
-    const teamWindow = windowByPair.get(pairKey(event.id, assignment.ministry_id));
+    const teamWindow = assignment.ministry_id
+      ? windowByPair.get(pairKey(event.id, assignment.ministry_id))
+      : undefined;
     return resolveServiceWindow({ eventStart: event.starts_at, eventEnd: event.ends_at, teamArrival: teamWindow?.arrival_at, teamRelease: teamWindow?.release_at, assignmentArrival: assignment.arrival_time, assignmentRelease: assignment.release_time });
   }
 
@@ -229,7 +232,7 @@ export default async function HomePage({ params }: { params: Promise<{ churchSlu
         <div className="divide-y rounded-2xl border bg-card px-4 sm:px-5">
           {nextEventAssignments.map((assignment) => {
             const event = firstRelated(assignment.events);
-            const ministry = firstRelated(assignment.ministries)?.name ?? "Time";
+            const ministry = firstRelated(assignment.ministries)?.name ?? "Evento";
             if (!event) return null;
             return (
               <div key={assignment.id} className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
