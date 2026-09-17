@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatEventDate, formatEventTime } from "@/lib/escalas";
 import { scheduleServiceOrder } from "@/lib/service-order";
 import { CultModeTeam, type CultModeAssignment } from "@/components/escalas/cult-mode-team";
+import { CultReadiness, type CultReadinessRow } from "@/components/escalas/cult-readiness";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -101,6 +102,7 @@ export default async function ModoCultoPage({
     { data: assignments },
     { data: serviceItems },
     { data: setlist },
+    { data: readinessChecks },
   ] = await Promise.all([
     supabase
       .from("events")
@@ -131,6 +133,11 @@ export default async function ModoCultoPage({
       .eq("church_id", tenant.church.id)
       .eq("event_id", id)
       .order("position"),
+    supabase
+      .from("event_cult_checks")
+      .select("check_key, completed")
+      .eq("church_id", tenant.church.id)
+      .eq("event_id", id),
   ]);
 
   if (!event) notFound();
@@ -325,6 +332,14 @@ export default async function ModoCultoPage({
           </CardContent>
         </Card>
       </section>
+
+      <CultReadiness
+        churchSlug={churchSlug}
+        churchId={tenant.church.id}
+        eventId={id}
+        rows={(readinessChecks ?? []) as CultReadinessRow[]}
+        canManage={tenant.isLeader}
+      />
 
       <section className="space-y-3">
         <div className="flex items-center gap-2">
