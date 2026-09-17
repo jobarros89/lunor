@@ -388,6 +388,10 @@ create policy events_setlist_manage on public.events
 create or replace function public.guard_scoped_event_update()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
+  if auth.role() = 'service_role' then
+    return new;
+  end if;
+
   if public.is_church_coord(old.church_id)
     or (
       old.ministry_id is not null
