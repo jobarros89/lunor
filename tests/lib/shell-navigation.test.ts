@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildShellNavigation } from "@/lib/shell-navigation";
 
 describe("buildShellNavigation", () => {
-  it("inclui todos os acessos de líder/admin que também precisam existir no mobile", () => {
+  it("usa a arquitetura principal orientada a agenda, times e escalas", () => {
     const nav = buildShellNavigation({
       guardianOnly: false,
       hasLouvor: true,
@@ -16,25 +16,17 @@ describe("buildShellNavigation", () => {
       canAdmin: true,
     });
 
-    expect(nav.map((item) => item.id)).toEqual([
-      "home",
-      "louvor",
-      "kids",
-      "ministry",
-      "escalas",
-      "assistente",
-      "pessoas",
-      "distribuicao",
-      "equipamentos",
-      "perfil",
-      "admin",
+    expect(nav.slice(0, 4)).toEqual([
+      { id: "home", href: "", label: "Início" },
+      { id: "agenda", href: "/escalas?filtro=todas", label: "Agenda" },
+      { id: "times", href: "/times", label: "Times" },
+      { id: "escalas", href: "/escalas?filtro=minhas", label: "Escalas" },
     ]);
-    expect(nav.find((item) => item.id === "ministry")?.href).toBe(
-      "/disponibilidade?ministry=abc"
-    );
+    expect(nav.map((item) => item.id)).not.toContain("louvor");
+    expect(nav.map((item) => item.id)).not.toContain("kids");
   });
 
-  it("não expõe gestão nem assistente para voluntário sem permissão", () => {
+  it("mantém ferramentas administrativas fora da navegação do voluntário", () => {
     const nav = buildShellNavigation({
       guardianOnly: false,
       hasLouvor: true,
@@ -46,7 +38,8 @@ describe("buildShellNavigation", () => {
 
     expect(nav.map((item) => item.id)).toEqual([
       "home",
-      "louvor",
+      "agenda",
+      "times",
       "escalas",
       "perfil",
     ]);
@@ -67,7 +60,7 @@ describe("buildShellNavigation", () => {
     });
 
     expect(nav).toEqual([
-      { id: "kids", href: "/infantil", label: "Meus filhos" },
+      { id: "times", href: "/infantil", label: "Meus filhos" },
       { id: "perfil", href: "/perfil", label: "Perfil" },
     ]);
   });
