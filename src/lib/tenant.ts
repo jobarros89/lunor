@@ -147,7 +147,7 @@ export const getTenant = cache(
     const [{ data: memberships }, { data: guardian }] = await Promise.all([
       supabase
         .from("ministry_members")
-        .select("role, ministries(id, name, slug, module_key)")
+        .select("role, ministries(id, name, slug, module_key, active)")
         .eq("church_id", church.id)
         .eq("user_id", user.id)
         .eq("active", true),
@@ -172,8 +172,9 @@ export const getTenant = cache(
           name: string;
           slug: string;
           module_key: "generic" | "worship" | "kids";
+          active: boolean;
         } | null;
-        if (!ministry) return [];
+        if (!ministry?.active) return [];
         return [{
           id: ministry.id,
           name: ministry.name,

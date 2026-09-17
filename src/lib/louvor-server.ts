@@ -11,6 +11,7 @@ export async function getLouvorMinistry(
     .select("id, name")
     .eq("church_id", churchId)
     .eq("module_key", "worship")
+    .eq("active", true)
     .limit(1)
     .maybeSingle();
   return data ?? null;

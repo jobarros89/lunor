@@ -33,6 +33,7 @@ describe("hierarquia genérica de ministérios", () => {
   let ministryId: string;
   let teamId: string;
   let functionId: string;
+  let assignmentId: string;
   const run = Date.now();
 
   beforeAll(async () => {
@@ -126,13 +127,51 @@ describe("hierarquia genérica de ministérios", () => {
         user_id: user!.id,
         role_name: "valor substituído pelo trigger",
       })
-      .select("role_name, function_id")
+      .select("id, role_name, function_id")
       .single();
 
     expect(assignment.error).toBeNull();
+    assignmentId = assignment.data!.id;
     expect(assignment.data).toMatchObject({
       role_name: "Trilha",
       function_id: functionId,
     });
   });
+
+  it("desativa a hierarquia sem alterar o histórico da escala", async () => {
+    const renamed = await owner
+      .from("team_functions")
+      .update({ name: "Trilha Sonora", active: false })
+      .eq("id", functionId)
+      .select("id");
+    expect(renamed.error).toBeNull();
+
+    const team = await owner
+      .from("departments")
+      .update({ active: false })
+      .eq("id", teamId)
+      .select("id");
+    expect(team.error).toBeNull();
+
+    const ministry = await owner
+      .from("ministries")
+      .update({ active: false })
+      .eq("id", ministryId)
+      .select("id");
+    expect(ministry.error).toBeNull();
+
+    const statusUpdate = await owner
+      .from("assignments")
+      .update({ status: "confirmado" })
+      .eq("id", assignmentId)
+      .select("role_name, function_id")
+      .single();
+
+    expect(statusUpdate.error).toBeNull();
+    expect(statusUpdate.data).toMatchObject({
+      role_name: "Trilha",
+      function_id: functionId,
+    });
+  });
+
 });
