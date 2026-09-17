@@ -7,6 +7,7 @@ export type MinistryOption = {
   id: string;
   name: string;
   slug: string;
+  module_key: "generic" | "worship" | "kids";
   /** pode gerir a escala deste setor (coord da igreja, ou gerente/líder do setor) */
   canManage: boolean;
 };
@@ -33,7 +34,7 @@ export const getActiveMinistry = cache(
       const supabase = await createClient();
       const { data } = await supabase
         .from("ministries")
-        .select("id, name, slug")
+        .select("id, name, slug, module_key")
         .eq("church_id", tenant.church.id)
         .order("name");
       options = (data ?? []).map((m) => ({ ...m, canManage: true }));
@@ -43,6 +44,7 @@ export const getActiveMinistry = cache(
           id: membership.id,
           name: membership.name,
           slug: membership.slug,
+          module_key: membership.module_key,
           canManage: membership.role === "gerente" || membership.role === "lider",
         }))
         .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));

@@ -12,25 +12,8 @@ import { BrandLockup } from "@/components/brand-lockup";
 import { OfflineNotice } from "@/components/shell/offline-notice";
 import { KidsNoticeBanner, type KidsPersonalNotice } from "@/components/infantil/kids-notice-banner";
 
-function isKidsMinistry(ministry: { name: string; slug: string }) {
-  const slug = ministry.slug.toLocaleLowerCase("pt-BR");
-  const name = ministry.name.toLocaleLowerCase("pt-BR");
-  return ["kids", "infantil", "criancas", "crianças"].includes(slug)
-    || name.includes("kids")
-    || name.includes("infantil")
-    || name.includes("crianças")
-    || name.includes("criancas");
-}
-
-function isLouvorMinistry(ministry: { name: string; slug: string }) {
-  const slug = ministry.slug.toLocaleLowerCase("pt-BR");
-  const name = ministry.name.toLocaleLowerCase("pt-BR");
-  return slug === "louvor" || name.includes("louvor");
-}
-
-function ministryNavigation(ministry: { id: string; name: string; slug: string } | null) {
-  if (!ministry) return null;
-  if (isLouvorMinistry(ministry) || isKidsMinistry(ministry)) return null;
+function ministryNavigation(ministry: { id: string; name: string; module_key: "generic" | "worship" | "kids" } | null) {
+  if (!ministry || ministry.module_key !== "generic") return null;
   return {
     href: `/disponibilidade?ministry=${ministry.id}`,
     label: ministry.name,
@@ -43,8 +26,8 @@ export default async function TenantLayout({ children, params }: { children: Rea
   const tenant = await getTenant(churchSlug);
   const { active, options } = await getActiveMinistry(churchSlug);
   const activeMinistryNavigation = ministryNavigation(active);
-  const hasLouvor = options.some(isLouvorMinistry);
-  const hasKids = tenant.isGuardian || options.some(isKidsMinistry);
+  const hasLouvor = options.some((ministry) => ministry.module_key === "worship");
+  const hasKids = tenant.isGuardian || options.some((ministry) => ministry.module_key === "kids");
   const supabase = await createClient();
   const [{ count: escalasPending }, { data: kidsNotices }] = await Promise.all([
     supabase

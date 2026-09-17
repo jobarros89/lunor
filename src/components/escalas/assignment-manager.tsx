@@ -33,9 +33,11 @@ type Member = {
 };
 type Equipment = { id: string; name: string };
 type ServingArea = { id: string; name: string };
+type TeamFunction = { id: string; name: string; department_id: string };
 type AssignmentServingArea = {
   id: string;
   department_id: string | null;
+  function_id: string | null;
   department_name: string | null;
 };
 export type AssignmentRow = {
@@ -97,7 +99,9 @@ export function AssignmentManager({
   const [userId, setUserId] = useState("");
   const [roleName, setRoleName] = useState("");
   const [departmentId, setDepartmentId] = useState("");
+  const [functionId, setFunctionId] = useState("");
   const [servingAreas, setServingAreas] = useState<ServingArea[]>([]);
+  const [teamFunctions, setTeamFunctions] = useState<TeamFunction[]>([]);
   const [assignmentAreas, setAssignmentAreas] = useState<AssignmentServingArea[]>([]);
 
   useEffect(() => {
@@ -105,6 +109,7 @@ export function AssignmentManager({
     getAssignmentServingContext({ churchId, ministryId, eventId }).then((result) => {
       if (!active || !result.ok) return;
       setServingAreas(result.data.departments);
+      setTeamFunctions(result.data.functions);
       setAssignmentAreas(result.data.assignments);
     });
     return () => {
@@ -128,6 +133,9 @@ export function AssignmentManager({
     if (!userId) return toast.error("Escolha a pessoa");
     if (servingAreas.length > 0 && !departmentId)
       return toast.error("Escolha onde a pessoa vai servir");
+    const availableFunctions = teamFunctions.filter((item) => item.department_id === departmentId);
+    if (availableFunctions.length > 0 && !functionId)
+      return toast.error("Escolha a função");
     if (roleName.length < 2) return toast.error("Informe a função (ex.: Guitarra)");
     act(
       () =>
@@ -138,12 +146,14 @@ export function AssignmentManager({
           eventId,
           userId,
           departmentId: departmentId || null,
+          functionId: functionId || null,
           roleName,
         }),
       "Pessoa escalada"
     );
     setUserId("");
     setDepartmentId("");
+    setFunctionId("");
     setRoleName("");
   }
 
@@ -178,6 +188,9 @@ export function AssignmentManager({
     return suggestionsForRole(assignment.role_name, assignment.user_id);
   }
 
+  const selectedTeamFunctions = teamFunctions.filter(
+    (item) => item.department_id === departmentId
+  );
   const selecionado = members.find((m) => m.user_id === userId);
   const newAssignmentSuggestions = roleName.trim().length >= 2
     ? suggestionsForRole(roleName)
@@ -333,16 +346,37 @@ export function AssignmentManager({
           {servingAreas.length > 0 && (
             <Select
               value={departmentId}
-              onChange={(e) => setDepartmentId(e.target.value)}
-              aria-label="Onde vai servir?"
+              onChange={(e) => {
+                setDepartmentId(e.target.value);
+                setFunctionId("");
+                setRoleName("");
+              }}
+              aria-label="Time"
             >
-              <option value="">Onde vai servir?</option>
+              <option value="">Escolha o time</option>
               {servingAreas.map((area) => (
                 <option key={area.id} value={area.id}>{area.name}</option>
               ))}
             </Select>
           )}
-          <Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Função (ex.: Guitarra)" className="w-full min-w-0 max-w-full" />
+          {selectedTeamFunctions.length > 0 ? (
+            <Select
+              value={functionId}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                setFunctionId(nextId);
+                setRoleName(selectedTeamFunctions.find((item) => item.id === nextId)?.name ?? "");
+              }}
+              aria-label="Função"
+            >
+              <option value="">Escolha a função</option>
+              {selectedTeamFunctions.map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </Select>
+          ) : (
+            <Input value={roleName} onChange={(e) => setRoleName(e.target.value)} placeholder="Função (ex.: Guitarra)" className="w-full min-w-0 max-w-full" />
+          )}
           <Button disabled={pending} className="w-full min-w-0 max-w-full px-5" onClick={escalar}>Escalar</Button>
         </div>
 

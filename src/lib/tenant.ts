@@ -8,6 +8,7 @@ export type TenantMinistryMembership = {
   id: string;
   name: string;
   slug: string;
+  module_key: "generic" | "worship" | "kids";
   role: MinistryRole;
 };
 
@@ -146,7 +147,7 @@ export const getTenant = cache(
     const [{ data: memberships }, { data: guardian }] = await Promise.all([
       supabase
         .from("ministry_members")
-        .select("role, ministries(id, name, slug)")
+        .select("role, ministries(id, name, slug, module_key)")
         .eq("church_id", church.id)
         .eq("user_id", user.id)
         .eq("active", true),
@@ -170,12 +171,14 @@ export const getTenant = cache(
           id: string;
           name: string;
           slug: string;
+          module_key: "generic" | "worship" | "kids";
         } | null;
         if (!ministry) return [];
         return [{
           id: ministry.id,
           name: ministry.name,
           slug: ministry.slug,
+          module_key: ministry.module_key,
           role: membership.role as MinistryRole,
         }];
       }
