@@ -1,6 +1,6 @@
 workflows:
   ios-capacitor-compile:
-    name: LUNOR iOS - compile proof
+    name: LUNOR iOS - remote compile proof
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment:
@@ -14,22 +14,61 @@ workflows:
       - name: Install JavaScript dependencies
         script: npm ci
 
-      - name: Create temporary Capacitor web fallback
-        script: |
-          mkdir -p out
-          cat > out/index.html <<'EOF'
-          <!doctype html>
-          <html lang="pt-BR">
-            <head><meta charset="utf-8"><title>LUNOR</title></head>
-            <body><main>LUNOR</main></body>
-          </html>
-          EOF
+      - name: Generate Capacitor web shell
+        script: npm run mobile:shell
 
       - name: Generate native iOS project
-        script: npx cap add ios
+        script: CAPACITOR_APP_MODE=remote npx cap add ios
 
       - name: Sync Capacitor and app icons
-        script: npm run mobile:ios
+        script: CAPACITOR_APP_MODE=remote npm run mobile:ios
+
+      - name: Compile iOS simulator app without signing
+        script: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+    artifacts:
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/Products/Debug-iphonesimulator/*.app
+      - /tmp/xcodebuild_logs/*.log
+
+  ios-local-shell-compile:
+    name: LUNOR iOS - local shell proof
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      node: 22
+      xcode: latest
+    cache:
+      cache_paths:
+        - $HOME/.npm
+        - $HOME/Library/Caches/org.swift.swiftpm
+    scripts:
+      - name: Install JavaScript dependencies
+        script: npm ci
+
+      - name: Generate local LUNOR shell
+        script: npm run mobile:shell
+
+      - name: Generate native iOS project without remote server
+        script: CAPACITOR_APP_MODE=local npx cap add ios
+
+      - name: Sync local shell and app icons
+        script: CAPACITOR_APP_MODE=local npm run mobile:ios
+
+      - name: Assert production profile has no remote server URL
+        script: |
+          if grep -R 'lunorservice.com' ios/App/App/capacitor.config.json; then
+            echo "Local shell build unexpectedly contains a remote server URL."
+            exit 1
+          fi
+          echo "Local shell config contains no remote server URL."
 
       - name: Compile iOS simulator app without signing
         script: |
