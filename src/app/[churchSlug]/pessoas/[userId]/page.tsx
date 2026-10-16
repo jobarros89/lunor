@@ -134,7 +134,7 @@ export default async function PessoaDetailPage({
 
   const isSelf = tenant.userId === userId;
   const targetMinistryIds = new Set((memberships ?? []).map((membership) => membership.ministry_id));
-  const messageMinistries = tenant.isCoord
+  const messageMinistries: { id: string | null; name: string }[] = tenant.isCoord
     ? (ministries ?? [])
         .filter((ministry) => targetMinistryIds.has(ministry.id))
         .map((ministry) => ({ id: ministry.id, name: ministry.name }))
