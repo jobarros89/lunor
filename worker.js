@@ -22,8 +22,14 @@ const worker = {
 
     await chamar("/api/cron");
 
-    // Versículo diário só no cron diário das 12h UTC (09h em Brasília). O
-    // trigger de sexta 22h UTC é exclusivo da preparação para o fim de semana.
+    // Lembrete da escala:
+    // - sábado 22h UTC = 19h em São Paulo, para cultos de domingo;
+    // - 23h UTC = 20h em São Paulo, um dia antes dos demais serviços.
+    if (event.cron === "0 22 * * 6" || event.cron === "0 23 * * *") {
+      await chamar("/api/cron/service-reminders");
+    }
+
+    // Versículo diário só no cron diário das 12h UTC (09h em Brasília).
     if (event.cron === "0 12 * * *") {
       await chamar("/api/cron/verse");
     }

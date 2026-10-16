@@ -28,11 +28,14 @@
   // Ambiente compartilhado de desenvolvimento. O domínio próprio será
   // configurado somente quando houver um ambiente de produção separado.
   "workers_dev": true,
-  // 12:00 UTC = 09:00 em Brasília: lembretes operacionais da véspera.
-  // 22:00 UTC de sexta = 19:00 em Brasília: preparação espiritual de quem
-  // serve no fim de semana. Sem CRON_SECRET o handler encerra com 404.
+  // Horários do cron em UTC (São Paulo = UTC-3):
+  // 12:00 UTC = 09:00: lembretes operacionais existentes.
+  // 22:00 UTC sexta = 19:00: preparação espiritual do fim de semana.
+  // 22:00 UTC sábado = 19:00: lembrete de quem serve no domingo.
+  // 23:00 UTC diário = 20:00: lembrete um dia antes dos demais serviços.
+  // Sem CRON_SECRET os handlers encerram com 404.
   "triggers": {
-    "crons": ["0 12 * * *", "0 22 * * 5"]
+    "crons": ["0 12 * * *", "0 22 * * 5", "0 22 * * 6", "0 23 * * *"]
   },
   "observability": {
     "enabled": true

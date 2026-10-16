@@ -13,6 +13,7 @@ import { SkillManager } from "@/components/pessoas/skill-manager";
 import { MinistryManager } from "@/components/pessoas/ministry-manager";
 import { ChurchRoleToggle } from "@/components/pessoas/church-role-toggle";
 import { UnavailabilityManager } from "@/components/pessoas/unavailability-manager";
+import { SendMemberMessage } from "@/components/pessoas/send-member-message";
 import { DIAS_SEMANA, PERIODOS } from "@/lib/briefing";
 
 function formatPeriodo(inicio: string, fim: string): string {
@@ -132,6 +133,22 @@ export default async function PessoaDetailPage({
   }));
 
   const isSelf = tenant.userId === userId;
+  const targetMinistryIds = new Set((memberships ?? []).map((membership) => membership.ministry_id));
+  const messageMinistries: { id: string | null; name: string }[] = tenant.isCoord
+    ? (ministries ?? [])
+        .filter((ministry) => targetMinistryIds.has(ministry.id))
+        .map((ministry) => ({ id: ministry.id, name: ministry.name }))
+    : tenant.ministryMemberships
+        .filter(
+          (membership) =>
+            targetMinistryIds.has(membership.id) &&
+            (membership.permissionRole === "gerente" || membership.permissionRole === "lider"),
+        )
+        .map((membership) => ({ id: membership.id, name: membership.name }));
+  if (tenant.isCoord && messageMinistries.length === 0) {
+    messageMinistries.push({ id: null, name: "Igreja" });
+  }
+
   const interesses = (interests ?? []).map(
     (i) => (i.skills as unknown as { name: string }).name
   );
@@ -159,6 +176,26 @@ export default async function PessoaDetailPage({
           </div>
         </div>
       </div>
+
+      {!isSelf && messageMinistries.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Enviar mensagem</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              A mensagem fica disponível no LUNOR para este membro.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <SendMemberMessage
+              churchSlug={churchSlug}
+              churchId={tenant.church.id}
+              recipientUserId={userId}
+              recipientName={profile.full_name}
+              ministries={messageMinistries}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {briefing?.summary && (
         <Card>

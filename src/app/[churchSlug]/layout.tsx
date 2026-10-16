@@ -1,9 +1,10 @@
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { LogOut, MessageSquare } from "lucide-react";
 import { getTenant } from "@/lib/tenant";
 import { getActiveMinistry } from "@/lib/ministry";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { Sidebar } from "@/components/shell/sidebar";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
@@ -29,7 +30,11 @@ export default async function TenantLayout({ children, params }: { children: Rea
   const hasLouvor = options.some((ministry) => ministry.module_key === "worship");
   const hasKids = tenant.isGuardian || options.some((ministry) => ministry.module_key === "kids");
   const supabase = await createClient();
-  const [{ count: escalasPending }, { data: kidsNotices }] = await Promise.all([
+  const [
+    { count: escalasPending },
+    { data: kidsNotices },
+    { count: unreadMessages },
+  ] = await Promise.all([
     supabase
       .from("assignments")
       .select("id, events!inner(starts_at)", { count: "exact", head: true })
@@ -38,6 +43,12 @@ export default async function TenantLayout({ children, params }: { children: Rea
       .eq("status", "convidado")
       .gte("events.starts_at", new Date().toISOString()),
     supabase.rpc("meus_anuncios_infantil", { p_church: tenant.church.id }),
+    supabase
+      .from("inbox_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("church_id", tenant.church.id)
+      .eq("recipient_id", tenant.userId)
+      .is("read_at", null),
   ]);
   const today = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
   const initials = tenant.profile.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
@@ -60,6 +71,27 @@ export default async function TenantLayout({ children, params }: { children: Rea
               <p className="text-xs capitalize text-muted-foreground">{today}</p>
             </div>
             <div className="ml-auto flex min-w-0 items-center gap-1">
+              <Link
+                href={`/${churchSlug}/mensagens`}
+                className={buttonVariants({
+                  variant: "ghost",
+                  size: "icon",
+                  className: "relative h-10 w-10",
+                })}
+                aria-label={
+                  (unreadMessages ?? 0) > 0
+                    ? `Mensagens (${unreadMessages} não lidas)`
+                    : "Mensagens"
+                }
+                title="Mensagens"
+              >
+                <MessageSquare className="size-4" />
+                {(unreadMessages ?? 0) > 0 && (
+                  <span className="absolute right-1 top-1 flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-4 text-white">
+                    {(unreadMessages ?? 0) > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
+              </Link>
               <ThemeToggle />
               <form action="/auth/logout" method="post">
                 <Button type="submit" variant="ghost" className="h-10 rounded-lg px-3" aria-label="Sair" title="Sair"><LogOut className="size-4" /><span className="hidden lg:inline">Sair</span></Button>
