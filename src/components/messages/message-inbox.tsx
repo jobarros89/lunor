@@ -41,26 +41,25 @@ export function MessageInbox({
   messages: InboxMessageView[];
 }) {
   const router = useRouter();
-  const unreadIds = messages
+  const unreadKey = messages
     .filter((message) => message.direction === "received" && !message.readAt)
-    .map((message) => message.id);
+    .map((message) => message.id)
+    .join(",");
 
   useEffect(() => {
-    if (unreadIds.length === 0) return;
+    if (!unreadKey) return;
     let active = true;
     markInboxMessagesRead({
       churchSlug,
       churchId,
-      messageIds: unreadIds,
+      messageIds: unreadKey.split(","),
     }).then((result) => {
       if (active && result.ok) router.refresh();
     });
     return () => {
       active = false;
     };
-    // The stable key avoids re-running only because a new array instance was created.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [churchId, churchSlug, router, unreadIds.join(",")]);
+  }, [churchId, churchSlug, router, unreadKey]);
 
   if (messages.length === 0) {
     return (
