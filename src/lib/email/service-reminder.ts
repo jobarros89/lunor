@@ -81,17 +81,18 @@ export async function notifyServiceReminderByEmail({
               .eq("ministry_id", assignment.ministry_id)
               .maybeSingle()
           : Promise.resolve({ data: null }),
-        event.setlist_status === "publicado"
-          ? admin
-              .from("setlist_items")
-              .select("position, key_override, songs(title, default_key)")
-              .eq("event_id", assignment.event_id)
-              .eq("church_id", assignment.church_id)
-              .order("position")
-          : Promise.resolve({ data: [] }),
+        admin
+          .from("setlist_items")
+          .select("position, key_override, songs(title, default_key)")
+          .eq("event_id", assignment.event_id)
+          .eq("church_id", assignment.church_id)
+          .order("position"),
       ]);
 
-    const setlist: EmailListItem[] = (setlistResult.data ?? []).flatMap((item) => {
+    const setlist: EmailListItem[] =
+      event.setlist_status !== "publicado"
+        ? []
+        : (setlistResult.data ?? []).flatMap((item) => {
       const song = firstRelated(
         item.songs as unknown as
           | { title: string; default_key: string | null }
@@ -100,8 +101,8 @@ export async function notifyServiceReminderByEmail({
       );
       if (!song?.title) return [];
       const key = item.key_override || song.default_key;
-      return [{ primary: song.title, secondary: key ? `Tom ${key}` : "Tom a definir" }];
-    });
+            return [{ primary: song.title, secondary: key ? `Tom ${key}` : "Tom a definir" }];
+          });
 
     const arrivalAt =
       assignment.arrival_time ?? ministryWindow?.arrival_at ?? event.starts_at;
@@ -112,11 +113,11 @@ export async function notifyServiceReminderByEmail({
       { label: "Data", value: formatDatePtBr(event.starts_at) },
       { label: "Início", value: formatTimePtBr(event.starts_at) },
       { label: "Chegada", value: formatTimePtBr(arrivalAt) },
-      { label: "Instrumento / posição", value: servingPosition },
+      { label: "Função", value: assignment.role_name },
     ];
 
     if (assignment.role_name !== servingPosition) {
-      details.push({ label: "Função", value: assignment.role_name });
+      details.push({ label: "Área / posição", value: servingPosition });
     }
     if (assignment.items_to_bring) {
       details.push({ label: "Levar", value: assignment.items_to_bring });
