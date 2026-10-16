@@ -93,15 +93,20 @@ export async function notifyServiceReminderByEmail({
       event.setlist_status !== "publicado"
         ? []
         : (setlistResult.data ?? []).flatMap((item) => {
-      const song = firstRelated(
-        item.songs as unknown as
-          | { title: string; default_key: string | null }
-          | { title: string; default_key: string | null }[]
-          | null,
-      );
-      if (!song?.title) return [];
-      const key = item.key_override || song.default_key;
-            return [{ primary: song.title, secondary: key ? `Tom ${key}` : "Tom a definir" }];
+            const song = firstRelated(
+              item.songs as unknown as
+                | { title: string; default_key: string | null }
+                | { title: string; default_key: string | null }[]
+                | null,
+            );
+            if (!song?.title) return [];
+            const key = item.key_override || song.default_key;
+            return [
+              {
+                primary: song.title,
+                secondary: key ? `Tom ${key}` : "Tom a definir",
+              },
+            ];
           });
 
     const arrivalAt =
