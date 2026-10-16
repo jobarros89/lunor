@@ -79,7 +79,8 @@ as $$
         and recipient_church.status = 'active'
     )
     and (
-      public.is_church_coord(p_church)
+      public.is_platform_admin()
+      or public.is_church_coord(p_church)
       or (
         p_ministry is not null
         and exists (
@@ -261,10 +262,11 @@ begin
           and extract(dow from e.starts_at at time zone 'America/Sao_Paulo')::integer = 0
         )
         or (
-          -- All other service days -> previous day at 20:00.
+          -- Previous day at 20:00 for every service. For Sunday this is a
+          -- fallback: if the 19:00 reminder already succeeded, dedupe_key
+          -- prevents a second message/e-mail.
           v_hora = 20
           and ((e.starts_at at time zone 'America/Sao_Paulo')::date) = v_hoje + 1
-          and extract(dow from e.starts_at at time zone 'America/Sao_Paulo')::integer <> 0
         )
       )
   ),
@@ -272,14 +274,15 @@ begin
     select
       c.*,
       'Lembrete da sua escala'::text as titulo,
-      (
+      left(
         c.event_title
         || E'\nChegada: '
         || to_char(c.arrival_at at time zone 'America/Sao_Paulo', 'HH24:MI')
         || E'\nFunção: '
         || c.role_name
         || E'\nRepertório: '
-        || coalesce(nullif(c.setlist_titles, ''), case when c.setlist_status = 'rascunho' then 'ainda não publicado' else 'não informado' end)
+        || coalesce(nullif(c.setlist_titles, ''), case when c.setlist_status = 'rascunho' then 'ainda não publicado' else 'não informado' end),
+        2800
       )::text as corpo,
       ('/' || c.church_slug || '/escalas/' || c.event_id)::text as url,
       (
