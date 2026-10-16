@@ -252,7 +252,7 @@ begin
     left join event_ministry_windows emw
       on emw.event_id = a.event_id
      and emw.ministry_id = a.ministry_id
-    where a.status in ('convidado', 'confirmado')
+    where a.status in ('convidado', 'confirmado', 'falar_lider')
       and (
         (
           -- Sunday service -> Saturday at 19:00.
